@@ -1,0 +1,158 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>HomeStation - Verify OTP</title>
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,600;0,700;1,600&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <link rel="stylesheet" href="/css/verify-otp.css">
+</head>
+
+<body class="shared-bg">
+    <main class="signup-container">
+        <div class="signup-left">
+            <div class="form-wrapper">
+                <h1 class="title"><i class="fa-solid fa-shield-halved" style="margin-right: 8px; font-size: 0.85em;"></i>Verify OTP</h1>
+                <p class="subtitle">Enter the 6-digit code sent to <strong><%= email %></strong>.</p>
+                
+                <form class="signup-form" id="otpForm">
+                    
+                    <input type="hidden" name="enteredOtp" id="combinedOtp">
+
+                    <div class="otp-container">
+                        <input type="text" maxlength="1" class="otp-input" pattern="[0-9]" inputmode="numeric" required autofocus>
+                        <input type="text" maxlength="1" class="otp-input" pattern="[0-9]" inputmode="numeric" required>
+                        <input type="text" maxlength="1" class="otp-input" pattern="[0-9]" inputmode="numeric" required>
+                        <input type="text" maxlength="1" class="otp-input" pattern="[0-9]" inputmode="numeric" required>
+                        <input type="text" maxlength="1" class="otp-input" pattern="[0-9]" inputmode="numeric" required>
+                        <input type="text" maxlength="1" class="otp-input" pattern="[0-9]" inputmode="numeric" required>
+                    </div>
+
+                    <div class="timer-text">
+                        <span id="timer">60</span>s remaining
+                    </div>
+
+                    <button type="submit" class="btn btn-login">Verify OTP</button>
+                </form>
+            </div>
+        </div>
+
+        <div class="signup-right">
+            <div class="right-content">
+                <h2 class="welcome-title">HomeStation</h2>
+                <p class="welcome-desc">Your one stop destination for furniture, home furnishings, and decor to bring the joy.</p>
+            </div>
+        </div>
+    </main>
+
+    <script>
+        const otpInputs = document.querySelectorAll('.otp-input');
+
+        otpInputs.forEach((input, index) => {
+            input.addEventListener('keyup', (e) => {
+                const currentInput = input;
+                const nextInput = input.nextElementSibling;
+                const prevInput = input.previousElementSibling;
+
+                currentInput.value = currentInput.value.replace(/[^0-9]/g, '');
+
+                if (currentInput.value.length === 1 && nextInput && e.key !== 'Backspace') {
+                    nextInput.focus();
+                }
+                if (e.key === 'Backspace' && prevInput) {
+                    prevInput.focus();
+                }
+            });
+        });
+
+        let timeLeft = 60;
+        const timerElement = document.getElementById('timer');
+
+        const countdown = setInterval(() => {
+            timeLeft--;
+            if(timerElement) timerElement.textContent = timeLeft;
+            
+            if (timeLeft <= 0) {
+                clearInterval(countdown);
+                const timerText = document.querySelector('.timer-text');
+                if (timerText) {
+                    timerText.innerHTML = '<a href="/user/resend-otp" style="color: #222; text-decoration: none; font-weight: 600;">Resend OTP</a>';
+                }
+            }
+        }, 1000);
+
+        document.getElementById('otpForm').addEventListener('submit', async function(e) {
+            e.preventDefault(); 
+
+            let otp = '';
+            otpInputs.forEach(input => {
+                otp += input.value;
+            });
+
+            if (otp.length !== 6) {
+                return Swal.fire({
+                    icon: 'warning',
+                    title: 'Incomplete',
+                    text: 'Please enter the full 6-digit code.',
+                    confirmButtonColor: '#222',
+                    heightAuto: false
+                });
+            }
+
+            const combinedOtpInput = document.getElementById('combinedOtp');
+            if (combinedOtpInput) combinedOtpInput.value = otp;
+
+            const submitBtn = e.target.querySelector('button[type="submit"]');
+            const originalText = submitBtn.innerText;
+            submitBtn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Verifying...';
+            submitBtn.disabled = true;
+
+            try {
+                const response = await fetch('/user/verify-otp', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ otp: otp })
+                });
+
+                const data = await response.json();
+
+                if (data.success) {
+                    Swal.fire({
+                        icon: 'success',
+                        title: 'Verified!',
+                        text: data.message,
+                        timer: 1500,
+                        showConfirmButton: false,
+                        heightAuto: false
+                    }).then(() => {
+                        window.location.href = data.redirectUrl || '/user/login';
+                    });
+                } else {
+                    Swal.fire({
+                        icon: 'error',
+                        title: 'Verification Failed',
+                        text: data.message,
+                        confirmButtonColor: '#222',
+                        heightAuto: false
+                    });
+                }
+            } catch (error) {
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Server Error',
+                    text: 'An error occurred during verification.',
+                    confirmButtonColor: '#222',
+                    heightAuto: false
+                });
+            } finally {
+                submitBtn.innerHTML = originalText;
+                submitBtn.disabled = false;
+            }
+        });
+    </script>
+</body>
+</html>

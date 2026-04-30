@@ -1,0 +1,350 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>HomeStation - Basic Store</title>
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,600;0,700;1,600&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <link rel="stylesheet" href="/css/home.css">
+</head>
+
+<body>
+    <div class="promo-bar">
+        10% discount with coupon code <strong>"HOME10"</strong> - <strong>Hurry! Limited Period Offer</strong>
+    </div>
+
+    <header class="header">
+        <div class="container-fluid header-container">
+            <a href="/home" class="logo">HomeStation</a>
+            <nav class="nav">
+                <ul class="nav-list">
+                    <li><a href="/home" class="nav-link">Home</a></li>
+                    <li><a href="#" class="nav-link">World of Mattress</a></li>
+                    <li><a href="#" class="nav-link">Top Deals</a></li>
+                    <li><a href="#" class="nav-link">Best Sellers</a></li>
+                    <li><a href="#" class="nav-link">Contact Us</a></li>
+                </ul>
+            </nav>
+            <div class="search-container">
+                <input type="text" placeholder="Search for products, brands and more..." id="searchInput">
+                <button id="searchBtn"><i class="fa-solid fa-magnifying-glass"></i></button>
+            </div>
+            <div class="header-actions">
+                <a href="#" class="icon-link wishlist-link"><i class="fa-regular fa-heart"></i> Wishlist</a>
+                
+                <a href="/user/profile" class="icon-link"><i class="fa-solid fa-user"></i> Profile</a>
+                
+                <a href="#" class="icon-link"><i class="fa-solid fa-cart-shopping"></i> Cart</a>
+            </div>
+        </div>
+    </header>
+
+    <section class="hero-section" style="position: relative; text-align: center; color: white;">
+        <img src="https://images.unsplash.com/photo-1631049307264-da0ec9d70304?auto=format&fit=crop&q=80&w=1200"
+            alt="Premium Mattress" style="width: 100%; height: 500px; object-fit: cover; filter: brightness(0.7);">
+        <div class="hero-content" style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);">
+            <h1 style="font-size: 3rem; margin-bottom: 20px;">Experience Cloud Like Comfort</h1>
+            <p style="font-size: 1.2rem; margin-bottom: 30px;">Discover our exclusive range of premium mattresses
+                designed for the perfect night's sleep.</p>
+            <a href="#" class="btn-primary" style="padding: 15px 30px; font-size: 1.1rem; text-decoration: none; border-radius: 5px;">Shop Mattress</a>
+        </div>
+    </section>
+
+    <section class="products-section">
+        <div class="container">
+            <div class="section-header">
+                <h2>Best Sellers</h2>
+                <a href="#" class="see-all">See All <i class="fa-solid fa-arrow-right"></i></a>
+            </div>
+            <div class="products-grid">
+                <div class="product-card">
+                    <div class="product-image">
+                        <img src="https://images.unsplash.com/photo-1505693314120-0d443867891c?auto=format&fit=crop&q=80&w=400" alt="Premium Memory Foam Mattress">
+                        <span class="badge">Best Seller</span>
+                        <button class="wishlist-btn"><i class="fa-regular fa-heart"></i></button>
+                    </div>
+                    <div class="product-info">
+                        <h3>Premium Memory Foam</h3>
+                        <div class="stars"><i class="fa-solid fa-star"></i> 4.8 (120)</div>
+                        <div class="card-footer">
+                            <p class="price">₹14,499</p>
+                            <button class="add-to-cart-btn"><i class="fa-solid fa-cart-plus"></i> Add</button>
+                        </div>
+                    </div>
+                </div>
+                <div class="product-card">
+                    <div class="product-image">
+                        <img src="https://images.unsplash.com/photo-1582582621959-48d27397dc69?auto=format&fit=crop&q=80&w=400" alt="Pocket Spring Hybrid Mattress">
+                        <span class="badge">Best Seller</span>
+                        <button class="wishlist-btn"><i class="fa-regular fa-heart"></i></button>
+                    </div>
+                    <div class="product-info">
+                        <h3>Pocket Spring Hybrid</h3>
+                        <div class="stars"><i class="fa-solid fa-star"></i> 4.9 (85)</div>
+                        <div class="card-footer">
+                            <p class="price">₹28,999</p>
+                            <button class="add-to-cart-btn"><i class="fa-solid fa-cart-plus"></i> Add</button>
+                        </div>
+                    </div>
+                </div>
+                <div class="product-card">
+                    <div class="product-image">
+                        <img src="https://images.unsplash.com/photo-1540518614846-7eded433c457?auto=format&fit=crop&q=80&w=400" alt="Cooling Gel Topper">
+                        <span class="badge">Best Seller</span>
+                        <button class="wishlist-btn"><i class="fa-regular fa-heart"></i></button>
+                    </div>
+                    <div class="product-info">
+                        <h3>Cooling Gel Topper</h3>
+                        <div class="stars"><i class="fa-solid fa-star"></i> 4.7 (210)</div>
+                        <div class="card-footer">
+                            <p class="price">₹3,299</p>
+                            <button class="add-to-cart-btn"><i class="fa-solid fa-cart-plus"></i> Add</button>
+                        </div>
+                    </div>
+                </div>
+                <div class="product-card">
+                    <div class="product-image">
+                        <img src="https://images.unsplash.com/photo-1517705008128-361805f42e86?w=400" alt="Product">
+                        <span class="badge">Best Seller</span>
+                        <button class="wishlist-btn"><i class="fa-regular fa-heart"></i></button>
+                    </div>
+                    <div class="product-info">
+                        <h3>Orthopedic Mattress</h3>
+                        <div class="stars"><i class="fa-solid fa-star"></i> 4.8 (340)</div>
+                        <div class="card-footer">
+                            <p class="price">₹12,499</p>
+                            <button class="add-to-cart-btn"><i class="fa-solid fa-cart-plus"></i> Add</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <section class="products-section deals-section">
+        <div class="container">
+            <div class="section-header">
+                <h2>Top Deals</h2>
+                <a href="#" class="see-all">See All <i class="fa-solid fa-arrow-right"></i></a>
+            </div>
+            <div class="products-grid">
+                <div class="product-card">
+                    <div class="product-image">
+                        <img src="https://images.unsplash.com/photo-1505693416388-ac5ce068fe85?auto=format&fit=crop&q=80&w=400" alt="Firm Support Mattress">
+                        <span class="badge discount">60% OFF</span>
+                        <button class="wishlist-btn"><i class="fa-regular fa-heart"></i></button>
+                    </div>
+                    <div class="product-info">
+                        <h3>Firm Support Mattress</h3>
+                        <div class="stars"><i class="fa-solid fa-star"></i> 4.6 (45)</div>
+                        <div class="card-footer">
+                            <p class="price"><span class="old-price">₹18,999</span> ₹7,599</p>
+                            <button class="add-to-cart-btn"><i class="fa-solid fa-cart-plus"></i> Add</button>
+                        </div>
+                    </div>
+                </div>
+                <div class="product-card">
+                    <div class="product-image">
+                        <img src="https://images.unsplash.com/photo-1554995207-c18c203602cb?auto=format&fit=crop&q=80&w=400" alt="Latex Foam Mattress">
+                        <span class="badge discount">50% OFF</span>
+                        <button class="wishlist-btn"><i class="fa-regular fa-heart"></i></button>
+                    </div>
+                    <div class="product-info">
+                        <h3>Latex Foam Mattress</h3>
+                        <div class="stars"><i class="fa-solid fa-star"></i> 4.5 (32)</div>
+                        <div class="card-footer">
+                            <p class="price"><span class="old-price">₹24,999</span> ₹12,499</p>
+                            <button class="add-to-cart-btn"><i class="fa-solid fa-cart-plus"></i> Add</button>
+                        </div>
+                    </div>
+                </div>
+                <div class="product-card">
+                    <div class="product-image">
+                        <img src="https://images.unsplash.com/photo-1631049035182-249067d7618e?auto=format&fit=crop&q=80&w=400" alt="Dual Comfort Mattress">
+                        <span class="badge discount">45% OFF</span>
+                        <button class="wishlist-btn"><i class="fa-regular fa-heart"></i></button>
+                    </div>
+                    <div class="product-info">
+                        <h3>Dual Comfort Mattress</h3>
+                        <div class="stars"><i class="fa-solid fa-star"></i> 4.8 (88)</div>
+                        <div class="card-footer">
+                            <p class="price"><span class="old-price">₹15,499</span> ₹8,499</p>
+                            <button class="add-to-cart-btn"><i class="fa-solid fa-cart-plus"></i> Add</button>
+                        </div>
+                    </div>
+                </div>
+                <div class="product-card">
+                    <div class="product-image">
+                        <img src="https://images.unsplash.com/photo-1584100936595-c0654b55a2e2?auto=format&fit=crop&q=80&w=400" alt="Luxury Pillow Top Mattress">
+                        <span class="badge discount">55% OFF</span>
+                        <button class="wishlist-btn"><i class="fa-regular fa-heart"></i></button>
+                    </div>
+                    <div class="product-info">
+                        <h3>Luxury Pillow Top</h3>
+                        <div class="stars"><i class="fa-solid fa-star"></i> 4.9 (150)</div>
+                        <div class="card-footer">
+                            <p class="price"><span class="old-price">₹29,999</span> ₹13,499</p>
+                            <button class="add-to-cart-btn"><i class="fa-solid fa-cart-plus"></i> Add</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <section class="categories-section">
+        <div class="container">
+            <div class="section-header">
+                <h2>Shop by Category</h2>
+            </div>
+            <div class="categories-grid">
+                <div class="category-item">
+                    <a href="#">
+                        <img src="https://images.unsplash.com/photo-1629140727571-9b5c6f6267b4?auto=format&fit=crop&q=80&w=400" alt="Spring Mattress">
+                        <h3>Spring Mattress</h3>
+                    </a>
+                </div>
+                <div class="category-item">
+                    <a href="#">
+                        <img src="https://images.unsplash.com/photo-1631049035182-249067d7618e?auto=format&fit=crop&q=80&w=400" alt="Coir Mattress">
+                        <h3>Coir Mattress</h3>
+                    </a>
+                </div>
+                <div class="category-item">
+                    <a href="#">
+                        <img src="https://images.unsplash.com/photo-1505693416388-ac5ce068fe85?auto=format&fit=crop&q=80&w=400" alt="Orthopedic Mattress">
+                        <h3>Orthopedic Mattress</h3>
+                    </a>
+                </div>
+                <div class="category-item">
+                    <a href="#">
+                        <img src="https://images.unsplash.com/photo-1584100936595-c0654b55a2e2?auto=format&fit=crop&q=80&w=400" alt="Pillow">
+                        <h3>Pillow</h3>
+                    </a>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <section class="features">
+        <div class="container features-container">
+            <div class="feature-item">
+                <i class="fa-solid fa-truck-fast"></i>
+                <div class="feature-text">
+                    <h4>Free Shipping</h4>
+                    <p>On orders over &#x20B9;500</p>
+                </div>
+            </div>
+            <div class="feature-item">
+                <i class="fa-solid fa-shield-halved"></i>
+                <div class="feature-text">
+                    <h4>Secure Payment</h4>
+                    <p>100% secure checkout</p>
+                </div>
+            </div>
+            <div class="feature-item">
+                <i class="fa-solid fa-rotate-left"></i>
+                <div class="feature-text">
+                    <h4>Easy Returns</h4>
+                    <p>30-day return policy</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <footer class="footer">
+        <div class="container-fluid footer-container">
+            <div class="footer-left">
+                <a href="/home" class="logo footer-logo">HomeStation</a>
+                <p>Your premier destination for high-quality mattresses and sleep essentials, crafted to bring
+                    cloud-like comfort to every night.</p>
+            </div>
+            <div class="footer-links-wrapper">
+                <div class="footer-column">
+                    <h4>Shop</h4>
+                    <ul>
+                        <li><a href="#">World of Mattress</a></li>
+                        <li><a href="#">Top Deals</a></li>
+                        <li><a href="#">Best Sellers</a></li>
+                    </ul>
+                </div>
+                <div class="footer-column">
+                    <h4>Support</h4>
+                    <ul>
+                        <li><a href="#">Track Your Orders</a></li>
+                        <li><a href="#">Privacy Policy</a></li>
+                        <li><a href="#">Contact Us</a></li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+        <div class="container-fluid copyright">
+            <p>&copy; 2026 HomeStation Store. All rights reserved.</p>
+        </div>
+    </footer>
+    <div id="toast" class="toast">
+        <i class="fa-solid fa-circle-check"></i>
+        <span id="toast-message">Item added to cart</span>
+    </div>
+
+    <script>
+        // Interaction Logic
+        function showToast(message) {
+            const toast = document.getElementById('toast');
+            const toastMessage = document.getElementById('toast-message');
+            toastMessage.textContent = message;
+            toast.classList.add('show');
+
+            setTimeout(() => {
+                toast.classList.remove('show');
+            }, 5000);
+        }
+
+        document.querySelectorAll('.add-to-cart-btn').forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                e.preventDefault();
+                showToast('Item added to cart successfully!');
+            });
+        });
+
+        document.querySelectorAll('.wishlist-btn').forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                e.preventDefault();
+                const icon = btn.querySelector('i');
+                const isLiked = btn.classList.toggle('liked');
+
+                if (isLiked) {
+                    icon.classList.replace('fa-regular', 'fa-solid');
+                    showToast('Item added to wishlist!');
+                } else {
+                    icon.classList.replace('fa-solid', 'fa-regular');
+                    showToast('Item removed from wishlist!');
+                }
+            });
+        });
+
+        // Search Functionality
+        const searchInput = document.getElementById('searchInput');
+        const searchBtn = document.getElementById('searchBtn');
+
+        function performSearch() {
+            const query = searchInput.value.trim();
+            if (query) {
+                // To be wired to backend search later
+                window.location.href = `/search?q=${encodeURIComponent(query)}`;
+            }
+        }
+
+        searchBtn.addEventListener('click', performSearch);
+        searchInput.addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') {
+                performSearch();
+            }
+        });
+    </script>
+</body>
+</html>

@@ -1,0 +1,159 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Create Account</title>
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,600;0,700;1,600&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    
+    <link rel="stylesheet" href="/css/createaccount.css">
+</head>
+<body class="shared-bg">
+    <main class="signup-container">
+        <div class="signup-left">
+            <div class="form-wrapper">
+                <h1 class="title">Create account</h1>
+                <p class="subtitle">Enter details below</p>
+                
+                <form class="signup-form" id="registerForm">
+                    <div class="form-group">
+                        <label for="name">Name</label>
+                        <div class="input-container">
+                            <i class="fa-regular fa-user input-icon"></i>
+                            <input type="text" name="fullName" id="name" placeholder="Enter your name" required>
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="email">Email</label>
+                        <div class="input-container">
+                            <i class="fa-regular fa-envelope input-icon"></i>
+                            <input type="email" name="email" id="email" placeholder="Enter your email" required>
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="phone">Phone</label>
+                        <div class="input-container">
+                            <i class="fa-solid fa-phone input-icon"></i>
+                            <input type="tel" name="phone" id="phone" placeholder="Enter 10-digit mobile number" required maxlength="10" pattern="[0-9]{10}" title="Please enter exactly 10 digits">
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="password">Password</label>
+                        <div class="input-container password-container">
+                            <i class="fa-solid fa-lock input-icon"></i>
+                            <input type="password" name="password" id="password" placeholder="Enter your password" required>
+                            <i class="fa-regular fa-eye-slash toggle-password" onclick="togglePasswordVisibility('password', this)"></i>
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="confirm-password">Confirm Password</label>
+                        <div class="input-container password-container">
+                            <i class="fa-solid fa-lock input-icon"></i>
+                            <input type="password" name="confirmPassword" id="confirm-password" placeholder="Confirm your password" required>
+                            <i class="fa-regular fa-eye-slash toggle-password" onclick="togglePasswordVisibility('confirm-password', this)"></i>
+                        </div>
+                    </div>
+
+                    <button type="submit" class="btn btn-login">Create Account</button>
+
+                    
+
+                </form>
+            </div>
+        </div>
+
+        <div class="signup-right">
+            <div class="right-content">
+                <h2 class="welcome-title">HomeStation</h2>
+                <p class="welcome-desc">Your premier destination for restful nights, quality mattresses, and personalized sleep solutions</p>
+                <button type="button" class="btn-secondary" onclick="window.location.href='/user/login'">Already have an account? Log in</button>
+            </div>
+        </div>
+    </main>
+
+    <script>
+        document.getElementById('registerForm').addEventListener('submit', async (e) => {
+        e.preventDefault();
+
+        const fullName = document.getElementById('name').value;
+        const email = document.getElementById('email').value;
+        const phone = document.getElementById('phone').value;
+        const password = document.getElementById('password').value;
+        const confirmPassword = document.getElementById('confirm-password').value;
+
+        if (password !== confirmPassword) {
+            return Swal.fire({
+                icon: 'warning',
+                title: 'Check Passwords',
+                text: 'Your passwords do not match!',
+                confirmButtonColor: '#222',
+                heightAuto: false,
+                scrollbarPadding: false
+            });
+        }
+
+        if (phone.length !== 10) {
+        return Swal.fire({
+            icon: 'warning',
+            title: 'Invalid Phone Number',
+            text: 'Please enter a valid 10-digit mobile number.',
+            confirmButtonColor: '#222'
+        });
+    }
+
+
+        try {
+            const response = await fetch('/user/register', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ fullName, email, phone, password, confirmPassword })
+            });
+
+            const data = await response.json();
+
+            if (data.success) {
+                window.location.href = '/user/verify-otp';
+            } else {
+
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Registration Failed',
+                    text: data.message,
+                    confirmButtonColor: '#222',
+                    heightAuto: false,
+                    scrollbarPadding: false
+                });
+            }
+        } catch (error) {
+            Swal.fire({
+                icon: 'error',
+                title: 'Server Error',
+                text: 'Could not connect to the server. Please try again.',
+                confirmButtonColor: '#222',
+                heightAuto: false,
+                scrollbarPadding: false
+            });
+        }
+    });
+        function togglePasswordVisibility(inputId, iconElement) {
+            var passwordInput = document.getElementById(inputId);
+            if (passwordInput.type === "password") {
+                passwordInput.type = "text";
+                iconElement.classList.remove("fa-eye-slash");
+                iconElement.classList.add("fa-eye");
+            } else {
+                passwordInput.type = "password";
+                iconElement.classList.remove("fa-eye");
+                iconElement.classList.add("fa-eye-slash");
+            }
+        }
+    </script>
+</body>
+</html>

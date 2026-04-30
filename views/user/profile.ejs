@@ -1,0 +1,269 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>HomeStation - Profile</title>
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,600;0,700;1,600&display=swap"
+        rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="/css/profile.css">
+</head>
+
+<body>
+    <header class="header">
+        <div class="container-fluid header-container">
+            <a href="/home" class="logo">HomeStation</a>
+            <div class="header-actions">
+                <a href="/user/profile" class="icon-link"><i class="fa-solid fa-user"></i> Profile</a>
+            </div>
+        </div>
+    </header>
+
+    <section class="profile-section">
+        <div class="container profile-layout">
+            <aside class="profile-sidebar">
+                <div class="profile-user-info">
+                    <img src="<%= user.profileImage || 'https://cdn.pixabay.com/photo/2015/10/05/22/37/blank-profile-picture-973460_1280.png' %>"
+                        alt="Profile" class="sidebar-avatar">
+                    <div class="user-greeting">
+                        <span class="hello-text">Hello,</span>
+                        <span class="user-name" id="sidebarName">
+                            <%= user.fullName || 'User' %>
+                        </span>
+                    </div>
+                </div>
+
+                <hr class="sidebar-divider">
+                <div class="sidebar-menu">
+                    <ul>
+                        <li><a href="/user/profile" class="active">Profile information</a></li>
+                        <li><a href="#">Manage addresses</a></li>
+                    </ul>
+                    <hr class="sidebar-divider">
+
+                    <div class="logout-wrapper">
+                        <form action="/user/logout" method="POST" id="logoutForm">
+                            <a href="#" onclick="document.getElementById('logoutForm').submit();" class="logout-link"><i
+                                    class="fa-solid fa-power-off"></i> Logout</a>
+                        </form>
+                    </div>
+                </div>
+            </aside>
+
+            <main class="profile-content">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px;">
+                    <h2 class="edit-profile-title" style="margin: 0;">Profile Information</h2>
+                    <button id="editBtn" class="btn" style="border: none; cursor: pointer;">Edit Profile</button>
+                </div>
+
+                <div class="profile-info-section"
+                    style="padding-bottom: 30px; border-bottom: 1px solid #eee; margin-bottom: 30px;">
+                    <div class="profile-edit-pic" style="margin-bottom: 24px;">
+                        <img src="<%= user.profileImage %>" alt="Profile" class="main-avatar" id="profileImagePreview">
+                        <input type="file" id="imageUploadInput" accept="image/png, image/jpeg, image/jpg, image/webp"
+                            style="display: none;">
+                        <button type="button" class="btn-upload" id="uploadBtn" style="display: none;">
+                            <i class="fa-solid fa-camera"></i> Upload Photo
+                        </button>
+                    </div>
+
+                    <form class="profile-form" id="profileForm">
+                        <div class="form-row">
+                            <div class="form-col form-group">
+                                <label for="fullName">Full Name</label>
+                                <input type="text" id="fullName" name="fullName" class="form-control"
+                                    value="<%= user.fullName %>" disabled>
+                            </div>
+                            <div class="form-col form-group">
+                                <label for="phone">Phone Number</label>
+                                <input type="tel" id="phone" name="phone" class="form-control" value="<%= user.phone %>"
+                                    disabled>
+                            </div>
+                        </div>
+
+                        <div class="form-group">
+                            <label for="email">Email Address</label>
+                            <input type="email" id="email" name="email" class="form-control" value="<%= user.email %>"
+                                disabled>
+                        </div>
+
+                        <div class="profile-actions" id="profileActions"
+                            style="display: none; gap: 15px; margin-top: 20px;">
+                            <button type="button" class="btn-cancel-gray" id="cancelBtn">Cancel</button>
+                            <button type="submit" class="btn-save">Save Changes</button>
+                        </div>
+                    </form>
+
+                    <div class="profile-form">
+                        <form id="passwordForm" class="password-section" style="margin-top: 0; border-bottom: none;">
+                            <h3 class="section-title">Change Password</h3>
+
+                            <% if (user.authProvider==='local' || user.authProvider==='both' ) { %>
+                                <div class="form-group">
+                                    <label for="oldPassword">Old Password</label>
+                                    <div style="position: relative;">
+                                        <input type="password" id="oldPassword" name="oldPassword" class="form-control"
+                                            required style="padding-right: 40px;">
+                                        <i class="fa-regular fa-eye-slash toggle-password"
+                                            style="position: absolute; right: 12px; top: 50%; transform: translateY(-50%); cursor: pointer; color: #888;"></i>
+                                    </div>
+                                </div>
+                                <% } %>
+
+                                    <div class="form-group">
+                                        <label for="newPassword">New Password</label>
+                                        <div style="position: relative;">
+                                            <input type="password" id="newPassword" name="newPassword"
+                                                class="form-control" required style="padding-right: 40px;">
+                                            <i class="fa-regular fa-eye-slash toggle-password"
+                                                style="position: absolute; right: 12px; top: 50%; transform: translateY(-50%); cursor: pointer; color: #888;"></i>
+                                        </div>
+                                    </div>
+
+                                    <div class="form-group">
+                                        <label for="confirmPassword">Confirm Password</label>
+                                        <div style="position: relative;">
+                                            <input type="password" id="confirmPassword" name="confirmPassword"
+                                                class="form-control" required style="padding-right: 40px;">
+                                            <i class="fa-regular fa-eye-slash toggle-password"
+                                                style="position: absolute; right: 12px; top: 50%; transform: translateY(-50%); cursor: pointer; color: #888;"></i>
+                                        </div>
+                                    </div>
+
+                                    <div class="password-actions">
+                                        <button type="reset" class="btn-cancel-gray">Clear</button>
+                                        <button type="submit" class="btn-save" style="padding: 10px 24px;">Update
+                                            Password</button>
+                                    </div>
+                        </form>
+                    </div>
+            </main>
+        </div>
+    </section>
+
+    <script>
+
+        const editBtn = document.getElementById('editBtn');
+        const cancelBtn = document.getElementById('cancelBtn');
+        const profileForm = document.getElementById('profileForm');
+        const profileActions = document.getElementById('profileActions');
+        const uploadBtn = document.getElementById('uploadBtn');
+        const inputs = [document.getElementById('fullName'), document.getElementById('phone'), document.getElementById('email')];
+
+        const imageUploadInput = document.getElementById('imageUploadInput');
+        const profileImagePreview = document.getElementById('profileImagePreview');
+        const sidebarAvatar = document.querySelector('.sidebar-avatar');
+
+
+        let originalValues = {};
+        let originalImageSrc = profileImagePreview.src;
+        let selectedFile = null;
+
+
+        function toggleEdit(isEditing) {
+            inputs.forEach(input => {
+                input.disabled = !isEditing;
+                if (isEditing) originalValues[input.id] = input.value;
+            });
+            profileActions.style.display = isEditing ? 'flex' : 'none';
+            editBtn.style.display = isEditing ? 'none' : 'block';
+            uploadBtn.style.display = isEditing ? 'inline-block' : 'none';
+        }
+
+        editBtn.addEventListener('click', () => toggleEdit(true));
+
+
+        uploadBtn.addEventListener('click', () => imageUploadInput.click());
+
+        imageUploadInput.addEventListener('change', (e) => {
+            const file = e.target.files[0];
+            if (!file) return;
+
+            selectedFile = file;
+
+
+            const previewUrl = URL.createObjectURL(file);
+            profileImagePreview.src = previewUrl;
+        });
+
+        cancelBtn.addEventListener('click', () => {
+            inputs.forEach(input => input.value = originalValues[input.id]);
+
+            profileImagePreview.src = originalImageSrc;
+            selectedFile = null;
+            imageUploadInput.value = '';
+
+            toggleEdit(false);
+        });
+
+
+        profileForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+
+            const saveBtn = profileForm.querySelector('.btn-save');
+            const originalBtnText = saveBtn.innerText;
+            saveBtn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Saving...';
+            saveBtn.disabled = true;
+
+            const formData = new FormData();
+            formData.append('fullName', document.getElementById('fullName').value);
+            formData.append('phone', document.getElementById('phone').value);
+            formData.append('email', document.getElementById('email').value);
+
+            if (selectedFile) {
+                formData.append('profileImage', selectedFile);
+            }
+
+            try {
+                const response = await fetch('/user/profile', {
+                    method: 'PATCH',
+                    body: formData
+                });
+
+                const result = await response.json();
+
+                if (result.success) {
+                    Swal.fire({ icon: 'success', title: 'Saved!', text: result.message, timer: 1500, showConfirmButton: false, heightAuto: false });
+                    document.getElementById('sidebarName').innerText = result.user.fullName;
+                    if (result.user.profileImage) {
+                        sidebarAvatar.src = result.user.profileImage;
+                        originalImageSrc = result.user.profileImage;
+                    }
+                    selectedFile = null;
+                    toggleEdit(false);
+                } else {
+                    Swal.fire({ icon: 'error', title: 'Update Failed', text: result.message, heightAuto: false });
+                }
+            } catch (err) {
+                Swal.fire({ icon: 'error', title: 'Error', text: 'An error occurred while saving.', heightAuto: false });
+            } finally {
+                saveBtn.innerHTML = originalBtnText;
+                saveBtn.disabled = false;
+            }
+        });
+        const togglePasswordIcons = document.querySelectorAll('.toggle-password');
+
+        togglePasswordIcons.forEach(icon => {
+            icon.addEventListener('click', function () {
+                const input = this.parentElement.querySelector('input');
+
+                if (input.type === 'password') {
+                    input.type = 'text';
+                    this.classList.remove('fa-eye-slash');
+                    this.classList.add('fa-eye');
+                    this.style.color = '#222'; 
+                } else {
+                    input.type = 'password';
+                    this.classList.remove('fa-eye');
+                    this.classList.add('fa-eye-slash');
+                    this.style.color = '#888';
+                }
+            });
+        });
+    </script>
+</body>
+
+</html>
