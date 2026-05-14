@@ -1,6 +1,6 @@
 import bcrypt from 'bcryptjs';
 import User from '../../models/User.js';
-
+import { generateNextUserId } from '../../utils/generateUserId.js';
 
 export const validateRegistrationData = async (email, phone, password) => {
     const passwordRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[!@#$]).{12,}$/;
@@ -28,23 +28,10 @@ export const validateRegistrationData = async (email, phone, password) => {
 
 export const createLocalUser = async (userData) => {
     const { fullName, email, phone, password } = userData;
-
     const salt = await bcrypt.genSalt(10);
     const passwordHash = await bcrypt.hash(password, salt);
 
-    const lastUser = await User.findOne().sort({ createdAt: -1 });
-    let nextIdNum = 1;
-    
-    if (lastUser && lastUser.userId && lastUser.userId.startsWith('USR-')) {
-        
-        const lastNum = parseInt(lastUser.userId.split('-')[1], 10);
-        if (!isNaN(lastNum)) {
-            nextIdNum = lastNum + 1;
-        }
-    }
-
-    const userId = `USR-${String(nextIdNum).padStart(3, '0')}`;
-
+    const userId = await generateNextUserId(); 
 
     const newUser = new User({
         userId,

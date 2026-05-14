@@ -1,0 +1,193 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>HomeStation</title>
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,600;0,700;1,600&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="icon" type="image/x-icon" href="https://res.cloudinary.com/dz7fuqwnr/image/upload/v1778395481/WhatsApp_Image_2026-05-10_at_12.12.36_nra5vk.jpg">
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <link rel="stylesheet" href="/css/user/verify-email.css">
+</head>
+
+<body>
+    <div class="promo-bar">
+        10% discount with coupon code <strong>"HOME10"</strong> - <strong>Hurry! Limited Period Offer</strong>
+    </div>
+
+    <header class="header">
+        <div class="container-fluid header-container">
+            <a href="/home" class="logo">HomeStation</a>
+            <div class="header-actions">
+                <a href="/user/profile" class="icon-link"><i class="fa-solid fa-user"></i> Profile</a>
+            </div>
+        </div>
+    </header>
+
+    <section class="profile-section">
+        <div class="container profile-layout">
+
+            <aside class="profile-sidebar">
+                <div class="profile-user-info">
+                    <img src="<%= user.profileImage || 'https://cdn.pixabay.com/photo/2015/10/05/22/37/blank-profile-picture-973460_1280.png' %>"
+                        alt="Profile Image" class="sidebar-avatar">
+                    <div class="user-greeting">
+                        <span class="hello-text">Hello,</span>
+                        <span class="user-name"><%= user.fullName || 'User' %></span>
+                    </div>
+                </div>
+
+                <hr class="sidebar-divider">
+
+                <div class="sidebar-menu">
+                    <h3>Account Settings</h3>
+                    <ul>
+                        <li><a href="/user/profile" class="active">Profile information</a></li>
+                        <li><a href="/user/addresses">Manage addresses</a></li>
+                    </ul>
+                    <hr class="sidebar-divider">
+                    <div class="logout-wrapper">
+                        <form action="/user/logout" method="POST" id="logoutForm" style="display:inline;">
+                            <a href="#" onclick="document.getElementById('logoutForm').submit();" class="logout-link"><i class="fa-solid fa-power-off"></i> Logout</a>
+                        </form>
+                    </div>
+                </div>
+            </aside>
+
+            <main class="profile-content">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px;">
+                    <h2 class="edit-profile-title" style="margin: 0;">Verify New Email</h2>
+                </div>
+
+                <div class="profile-info-section" style="padding-bottom: 30px;">
+                    <p style="margin-bottom: 25px; color: #555;">Please enter the 6-digit OTP sent to <strong><%= newEmail %></strong> to confirm your email change.</p>
+
+                    <div class="profile-form">
+                        <form id="emailOtpForm">
+                            <div class="form-group">
+                                <label style="margin-bottom: 10px;">Enter 6-Digit OTP</label>
+                                <div class="otp-container">
+                                    <input type="text" class="form-control otp-input" maxlength="1" pattern="[0-9]" inputmode="numeric" required autofocus>
+                                    <input type="text" class="form-control otp-input" maxlength="1" pattern="[0-9]" inputmode="numeric" required>
+                                    <input type="text" class="form-control otp-input" maxlength="1" pattern="[0-9]" inputmode="numeric" required>
+                                    <input type="text" class="form-control otp-input" maxlength="1" pattern="[0-9]" inputmode="numeric" required>
+                                    <input type="text" class="form-control otp-input" maxlength="1" pattern="[0-9]" inputmode="numeric" required>
+                                    <input type="text" class="form-control otp-input" maxlength="1" pattern="[0-9]" inputmode="numeric" required>
+                                </div>
+                            </div>
+
+                            <div style="margin-top: 15px; margin-bottom: 25px;">
+                                <span style="font-size: 14px; color: #666;">Didn't receive the code? </span>
+                                <a href="#" id="resendOtpBtn" class="link-red" style="font-size: 14px; text-decoration: none;">Resend OTP</a>
+                            </div>
+
+                            <div class="password-actions">
+                                <a href="/user/profile" class="btn-cancel-gray" style="text-decoration: none; display: inline-block;">Cancel</a>
+                                <button type="submit" class="btn-save" style="padding: 10px 24px;">Verify OTP</button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            </main>
+
+        </div>
+    </section>
+
+    <script>
+        const otpInputs = document.querySelectorAll('.otp-input');
+        otpInputs.forEach((input, index) => {
+            input.addEventListener('keyup', (e) => {
+                const currentInput = input;
+                const nextInput = input.nextElementSibling;
+                const prevInput = input.previousElementSibling;
+
+                currentInput.value = currentInput.value.replace(/[^0-9]/g, ''); // Numbers only
+
+                if (currentInput.value.length === 1 && nextInput && e.key !== 'Backspace') {
+                    nextInput.focus();
+                }
+                if (e.key === 'Backspace' && prevInput) {
+                    prevInput.focus();
+                }
+            });
+        });
+
+        document.getElementById('emailOtpForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+
+            let otp = '';
+            otpInputs.forEach(input => { otp += input.value; });
+
+            if (otp.length !== 6) {
+                return Swal.fire({ icon: 'warning', title: 'Incomplete', text: 'Please enter all 6 digits.', confirmButtonColor: '#222', heightAuto: false });
+            }
+
+            const submitBtn = e.target.querySelector('button[type="submit"]');
+            const originalText = submitBtn.innerText;
+            submitBtn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Verifying...';
+            submitBtn.disabled = true;
+
+            try {
+                const response = await fetch('/user/verify-email-change', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ otp: otp })
+                });
+
+                const data = await response.json();
+
+                if (data.success) {
+                    Swal.fire({
+                        icon: 'success',
+                        title: 'Email Updated!',
+                        text: data.message,
+                        timer: 1500,
+                        showConfirmButton: false,
+                        heightAuto: false
+                    }).then(() => {
+                        window.location.href = '/user/profile';
+                    });
+                } else {
+                    Swal.fire({ icon: 'error', title: 'Verification Failed', text: data.message, confirmButtonColor: '#222', heightAuto: false });
+                }
+            } catch (error) {
+                Swal.fire({ icon: 'error', title: 'Error', text: 'Server connection failed.', confirmButtonColor: '#222', heightAuto: false });
+            } finally {
+                submitBtn.innerHTML = originalText;
+                submitBtn.disabled = false;
+            }
+        });
+
+        document.getElementById('resendOtpBtn').addEventListener('click', async (e) => {
+            e.preventDefault();
+            const resendBtn = e.target;
+            
+            resendBtn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Sending...';
+            resendBtn.style.pointerEvents = 'none';
+
+            try {
+                const response = await fetch('/user/resend-email-otp', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' }
+                });
+
+                const data = await response.json();
+
+                if (data.success) {
+                    Swal.fire({ icon: 'success', title: 'OTP Sent', text: data.message, timer: 2000, showConfirmButton: false, heightAuto: false });
+                } else {
+                    Swal.fire({ icon: 'info', title: 'Check Inbox', text: data.message, confirmButtonColor: '#222', heightAuto: false });
+                }
+            } catch (error) {
+                Swal.fire({ icon: 'error', title: 'Error', text: 'Could not send OTP.', confirmButtonColor: '#222', heightAuto: false });
+            } finally {
+                resendBtn.innerHTML = 'Resend OTP';
+                resendBtn.style.pointerEvents = 'auto';
+            }
+        });
+    </script>
+</body>
+</html>

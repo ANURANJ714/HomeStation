@@ -15,6 +15,9 @@ import MongoStore from 'connect-mongo';
 import userRoutes from './routes/user/authRoutes.js';
 import profileRoutes from './routes/user/profileRoutes.js';
 import pageRoutes from './routes/user/pageRoutes.js';
+import addressRoutes from './routes/user/addressRoutes.js';
+
+import adminAuthRoutes from './routes/admin/adminAuthRoutes.js';
 
 configurePassport(passport);
 connectDB();
@@ -52,6 +55,10 @@ app.use(express.static(path.join(__dirname, 'public')));
 
 app.use('/user', userRoutes);
 app.use('/user', profileRoutes);
+app.use('/user/addresses', addressRoutes);
+
+app.use('/admin', adminAuthRoutes);
+
 app.use('/', pageRoutes);
 
 const PORT = process.env.PORT || 3000;

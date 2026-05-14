@@ -1,5 +1,3 @@
-/* Home Page CSS  */
-/* Basic CSS Reset & Variables */
 * {
     margin: 0;
     padding: 0;
@@ -27,33 +25,27 @@ img {
     display: block;
 }
 
-/* Container */
 .container {
     max-width: 1200px;
     margin: 0 auto;
     padding: 0 20px;
 }
 
-/* Fluid Container for Header to push logo to the left */
 .container-fluid {
     max-width: 1400px;
     margin: 0 auto;
     padding: 0 40px;
 }
 
-/* Promo Bar */
 .promo-bar {
     background-color: #ffeb3b;
-    /* Yellow background */
     color: #333;
     text-align: center;
     padding: 5px;
-    /* Reduced size */
     font-size: 14px;
     border-bottom: 1px solid #ddd;
 }
 
-/* Header */
 .header {
     border-bottom: 1px solid #eaeaea;
     background-color: #fff;
@@ -71,7 +63,6 @@ img {
     gap: 30px;
 }
 
-/* Search Bar */
 .search-container {
     display: flex;
     align-items: center;
@@ -116,7 +107,6 @@ img {
 
 .logo {
     font-family: 'Playfair Display', serif;
-    /* Elegant font */
     font-size: 28px;
     font-weight: 700;
     color: #222;
@@ -142,7 +132,6 @@ img {
 .header-actions {
     display: flex;
     gap: 20px;
-    /* Space between icons */
 }
 
 .header-actions .icon-link {
@@ -163,7 +152,6 @@ img {
     font-weight: 900;
 }
 
-/* Carousel Section */
 .carousel-section {
     position: relative;
     height: 600px;
@@ -234,7 +222,6 @@ img {
     transform: translateY(-3px);
 }
 
-/* Controls */
 .carousel-control {
     position: absolute;
     top: 50%;
@@ -258,7 +245,6 @@ img {
 .prev { left: 30px; }
 .next { right: 30px; }
 
-/* Indicators */
 .carousel-indicators {
     position: absolute;
     bottom: 30px;
@@ -283,7 +269,6 @@ img {
     border-radius: 10px;
 }
 
-/* Generic Product/Category Header */
 .section-header {
     display: flex;
     justify-content: space-between;
@@ -311,7 +296,6 @@ img {
     color: #000;
 }
 
-/* Products Section */
 .products-section {
     padding: 80px 0;
     background-color: #fff;
@@ -460,7 +444,6 @@ img {
     color: #000;
 }
 
-/* Toast Notification */
 .toast {
     position: fixed;
     top: 50%;
@@ -503,13 +486,11 @@ img {
     transform: translate(-50%, -50%) scale(1);
 }
 
-/* Animations */
 @keyframes fadeIn {
     from { opacity: 0; transform: translate(-50%, -40%) scale(0.9); }
     to { opacity: 1; transform: translate(-50%, -50%) scale(1); }
 }
 
-/* Categories Section */
 .categories-section {
     padding: 80px 0;
     background-color: #fff;
@@ -524,28 +505,28 @@ img {
 .category-item {
     text-align: center;
     border: 1px solid #eaeaea;
-    border-radius: 8px; /* Slightly rounder */
+    border-radius: 8px; 
     overflow: hidden;
     background-color: #fff;
-    transition: all 0.3s ease; /* smoother transition */
-    position: relative; /* for potential overlays */
+    transition: all 0.3s ease;
+    position: relative; 
 }
 
 .category-item:hover {
-    border-color: #ffeb3b; /* glowing border color */
-    box-shadow: 0 0 18px rgba(255, 235, 59, 0.8); /* glowing shadow effect */
-    transform: translateY(-5px); /* lift up effect */
+    border-color: #ffeb3b; 
+    box-shadow: 0 0 18px rgba(255, 235, 59, 0.8); 
+    transform: translateY(-5px); 
 }
 
 .category-item img {
     height: 200px;
     object-fit: cover;
     width: 100%;
-    transition: transform 0.5s ease; /* image scaling transition */
+    transition: transform 0.5s ease; 
 }
 
 .category-item:hover img {
-    transform: scale(1.05); /* zoom in slightly */
+    transform: scale(1.05); 
 }
 
 .category-item h3 {
@@ -555,7 +536,7 @@ img {
     font-weight: 500;
 }
 
-/* Features */
+
 .features {
     padding: 40px 0;
     border-top: 1px solid #eaeaea;
@@ -585,7 +566,6 @@ img {
     color: #777;
 }
 
-/* Footer */
 .footer {
     background-color: #222;
     color: #ccc;
@@ -647,7 +627,6 @@ img {
     font-size: 14px;
 }
 
-/* Responsive */
 @media (max-width: 992px) {
     .products-grid {
         grid-template-columns: repeat(3, 1fr);

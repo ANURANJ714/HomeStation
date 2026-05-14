@@ -4,27 +4,33 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>HomeStation - Verify OTP</title>
+    <title>HomeStation</title>
     <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&display=swap" rel="stylesheet">
-    <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,600;0,700;1,600&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,600;0,700;1,600&display=swap"
+        rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
-    <link rel="stylesheet" href="/css/verify-otp.css">
+    <link rel="icon" type="image/x-icon" href="https://res.cloudinary.com/dz7fuqwnr/image/upload/v1778395481/WhatsApp_Image_2026-05-10_at_12.12.36_nra5vk.jpg">
+    <link rel="stylesheet" href="/css/user/verify-otp.css">
 </head>
 
 <body class="shared-bg">
     <main class="signup-container">
         <div class="signup-left">
             <div class="form-wrapper">
-                <h1 class="title"><i class="fa-solid fa-shield-halved" style="margin-right: 8px; font-size: 0.85em;"></i>Verify OTP</h1>
-                <p class="subtitle">Enter the 6-digit code sent to <strong><%= email %></strong>.</p>
-                
+                <h1 class="title"><i class="fa-solid fa-shield-halved"
+                        style="margin-right: 8px; font-size: 0.85em;"></i>Verify OTP</h1>
+                <p class="subtitle">Enter the 6-digit code sent to <strong>
+                        <%= email %>
+                    </strong>.</p>
+
                 <form class="signup-form" id="otpForm">
-                    
+
                     <input type="hidden" name="enteredOtp" id="combinedOtp">
 
                     <div class="otp-container">
-                        <input type="text" maxlength="1" class="otp-input" pattern="[0-9]" inputmode="numeric" required autofocus>
+                        <input type="text" maxlength="1" class="otp-input" pattern="[0-9]" inputmode="numeric" required
+                            autofocus>
                         <input type="text" maxlength="1" class="otp-input" pattern="[0-9]" inputmode="numeric" required>
                         <input type="text" maxlength="1" class="otp-input" pattern="[0-9]" inputmode="numeric" required>
                         <input type="text" maxlength="1" class="otp-input" pattern="[0-9]" inputmode="numeric" required>
@@ -44,7 +50,8 @@
         <div class="signup-right">
             <div class="right-content">
                 <h2 class="welcome-title">HomeStation</h2>
-                <p class="welcome-desc">Your one stop destination for furniture, home furnishings, and decor to bring the joy.</p>
+                <p class="welcome-desc">Your one stop destination for furniture, home furnishings, and decor to bring
+                    the joy.</p>
             </div>
         </div>
     </main>
@@ -70,23 +77,69 @@
         });
 
         let timeLeft = 60;
-        const timerElement = document.getElementById('timer');
+        let countdown;
 
-        const countdown = setInterval(() => {
-            timeLeft--;
-            if(timerElement) timerElement.textContent = timeLeft;
-            
-            if (timeLeft <= 0) {
-                clearInterval(countdown);
-                const timerText = document.querySelector('.timer-text');
-                if (timerText) {
-                    timerText.innerHTML = '<a href="/user/resend-otp" style="color: #222; text-decoration: none; font-weight: 600;">Resend OTP</a>';
+        function startTimer() {
+            const timerTextContainer = document.querySelector('.timer-text');
+            timerTextContainer.innerHTML = '<span id="timer">' + timeLeft + '</span>s remaining';
+
+            countdown = setInterval(() => {
+                timeLeft--;
+                const currentTimerElement = document.getElementById('timer');
+                if (currentTimerElement) currentTimerElement.textContent = timeLeft;
+
+                if (timeLeft <= 0) {
+                    clearInterval(countdown);
+                    timerTextContainer.innerHTML = '<span onclick="triggerResend()" style="color: #222; text-decoration: underline; font-weight: 600; cursor: pointer;">Resend OTP</span>';
                 }
-            }
-        }, 1000);
+            }, 1000);
+        }
 
-        document.getElementById('otpForm').addEventListener('submit', async function(e) {
-            e.preventDefault(); 
+        startTimer();
+
+        async function triggerResend() {
+            const timerTextContainer = document.querySelector('.timer-text');
+
+            timerTextContainer.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Sending...';
+
+            try {
+                const response = await fetch('/user/resend-otp', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' }
+                });
+
+                const data = await response.json();
+
+                if (data.success) {
+                    Swal.fire({
+                        icon: 'success',
+                        title: 'Sent!',
+                        text: data.message,
+                        timer: 2000,
+                        showConfirmButton: false,
+                        heightAuto: false
+                    });
+
+                    timeLeft = 60;
+                    startTimer();
+                } else {
+                    Swal.fire({
+                        icon: 'error',
+                        title: 'Could not resend',
+                        text: data.message,
+                        confirmButtonColor: '#222',
+                        heightAuto: false
+                    });
+                    timerTextContainer.innerHTML = '<span onclick="triggerResend()" style="color: #222; text-decoration: underline; font-weight: 600; cursor: pointer;">Resend OTP</span>';
+                }
+            } catch (error) {
+                Swal.fire({ icon: 'error', title: 'Error', text: 'Server connection failed.', heightAuto: false });
+                timerTextContainer.innerHTML = '<span onclick="triggerResend()" style="color: #222; text-decoration: underline; font-weight: 600; cursor: pointer;">Resend OTP</span>';
+            }
+        }
+
+        document.getElementById('otpForm').addEventListener('submit', async function (e) {
+            e.preventDefault();
 
             let otp = '';
             otpInputs.forEach(input => {
@@ -155,4 +208,5 @@
         });
     </script>
 </body>
+
 </html>

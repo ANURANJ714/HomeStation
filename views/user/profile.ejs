@@ -4,12 +4,13 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>HomeStation - Profile</title>
+    <title>HomeStation</title>
     <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&display=swap" rel="stylesheet">
-    <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,600;0,700;1,600&display=swap"
-        rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,600;0,700;1,600&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <link rel="stylesheet" href="/css/profile.css">
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <link rel="icon" type="image/x-icon" href="https://res.cloudinary.com/dz7fuqwnr/image/upload/v1778395481/WhatsApp_Image_2026-05-10_at_12.12.36_nra5vk.jpg">
+    <link rel="stylesheet" href="/css/user/profile.css">
 </head>
 
 <body>
@@ -38,9 +39,10 @@
 
                 <hr class="sidebar-divider">
                 <div class="sidebar-menu">
+                    <h3>Account Settings</h3>
                     <ul>
                         <li><a href="/user/profile" class="active">Profile information</a></li>
-                        <li><a href="#">Manage addresses</a></li>
+                        <li><a href="/user/addresses">Manage addresses</a></li>
                     </ul>
                     <hr class="sidebar-divider">
 
@@ -87,7 +89,14 @@
                         <div class="form-group">
                             <label for="email">Email Address</label>
                             <input type="email" id="email" name="email" class="form-control" value="<%= user.email %>"
-                                disabled>
+                                disabled data-provider="<%= user.authProvider %>">
+
+                            <% if (user.authProvider==='google' ) { %>
+                                <small style="color: #888; font-size: 12px; margin-top: 5px; display: block;">
+                                    <i class="fa-brands fa-google"></i> Email linked to your Google account cannot be
+                                    changed.
+                                </small>
+                                <% } %>
                         </div>
 
                         <div class="profile-actions" id="profileActions"
@@ -97,11 +106,12 @@
                         </div>
                     </form>
 
-                    <div class="profile-form">
-                        <form id="passwordForm" class="password-section" style="margin-top: 0; border-bottom: none;">
-                            <h3 class="section-title">Change Password</h3>
+                    <% if (user.authProvider==='local' ) { %>
+                        <div class="profile-form">
+                            <form id="passwordForm" class="password-section"
+                                style="margin-top: 0; border-bottom: none;">
+                                <h3 class="section-title">Change Password</h3>
 
-                            <% if (user.authProvider==='local' || user.authProvider==='both' ) { %>
                                 <div class="form-group">
                                     <label for="oldPassword">Old Password</label>
                                     <div style="position: relative;">
@@ -111,41 +121,40 @@
                                             style="position: absolute; right: 12px; top: 50%; transform: translateY(-50%); cursor: pointer; color: #888;"></i>
                                     </div>
                                 </div>
-                                <% } %>
 
-                                    <div class="form-group">
-                                        <label for="newPassword">New Password</label>
-                                        <div style="position: relative;">
-                                            <input type="password" id="newPassword" name="newPassword"
-                                                class="form-control" required style="padding-right: 40px;">
-                                            <i class="fa-regular fa-eye-slash toggle-password"
-                                                style="position: absolute; right: 12px; top: 50%; transform: translateY(-50%); cursor: pointer; color: #888;"></i>
-                                        </div>
+                                <div class="form-group">
+                                    <label for="newPassword">New Password</label>
+                                    <div style="position: relative;">
+                                        <input type="password" id="newPassword" name="newPassword" class="form-control"
+                                            required style="padding-right: 40px;">
+                                        <i class="fa-regular fa-eye-slash toggle-password"
+                                            style="position: absolute; right: 12px; top: 50%; transform: translateY(-50%); cursor: pointer; color: #888;"></i>
                                     </div>
+                                </div>
 
-                                    <div class="form-group">
-                                        <label for="confirmPassword">Confirm Password</label>
-                                        <div style="position: relative;">
-                                            <input type="password" id="confirmPassword" name="confirmPassword"
-                                                class="form-control" required style="padding-right: 40px;">
-                                            <i class="fa-regular fa-eye-slash toggle-password"
-                                                style="position: absolute; right: 12px; top: 50%; transform: translateY(-50%); cursor: pointer; color: #888;"></i>
-                                        </div>
+                                <div class="form-group">
+                                    <label for="confirmPassword">Confirm Password</label>
+                                    <div style="position: relative;">
+                                        <input type="password" id="confirmPassword" name="confirmPassword"
+                                            class="form-control" required style="padding-right: 40px;">
+                                        <i class="fa-regular fa-eye-slash toggle-password"
+                                            style="position: absolute; right: 12px; top: 50%; transform: translateY(-50%); cursor: pointer; color: #888;"></i>
                                     </div>
+                                </div>
 
-                                    <div class="password-actions">
-                                        <button type="reset" class="btn-cancel-gray">Clear</button>
-                                        <button type="submit" class="btn-save" style="padding: 10px 24px;">Update
-                                            Password</button>
-                                    </div>
-                        </form>
-                    </div>
+                                <div class="password-actions">
+                                    <button type="reset" class="btn-cancel-gray">Clear</button>
+                                    <button type="submit" class="btn-save" style="padding: 10px 24px;">Update
+                                        Password</button>
+                                </div>
+                            </form>
+                        </div>
+                        <% } %>
             </main>
         </div>
     </section>
 
     <script>
-
         const editBtn = document.getElementById('editBtn');
         const cancelBtn = document.getElementById('cancelBtn');
         const profileForm = document.getElementById('profileForm');
@@ -157,24 +166,27 @@
         const profileImagePreview = document.getElementById('profileImagePreview');
         const sidebarAvatar = document.querySelector('.sidebar-avatar');
 
-
         let originalValues = {};
         let originalImageSrc = profileImagePreview.src;
         let selectedFile = null;
 
-
         function toggleEdit(isEditing) {
             inputs.forEach(input => {
-                input.disabled = !isEditing;
+                if (input.id === 'email' && input.dataset.provider === 'google') {
+                    input.disabled = true;
+                } else {
+                    input.disabled = !isEditing;
+                }
+                
                 if (isEditing) originalValues[input.id] = input.value;
             });
+            
             profileActions.style.display = isEditing ? 'flex' : 'none';
             editBtn.style.display = isEditing ? 'none' : 'block';
             uploadBtn.style.display = isEditing ? 'inline-block' : 'none';
         }
 
         editBtn.addEventListener('click', () => toggleEdit(true));
-
 
         uploadBtn.addEventListener('click', () => imageUploadInput.click());
 
@@ -183,8 +195,6 @@
             if (!file) return;
 
             selectedFile = file;
-
-
             const previewUrl = URL.createObjectURL(file);
             profileImagePreview.src = previewUrl;
         });
@@ -203,15 +213,40 @@
         profileForm.addEventListener('submit', async (e) => {
             e.preventDefault();
 
+            const fullName = document.getElementById('fullName').value.trim();
+            const phone = document.getElementById('phone').value.trim();
+            const email = document.getElementById('email').value.trim();
+
+            if (!fullName || !phone || !email) {
+                return Swal.fire({
+                    icon: 'warning',
+                    title: 'Missing Information',
+                    text: 'Please fill out all fields before saving.',
+                    confirmButtonColor: '#222',
+                    heightAuto: false
+                });
+            }
+
+            const phoneRegex = /^[0-9]{10}$/;
+            if (!phoneRegex.test(phone)) {
+                return Swal.fire({
+                    icon: 'warning',
+                    title: 'Invalid Phone Number',
+                    text: 'Please enter a valid 10-digit mobile number.',
+                    confirmButtonColor: '#222',
+                    heightAuto: false
+                });
+            }
+
             const saveBtn = profileForm.querySelector('.btn-save');
             const originalBtnText = saveBtn.innerText;
             saveBtn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Saving...';
             saveBtn.disabled = true;
 
             const formData = new FormData();
-            formData.append('fullName', document.getElementById('fullName').value);
-            formData.append('phone', document.getElementById('phone').value);
-            formData.append('email', document.getElementById('email').value);
+            formData.append('fullName', fullName);
+            formData.append('phone', phone);
+            formData.append('email', email);
 
             if (selectedFile) {
                 formData.append('profileImage', selectedFile);
@@ -226,14 +261,21 @@
                 const result = await response.json();
 
                 if (result.success) {
-                    Swal.fire({ icon: 'success', title: 'Saved!', text: result.message, timer: 1500, showConfirmButton: false, heightAuto: false });
-                    document.getElementById('sidebarName').innerText = result.user.fullName;
-                    if (result.user.profileImage) {
-                        sidebarAvatar.src = result.user.profileImage;
-                        originalImageSrc = result.user.profileImage;
+                    if (result.requiresVerification) {
+                        return window.location.href = '/user/verify-email';
                     }
-                    selectedFile = null;
-                    toggleEdit(false);
+
+                    Swal.fire({ 
+                        icon: 'success', 
+                        title: 'Saved!', 
+                        text: result.message, 
+                        timer: 1500, 
+                        showConfirmButton: false, 
+                        heightAuto: false 
+                    }).then(() => {
+                        window.location.href = '/user/profile'; 
+                    });
+
                 } else {
                     Swal.fire({ icon: 'error', title: 'Update Failed', text: result.message, heightAuto: false });
                 }
@@ -244,6 +286,77 @@
                 saveBtn.disabled = false;
             }
         });
+
+        const passwordForm = document.getElementById('passwordForm');
+
+        if (passwordForm) {
+            passwordForm.addEventListener('submit', async (e) => {
+                e.preventDefault();
+
+                const oldPassword = document.getElementById('oldPassword').value;
+                const newPassword = document.getElementById('newPassword').value;
+                const confirmPassword = document.getElementById('confirmPassword').value;
+
+                if (newPassword !== confirmPassword) {
+                    return Swal.fire({ 
+                        icon: 'warning', 
+                        title: 'Check Passwords', 
+                        text: 'Your new passwords do not match!', 
+                        confirmButtonColor: '#222', 
+                        heightAuto: false 
+                    });
+                }
+
+                const saveBtn = passwordForm.querySelector('.btn-save');
+                const originalBtnText = saveBtn.innerText;
+                saveBtn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Updating...';
+                saveBtn.disabled = true;
+
+                try {
+                    const response = await fetch('/user/password', {
+                        method: 'PATCH',
+                        headers: {
+                            'Content-Type': 'application/json'
+                        },
+                        body: JSON.stringify({ oldPassword, newPassword, confirmPassword })
+                    });
+
+                    const result = await response.json();
+
+                    if (result.success) {
+                        Swal.fire({ 
+                            icon: 'success', 
+                            title: 'Success!', 
+                            text: result.message, 
+                            confirmButtonColor: '#222', 
+                            heightAuto: false 
+                        });
+                        passwordForm.reset();
+                    } else {
+                        Swal.fire({ 
+                            icon: 'error', 
+                            title: 'Update Failed', 
+                            text: result.message, 
+                            confirmButtonColor: '#222', 
+                            heightAuto: false 
+                        });
+                    }
+                } catch (err) {
+                    Swal.fire({ 
+                        icon: 'error', 
+                        title: 'Server Error', 
+                        text: 'Could not connect to the server.', 
+                        confirmButtonColor: '#222', 
+                        heightAuto: false 
+                    });
+                } finally {
+                    saveBtn.innerHTML = originalBtnText;
+                    saveBtn.disabled = false;
+                }
+            });
+        }
+
+        
         const togglePasswordIcons = document.querySelectorAll('.toggle-password');
 
         togglePasswordIcons.forEach(icon => {
@@ -254,7 +367,7 @@
                     input.type = 'text';
                     this.classList.remove('fa-eye-slash');
                     this.classList.add('fa-eye');
-                    this.style.color = '#222'; 
+                    this.style.color = '#222';
                 } else {
                     input.type = 'password';
                     this.classList.remove('fa-eye');

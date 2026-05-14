@@ -1,11 +1,11 @@
 :root {
-    --primary: #222;
+    --primary: #1a1a1a;
     --primary-hover: #000;
     --border: #ddd;
     --text-main: #222;
     --text-muted: #666;
     --bg-main: #ffffff;
-    --bg-body: #fcfcfc;
+    --bg-body: #f4f4f5;
     --shadow: 0 10px 30px rgba(0, 0, 0, 0.08);
     --input-focus: #ffeb3b;
 }
@@ -27,14 +27,14 @@ body {
     overflow: hidden;
 }
 
-.shared-bg {
+.admin-bg {
     background:
-        linear-gradient(rgba(250, 250, 250, 0.7), rgba(250, 250, 250, 0.7)),
-        url("https://images.unsplash.com/photo-1600210492486-724fe5c67fb0?auto=format&fit=crop&q=80&w=1600") center / cover no-repeat !important;
+        linear-gradient(rgba(240, 240, 245, 0.8), rgba(240, 240, 245, 0.8)),
+        url("https://images.unsplash.com/photo-1497366216548-37526070297c?auto=format&fit=crop&q=80&w=1600") center / cover no-repeat !important;
     background-blend-mode: normal;
 }
 
-.signup-container {
+.login-container {
     display: flex;
     background-color: var(--bg-main);
     border-radius: 12px;
@@ -43,11 +43,64 @@ body {
     width: 100%;
     max-width: 950px;
     height: 90vh;
-    max-height: 650px;
+    max-height: 550px;
 }
 
-/* Left Side Styling */
-.signup-left {
+.login-image-side {
+    flex: 1.1;
+    position: relative;
+    background-image: url('https://images.unsplash.com/photo-1600585154340-be6161a56a0c?auto=format&fit=crop&q=80&w=800');
+    background-size: cover;
+    background-position: center;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    padding: 2.5rem;
+    color: white;
+    text-align: center;
+}
+
+.login-image-side::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(to bottom, rgba(15, 15, 15, 0.6), rgba(15, 15, 15, 0.9));
+    z-index: 1;
+}
+
+.image-content {
+    position: relative;
+    z-index: 2;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 1rem;
+}
+
+.brand-title {
+    font-family: 'Playfair Display', serif;
+    font-size: 2.5rem;
+    font-weight: 700;
+    line-height: 1.2;
+    letter-spacing: -0.02em;
+    text-shadow: 0 2px 4px rgba(0, 0, 0, 0.4);
+    margin: 0;
+}
+
+.admin-badge {
+    background-color: rgba(255, 255, 255, 0.15);
+    backdrop-filter: blur(4px);
+    border: 1px solid rgba(255, 255, 255, 0.3);
+    padding: 0.4rem 1.2rem;
+    border-radius: 20px;
+    font-size: 0.85rem;
+    font-weight: 500;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+}
+
+.login-form-side {
     flex: 1;
     display: flex;
     justify-content: center;
@@ -63,24 +116,25 @@ body {
 }
 
 .title {
-    font-size: 2rem;
+    font-size: 1.8rem;
     font-weight: 700;
     color: var(--text-main);
-    margin-bottom: 0.25rem;
+    margin-bottom: 0.5rem;
 }
 
 .subtitle {
     font-size: 0.95rem;
     color: var(--text-muted);
-    margin-bottom: 1.5rem;
+    margin-bottom: 2rem;
+    line-height: 1.4;
 }
 
-.signup-form {
+.login-form {
     display: flex;
     flex-direction: column;
+    gap: 0;
 }
 
-/* --- NEW OTP STYLES START --- */
 .otp-container {
     display: flex;
     justify-content: space-between;
@@ -105,11 +159,9 @@ body {
 
 .otp-input:focus {
     border-color: var(--primary);
-    box-shadow: 0 0 0 3px rgba(34, 34, 34, 0.1);
-    /* Subtle dark glow to match theme */
+    box-shadow: 0 0 0 3px rgba(26, 26, 26, 0.15);
 }
 
-/* Remove default arrows from number inputs (if type changed to number) */
 .otp-input::-webkit-outer-spin-button,
 .otp-input::-webkit-inner-spin-button {
     -webkit-appearance: none;
@@ -117,17 +169,16 @@ body {
 }
 
 .timer-text {
-    text-align: center;
-    font-size: 14px;
+    text-align: right;
+    font-size: 13px;
     color: var(--text-muted);
-    margin-bottom: 25px;
+    margin-bottom: 20px;
+    height: 18px;
 }
-
-/* --- NEW OTP STYLES END --- */
-
 
 .btn-login {
     width: 100%;
+    margin-top: 5px;
     padding: 14px;
     background-color: var(--primary);
     color: #fff;
@@ -148,60 +199,8 @@ body {
     transform: scale(0.98);
 }
 
-
-.signup-right {
-    flex: 1.1;
-    position: relative;
-    background: url("https://res.cloudinary.com/dz7fuqwnr/image/upload/f_auto,q_auto/Gemini_Generated_Image_i7cd2mi7cd2mi7cd_wwxirk") center / cover no-repeat;
-    display: flex;
-    flex-direction: column;
-    justify-content: center;
-    align-items: center;
-    padding: 2.5rem;
-    color: white;
-    text-align: center;
-}
-
-.signup-right::before {
-    content: '';
-    position: absolute;
-    inset: 0;
-    background: linear-gradient(to bottom, rgba(0, 0, 0, 0.3), rgba(0, 0, 0, 0.8));
-    z-index: 1;
-}
-
-.right-content {
-    position: relative;
-    z-index: 2;
-    max-width: 400px;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    gap: 1.2rem;
-}
-
-.welcome-title {
-    font-family: 'Playfair Display', serif;
-    font-size: 2.5rem;
-    font-weight: 700;
-    line-height: 1.2;
-    letter-spacing: -0.02em;
-    text-shadow: 0 2px 4px rgba(0, 0, 0, 0.4);
-    margin: 0;
-}
-
-.welcome-desc {
-    font-family: inherit;
-    font-size: 1rem;
-    opacity: 0.95;
-    line-height: 1.5;
-    margin-bottom: 1.5rem;
-    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
-}
-
-/* Responsive adjustments */
 @media (max-width: 850px) {
-    .signup-container {
+    .login-container {
         flex-direction: column;
         height: auto;
         max-height: none;
@@ -213,13 +212,15 @@ body {
         overflow: auto;
     }
 
-    .signup-left {
-        padding: 2rem;
+    .login-image-side {
+        order: 2;
+        min-height: 250px;
+        flex: none;
     }
 
-    .signup-right {
-        min-height: 350px;
-        flex: none;
+    .login-form-side {
+        order: 1;
+        padding: 3rem 2rem;
     }
 
     .otp-input {

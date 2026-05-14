@@ -3,13 +3,13 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>HomeStation - User Login</title>
+    <title>HomeStation</title>
     <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&display=swap" rel="stylesheet">
     <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,600;0,700;1,600&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
-    
-    <link rel="stylesheet" href="/css/userlogin.css">
+    <link rel="icon" type="image/x-icon" href="https://res.cloudinary.com/dz7fuqwnr/image/upload/v1778395481/WhatsApp_Image_2026-05-10_at_12.12.36_nra5vk.jpg">
+    <link rel="stylesheet" href="/css/user/userlogin.css">
 </head>
 
 <body class="shared-bg">
@@ -24,7 +24,7 @@
                         <label for="email">Email</label>
                         <div class="input-container">
                             <i class="fa-regular fa-envelope input-icon"></i>
-                            <input type="email" name="email" id="email" placeholder="Enter your email" required>
+                            <input type="email" name="email" id="email" placeholder="Enter your email">
                         </div>
                     </div>
 
@@ -32,7 +32,7 @@
                         <label for="password">Password</label>
                         <div class="input-container password-container">
                             <i class="fa-solid fa-lock input-icon"></i>
-                            <input type="password" name="password" id="password" placeholder="Enter your password" required>
+                            <input type="password" name="password" id="password" placeholder="Enter your password">
                             <i class="fa-regular fa-eye-slash toggle-password" onclick="togglePasswordVisibility('password', this)"></i>
                         </div>
                     </div>
@@ -41,7 +41,7 @@
                         <a href="/user/forgot-password" style="font-size: 13px; color: #666; text-decoration: none;">Forgot Password?</a>
                     </div>
 
-                    <button type="submit" class="btn btn-login">Sign In</button>
+                    <button type="submit" class="btn btn-login" id="submitBtn">Sign In</button>
 
                     <div class="divider">
                         <span class="divider-text">OR</span>
@@ -72,6 +72,11 @@
 
         const email = document.getElementById('email').value;
         const password = document.getElementById('password').value;
+        const submitBtn = document.getElementById('submitBtn');
+
+        const originalText = submitBtn.innerText;
+        submitBtn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Verifying...';
+        submitBtn.disabled = true;
 
         try {
             const response = await fetch('/user/login', {
@@ -113,6 +118,9 @@
                 heightAuto: false,
                 scrollbarPadding: false
             });
+        } finally {
+            submitBtn.innerHTML = originalText;
+            submitBtn.disabled = false;
         }
     });
 

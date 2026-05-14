@@ -7,9 +7,9 @@ import { sendOtpEmail } from '../../services/user/emailService.js';
 
 export const loadLogin = async (req, res) => {
     try {
-        res.render('user/userlogin');
+        const errorMessage = req.query.error || null;
+        res.render('user/userlogin', { errorMessage }); 
     } catch (error) {
-        console.log("Error rendering login page:", error);
         res.status(500).send("Server Error");
     }
 };
@@ -23,7 +23,7 @@ export const processLogin = (req, res, next) => {
             return res.status(401).json({ success: false, message: info.message });
         }
         
-        req.logIn(user, (err) => {
+        req.logIn(user, { keepSessionInfo: true }, (err) => {
             if (err) {
                 return res.status(500).json({ success: false, message: "Session error" });
             }
@@ -51,6 +51,16 @@ export const processRegister = async (req, res) => {
 
         if (password !== confirmPassword) {
             return res.status(400).json({ success: false, message: "Passwords do not match." });
+        }
+
+        if (req.session.otp && req.session.otpExpires > Date.now()) {
+            if (req.session.tempUserData && req.session.tempUserData.email === email) {
+                console.log("Intercepted double-click: OTP already active.");
+                return res.status(200).json({ 
+                    success: true, 
+                    message: "OTP already sent. Please check your email." 
+                });
+            }
         }
 
         await validateRegistrationData(email, phone, password);
@@ -104,8 +114,6 @@ export const resendOtp = async (req, res) => {
         const emailToVerify = req.session.tempUserData ? req.session.tempUserData.email : req.session.resetEmail;
         await sendOtpEmail(emailToVerify, newOtp);
 
-        console.log(`\n=== RESENT OTP FOR ${emailToVerify}: ${newOtp} ===\n`);
-
         return res.status(200).json({ success: true, message: "OTP resent successfully." });
         
     } catch (error) {
@@ -139,7 +147,7 @@ export const verifyOtp = async (req, res) => {
             req.session.otpExpires = null;
             req.session.otpContext = null;
 
-            req.logIn(newUser, (err) => {
+            req.logIn(newUser, { keepSessionInfo: true }, (err) => {
                 if(err){
                     return res.status(500).json({success: false, message: 'Account created but failed to log in automatically'});
                 }
@@ -246,3 +254,4 @@ export const processResetPassword = async (req, res) => {
         res.status(500).json({ success: false, message: "Server error." });
     }
 };
+

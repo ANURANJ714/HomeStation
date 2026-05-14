@@ -8,10 +8,10 @@ const userSchema = new mongoose.Schema({
     passwordHash: { 
         type: String,
         required: function(){
-            return this.role === 'Admin' || this.authProvider === 'local' || this.authProvider === 'both';
+            return this.role === 'Admin' || this.authProvider === 'local';
         }
     }, 
-    authProvider: { type: String, enum: ['local', 'google', 'both'], default: 'local' },
+    authProvider: { type: String, enum: ['local', 'google'], default: 'local' },
     googleId: { type: String, unique: true, sparse: true }, 
     profileImage: { type: String, default: 'https://cdn.pixabay.com/photo/2015/10/05/22/37/blank-profile-picture-973460_1280.png' },
     role: { type: String, enum: ['User', 'Admin'], default: 'User' },

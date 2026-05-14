@@ -1,0 +1,271 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>HomeStation - ADMIN</title>
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,600;0,700;1,600&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="icon" type="image/x-icon" href="https://res.cloudinary.com/dz7fuqwnr/image/upload/v1778395481/WhatsApp_Image_2026-05-10_at_12.12.36_nra5vk.jpg">
+    <link rel="stylesheet" href="/css/admin/dashboard.css">
+</head>
+
+<body>
+    <div class="dashboard-layout">
+
+        <aside class="sidebar">
+            <div class="sidebar-header">
+                <h2 class="brand-title">HomeStation</h2>
+            </div>
+
+            <nav class="sidebar-nav">
+                <ul class="nav-list">
+                    <li class="nav-item">
+                        <a href="/admin/dashboard" class="nav-link active">
+                            <i class="fa-solid fa-chart-pie nav-icon"></i> Dashboard
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a href="#" class="nav-link">
+                            <i class="fa-solid fa-box nav-icon"></i> Products
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a href="#" class="nav-link">
+                            <i class="fa-solid fa-tags nav-icon"></i> Categories
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a href="#" class="nav-link">
+                            <i class="fa-solid fa-cart-shopping nav-icon"></i> Orders
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a href="/admin/users" class="nav-link">
+                            <i class="fa-solid fa-users nav-icon"></i> User Management
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a href="#" class="nav-link">
+                            <i class="fa-solid fa-file-invoice-dollar nav-icon"></i> Sales Report
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a href="#" class="nav-link">
+                            <i class="fa-solid fa-ticket nav-icon"></i> Manage Coupons
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a href="#" class="nav-link">
+                            <i class="fa-solid fa-envelope nav-icon"></i> Enquiry
+                        </a>
+                    </li>
+                </ul>
+
+                <ul class="nav-list logout-section">
+                    <li class="nav-item">
+                        <form action="/admin/logout" method="POST" id="adminLogoutForm">
+                            <a href="#" class="nav-link logout-link" onclick="document.getElementById('adminLogoutForm').submit(); return false;">
+                                <i class="fa-solid fa-right-from-bracket nav-icon"></i> Logout
+                            </a>
+                        </form>
+                    </li>
+                </ul>
+            </nav>
+        </aside>
+
+        <div class="main-panel">
+
+            <header class="top-header">
+                <div class="header-left">
+                </div>
+                <div class="header-right">
+                    <div class="datetime-display" id="datetimeDisplay">
+                    </div>
+                    <div class="admin-badge">
+                        <i class="fa-solid fa-user-shield"></i> Admin
+                    </div>
+                </div>
+            </header>
+
+            <main class="content-wrapper">
+                <div class="page-header-row" style="margin-bottom: 30px;">
+                    <h1 class="page-title" style="margin-bottom: 0;">Dashboard Overview</h1>
+                    <button class="btn btn-primary" onclick="openModal('bannerDetailsModal')">Banner Details</button>
+                </div>
+
+                <h2 class="stats-heading">Lifetime Statistics</h2>
+                <div class="stats-grid">
+                    <div class="stat-card">
+                        <div class="stat-icon total-revenue-icon"><i class="fa-solid fa-wallet"></i></div>
+                        <div class="stat-details">
+                            <p class="stat-label">Total Revenue</p>
+                            <h3 class="stat-value">₹54,20,000</h3>
+                        </div>
+                    </div>
+
+                    <div class="stat-card">
+                        <div class="stat-icon total-items-icon"><i class="fa-solid fa-boxes-stacked"></i></div>
+                        <div class="stat-details">
+                            <p class="stat-label">Total Items Sold</p>
+                            <h3 class="stat-value">3,842</h3>
+                        </div>
+                    </div>
+
+                    <div class="stat-card">
+                        <div class="stat-icon total-users-icon"><i class="fa-solid fa-users-viewfinder"></i></div>
+                        <div class="stat-details">
+                            <p class="stat-label">Total Users</p>
+                            <h3 class="stat-value">1,248</h3>
+                        </div>
+                    </div>
+                </div>
+
+                <h2 class="stats-heading">Last 30 Days</h2>
+                <div class="stats-grid">
+                    <div class="stat-card">
+                        <div class="stat-icon revenue-icon"><i class="fa-solid fa-indian-rupee-sign"></i></div>
+                        <div class="stat-details">
+                            <p class="stat-label">Revenue</p>
+                            <h3 class="stat-value">₹4,25,000</h3>
+                        </div>
+                    </div>
+
+                    <div class="stat-card">
+                        <div class="stat-icon items-icon"><i class="fa-solid fa-couch"></i></div>
+                        <div class="stat-details">
+                            <p class="stat-label">Items Sold</p>
+                            <h3 class="stat-value">342</h3>
+                        </div>
+                    </div>
+
+                    <div class="stat-card">
+                        <div class="stat-icon users-icon"><i class="fa-solid fa-user-plus"></i></div>
+                        <div class="stat-details">
+                            <p class="stat-label">New Users</p>
+                            <h3 class="stat-value">128</h3>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="performance-section">
+                    <h2 class="section-title">Category Performance</h2>
+
+                    <div class="category-list">
+
+                        <div class="category-item">
+                            <div class="cat-info">
+                                <span class="cat-name">Spring Mattress</span>
+                                <span class="cat-sales">45% of total sales</span>
+                            </div>
+                            <div class="progress-bar-bg">
+                                <div class="progress-bar-fill" style="width: 45%; background-color: #4CAF50;"></div>
+                            </div>
+                        </div>
+
+                        <div class="category-item">
+                            <div class="cat-info">
+                                <span class="cat-name">Coir Mattress</span>
+                                <span class="cat-sales">25% of total sales</span>
+                            </div>
+                            <div class="progress-bar-bg">
+                                <div class="progress-bar-fill" style="width: 25%; background-color: #2196F3;"></div>
+                            </div>
+                        </div>
+
+                        <div class="category-item">
+                            <div class="cat-info">
+                                <span class="cat-name">Orthopedic Mattress</span>
+                                <span class="cat-sales">18% of total sales</span>
+                            </div>
+                            <div class="progress-bar-bg">
+                                <div class="progress-bar-fill" style="width: 18%; background-color: #FF9800;"></div>
+                            </div>
+                        </div>
+
+                        <div class="category-item">
+                            <div class="cat-info">
+                                <span class="cat-name">Pillows</span>
+                                <span class="cat-sales">12% of total sales</span>
+                            </div>
+                            <div class="progress-bar-bg">
+                                <div class="progress-bar-fill" style="width: 12%; background-color: #9C27B0;"></div>
+                            </div>
+                        </div>
+
+                    </div>
+                    
+                    <div class="pagination-container" style="display: flex; justify-content: space-between; align-items: center; margin-top: 25px; padding-top: 20px; border-top: 1px solid var(--border, #e0e0e0);">
+                        <span class="pagination-info" style="font-size: 14px; color: var(--text-muted, #666);">Showing 1 to 4 of 4 categories</span>
+                        <div class="pagination-controls" style="display: flex; gap: 8px;">
+                            <button type="button" class="page-btn disabled" style="width: 34px; height: 34px; border: 1px solid var(--border, #e0e0e0); background-color: #fff; border-radius: 4px; cursor: not-allowed; opacity: 0.5; display: inline-flex; justify-content: center; align-items: center; color: #333;"><i class="fa-solid fa-chevron-left"></i></button>
+                            <button type="button" class="page-btn active" style="width: 34px; height: 34px; border: 1px solid var(--primary, #1a1a1a); background-color: var(--primary, #1a1a1a); color: #fff; border-radius: 4px; font-weight: 500; display: inline-flex; justify-content: center; align-items: center;">1</button>
+                            <button type="button" class="page-btn disabled" style="width: 34px; height: 34px; border: 1px solid var(--border, #e0e0e0); background-color: #fff; border-radius: 4px; cursor: not-allowed; opacity: 0.5; display: inline-flex; justify-content: center; align-items: center; color: #333;"><i class="fa-solid fa-chevron-right"></i></button>
+                        </div>
+                    </div>
+
+                </div>
+
+            </main>
+        </div>
+    </div>
+
+    <div class="modal-overlay" id="bannerDetailsModal" style="display: none;">
+        <div class="modal-content" style="max-width: 500px;">
+            <div class="modal-header">
+                <h2>Banner Details</h2>
+                <button type="button" class="close-modal-btn" onclick="closeModal('bannerDetailsModal')"><i class="fa-solid fa-xmark"></i></button>
+            </div>
+            <div class="modal-body">
+                <form id="bannerDetailsForm" onsubmit="event.preventDefault(); closeModal('bannerDetailsModal');">
+                    <div class="form-group">
+                        <label>Banner Text</label>
+                        <textarea rows="3" style="width: 100%; padding: 10px 12px; border: 1px solid #e0e0e0; border-radius: 6px; font-size: 14px; outline: none; font-family: inherit; resize: vertical;" required>10% discount with coupon code "HOME10" - Hurry! Limited Period Offer</textarea>
+                    </div>
+
+                    <div class="modal-footer" style="margin-top: 25px; padding: 20px 0 0 0;">
+                        <button type="button" class="btn btn-secondary" onclick="closeModal('bannerDetailsModal')">Cancel</button>
+                        <button type="submit" class="btn btn-primary">Save</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        function openModal(modalId) {
+            document.getElementById(modalId).style.display = 'flex';
+        }
+        function closeModal(modalId) {
+            document.getElementById(modalId).style.display = 'none';
+        }
+        window.onclick = function (event) {
+            if (event.target.classList.contains('modal-overlay')) {
+                event.target.style.display = 'none';
+            }
+        }
+        
+        function updateDateTime() {
+            const now = new Date();
+
+            const options = {
+                weekday: 'long',
+                year: 'numeric',
+                month: 'short',
+                day: 'numeric',
+                hour: '2-digit',
+                minute: '2-digit'
+            };
+
+            const formattedDateTime = now.toLocaleDateString('en-IN', options);
+            document.getElementById('datetimeDisplay').textContent = formattedDateTime;
+        }
+
+        updateDateTime();
+        setInterval(updateDateTime, 60000);
+    </script>
+</body>
+
+</html>
