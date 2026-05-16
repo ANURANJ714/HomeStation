@@ -55,23 +55,6 @@ export const getAdminDashboard = (req, res) => {
     res.render('admin/dashboard', { admin: req.user }); 
 };
 
-export const postAdminLogout = (req, res, next) => {
-    req.logout((err) => {
-        if (err) {
-            console.error("Admin logout error:", err);
-            return next(err);
-        }
-        
-        req.session.destroy((destroyErr) => {
-            if (destroyErr) {
-                console.error("Session destruction error:", destroyErr);
-            }
-            res.clearCookie('connect.sid'); 
-            res.redirect('/admin/login');
-        });
-    });
-};
-
 export const getForgotPassword = (req, res) => {
     if (req.isAuthenticated() && req.user && req.user.role === 'Admin') {
         return res.redirect('/admin/dashboard');
@@ -250,4 +233,21 @@ export const patchResetPassword = async (req, res, next) => {
         console.error("Admin Reset Password Error:", error);
         res.status(500).json({ success: false, message: "Server error occurred." });
     }
+};
+
+export const postAdminLogout = (req, res, next) => {
+    req.logout((err) => {
+        if (err) {
+            console.error("Admin logout error:", err);
+            return next(err);
+        }
+        
+        req.session.destroy((destroyErr) => {
+            if (destroyErr) {
+                console.error("Session destruction error:", destroyErr);
+            }
+            res.clearCookie('admin_session'); 
+            res.redirect('/admin/login');
+        });
+    });
 };

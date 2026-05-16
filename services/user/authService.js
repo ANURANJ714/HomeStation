@@ -23,6 +23,13 @@ export const validateRegistrationData = async (email, phone, password) => {
         error.statusCode = 409; 
         throw error;
     }
+
+    const existingPhoneNumber = await User.findOne({phone});
+    if(existingPhoneNumber){
+        const error = new Error("Phone number already exists!");
+        error.statusCode = 409;
+        throw error;
+    }
 };
 
 

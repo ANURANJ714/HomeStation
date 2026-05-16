@@ -150,7 +150,7 @@ export const logoutUser = (req, res) => {
         }
         req.session.destroy((err) => {
             if (err) console.log("Session destruction error:", err);
-            res.clearCookie('connect.sid'); 
+            res.clearCookie('user_session'); 
             return res.redirect('/user/login');
         });
     });

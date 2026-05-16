@@ -165,9 +165,29 @@ export const verifyOtp = async (req, res) => {
                 });
             });
             return;
+        }else {
+            req.session.canResetPassword = true;
+
+            req.session.otp = null;
+            req.session.otpExpires = null;
+            req.session.otpContext = null;
+
+            req.session.save((saveErr) => {
+                if (saveErr) {
+                    console.error("Session save error:", saveErr);
+                    return res.status(500).json({ success: false, message: "Session error." });
+                }
+                
+                return res.status(200).json({
+                    success: true,
+                    message: "OTP Verified!",
+                    redirectUrl: '/user/reset-password'
+                });
+            });
         }
 
     } catch (error) {
+        console.error("Verify OTP Error:", error);
         res.status(500).json({ success: false, message: "An error occurred during verification." });
     }
 };
@@ -192,6 +212,13 @@ export const processForgotPassword = async (req, res) => {
                 success: false, 
                 isExistingUser: false, 
                 message: "No account found with this email. Please create an account." 
+            });
+        }
+        if (user.authProvider === 'google') {
+            return res.status(400).json({
+                success: false,
+                isExistingUser: true,
+                message: "This email is linked to a Google account. Please use 'Continue with Google' to log in."
             });
         }
 

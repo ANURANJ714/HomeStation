@@ -33,18 +33,36 @@ app.set('views', path.join(__dirname, 'views'));
 app.use(express.urlencoded({ extended: true }));
 app.use(express.json());
 
-app.use(session({
-    secret: process.env.SESSION_SECRET,
+const userSession = session({
+    name: 'user_session',
+    secret: process.env.USER_SESSION_SECRET,
     resave: false,
     saveUninitialized: false,
-    store: MongoStore.create({ 
-        mongoUrl: process.env.MONGODB_URI
-    }),
+    store: MongoStore.create({ mongoUrl: process.env.MONGODB_URI }),
     cookie: { 
-        secure: false,
-        maxAge: 1000 * 60 * 60
+        maxAge: 1000 * 60 * 60 * 24 * 7
     }
-}));
+});
+
+const adminSession = session({
+    name: 'admin_session', 
+    secret: process.env.ADMIN_SESSION_SECRET,
+    resave: false,
+    saveUninitialized: false,
+    store: MongoStore.create({ mongoUrl: process.env.MONGODB_URI }),
+    cookie: { 
+        maxAge: 1000 * 60 * 60 * 24,
+        collectionName: 'admin_sessions',
+        path: '/' 
+    }
+});
+
+app.use((req, res, next) => {
+    if (req.originalUrl.startsWith('/admin')) {
+        return adminSession(req, res, next);
+    }
+    return userSession(req, res, next);
+});
 
 app.use(passport.initialize());
 app.use(passport.session());
