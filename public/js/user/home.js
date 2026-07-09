@@ -1,10 +1,10 @@
 document.addEventListener("DOMContentLoaded", () => {
   const csrfToken = document.getElementById("csrfToken")?.value || "";
-
+  const cartJustAdded = document.getElementById("cartJustAdded")?.value === "true";
+  const wishlistJustAdded = document.getElementById("wishlistJustAdded")?.value === "true";
   const urlParams = new URLSearchParams(window.location.search);
-  const showWishlistAlert = urlParams.get("wishlistAdded") === "true" || sessionStorage.getItem("pendingWishlistAlert") === "true";
 
-  if (showWishlistAlert) {
+  if (urlParams.get("wishlistAdded") === "true" || wishlistJustAdded) {
     Swal.fire({
       icon: "success",
       title: "Added!",
@@ -13,15 +13,27 @@ document.addEventListener("DOMContentLoaded", () => {
       showConfirmButton: false,
       heightAuto: false,
     });
-    
-    sessionStorage.removeItem("pendingWishlistAlert");
     if (urlParams.get("wishlistAdded")) {
       window.history.replaceState(null, "", window.location.pathname);
     }
   }
 
+  if (urlParams.get("cartAdded") === "true" || cartJustAdded) {
+    Swal.fire({
+      icon: "success",
+      title: "Added to Cart!",
+      text: "Item added to your cart successfully.",
+      timer: 2000,
+      showConfirmButton: false,
+      heightAuto: false,
+    });
+    if (urlParams.get("cartAdded")) {
+      window.history.replaceState(null, "", window.location.pathname);
+    }
+  }
+
   const hamburgerBtn = document.getElementById("hamburgerBtn");
-  const closeSidebarBtn = document.getElementById('closeSidebar');
+  const closeSidebarBtn = document.getElementById("closeSidebar");
   const appNavbar = document.getElementById("appNavbar");
   const sidebarOverlay = document.getElementById("sidebarOverlay");
 
@@ -39,19 +51,60 @@ document.addEventListener("DOMContentLoaded", () => {
   if (closeSidebarBtn) closeSidebarBtn.addEventListener("click", closeMobileDrawer);
   if (sidebarOverlay) sidebarOverlay.addEventListener("click", closeMobileDrawer);
 
-  document.addEventListener("click", (e) => {
+  document.addEventListener("click", async (e) => {
     const addToCartBtn = e.target.closest(".add-to-cart-btn");
     if (addToCartBtn) {
       e.preventDefault();
+      const variantId = addToCartBtn.getAttribute("data-variant-id");
 
-      Swal.fire({
-        icon: "success",
-        title: "Added to Cart!",
-        text: "Item added to cart successfully.",
-        timer: 2000,
-        showConfirmButton: false,
-        heightAuto: false,
-      });
+      if (!variantId) {
+        console.error("No variant ID found on this cart button.");
+        return;
+      }
+
+      try {
+        const response = await fetch("/cart/add", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            "CSRF-Token": csrfToken,
+          },
+          body: JSON.stringify({ variantId: variantId }),
+        });
+
+        if (response.status === 401 || response.status === 403) {
+          window.location.href = "/user/login"; 
+          return;
+        }
+
+        const data = await response.json();
+
+        if (data.success) {
+          Swal.fire({
+            icon: "success",
+            title: "Added to Cart!",
+            text: data.message,
+            timer: 1500,
+            showConfirmButton: false,
+            heightAuto: false,
+          });
+        } else {
+          Swal.fire({
+            icon: "error",
+            title: "Oops...",
+            text: data.message || "Something went wrong.",
+            heightAuto: false,
+          });
+        }
+      } catch (error) {
+        console.error("Cart fetch error:", error);
+        Swal.fire({
+          icon: "error",
+          title: "Network Error",
+          text: "Could not connect to the server.",
+          heightAuto: false,
+        });
+      }
     }
   });
 
@@ -59,14 +112,10 @@ document.addEventListener("DOMContentLoaded", () => {
     const wishlistBtn = e.target.closest(".wishlist-btn");
     if (wishlistBtn) {
       e.preventDefault();
-
       const variantId = wishlistBtn.getAttribute("data-variant-id");
       const icon = wishlistBtn.querySelector("i");
 
-      if (!variantId) {
-        console.error("No variant ID found on this button.");
-        return;
-      }
+      if (!variantId) return;
 
       try {
         const response = await fetch("/wishlist/add", {
@@ -78,18 +127,8 @@ document.addEventListener("DOMContentLoaded", () => {
           body: JSON.stringify({ variantId: variantId }),
         });
 
-        if (response.status === 401) {
-          const data = await response.json();
-          if (data.redirectUrl) {
-            sessionStorage.setItem("pendingWishlistAlert", "true");
-            window.location.href = data.redirectUrl;
-          }
-          return;
-        }
-
-        if (response.redirected && response.url.includes("/login")) {
-          sessionStorage.setItem("pendingWishlistAlert", "true");
-          window.location.href = response.url;
+        if (response.status === 401 || response.status === 403) {
+          window.location.href = "/user/login"; 
           return;
         }
 
@@ -99,7 +138,6 @@ document.addEventListener("DOMContentLoaded", () => {
           if (data.action === "added") {
             wishlistBtn.classList.add("liked");
             if (icon) icon.className = "fa-solid fa-heart";
-
             Swal.fire({
               icon: "success",
               title: "Added!",
@@ -111,7 +149,6 @@ document.addEventListener("DOMContentLoaded", () => {
           } else if (data.action === "removed") {
             wishlistBtn.classList.remove("liked");
             if (icon) icon.className = "fa-regular fa-heart";
-
             Swal.fire({
               icon: "info",
               title: "Removed",

@@ -17,6 +17,8 @@
 
 <body>
     <input type="hidden" id="csrfToken" value="<%= typeof csrfToken !== 'undefined' ? csrfToken : '' %>">
+    <input type="hidden" id="cartJustAdded" value="<%= typeof cartJustAdded !== 'undefined' ? cartJustAdded : false %>">
+    <input type="hidden" id="wishlistJustAdded" value="<%= typeof wishlistJustAdded !== 'undefined' ? wishlistJustAdded : false %>">
     <% if (typeof bannerText !=='undefined' && bannerText) { %>
         <div class="promo-bar">
             <b><%- bannerText %></b>
@@ -128,8 +130,10 @@
                                                     <% } %>
                                                         ₹<%= currentPrice.toLocaleString('en-IN') %>
                                             </p>
-                                            <button class="add-to-cart-btn" type="button"><i
-                                                    class="fa-solid fa-cart-plus"></i> Add</button>
+                                            <button class="add-to-cart-btn" type="button"
+                                                data-variant-id="<%= variant._id %>">
+                                                <i class="fa-solid fa-cart-plus"></i> Add
+                                            </button>
                                         </div>
                                     </div>
                                 </div>
@@ -182,8 +186,10 @@
                                                         variant.originalPrice.toLocaleString('en-IN') %></span>
                                                 ₹<%= currentPrice.toLocaleString('en-IN') %>
                                             </p>
-                                            <button class="add-to-cart-btn" type="button"><i
-                                                    class="fa-solid fa-cart-plus"></i> Add</button>
+                                            <button class="add-to-cart-btn" type="button"
+                                                data-variant-id="<%= variant._id %>">
+                                                <i class="fa-solid fa-cart-plus"></i> Add
+                                            </button>
                                         </div>
                                     </div>
                                 </div>
