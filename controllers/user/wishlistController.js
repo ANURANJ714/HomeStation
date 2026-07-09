@@ -1,4 +1,5 @@
 import * as wishlistService from '../../services/user/wishlistService.js'; 
+import {getActivePromoBanner} from '../../services/user/bannerService.js';
 import logger from '../../utils/logger.js';
 
 export const toggleWishlistItem = async (req, res) => {
@@ -32,5 +33,31 @@ export const toggleWishlistItem = async (req, res) => {
     } catch (error) {
         logger.error(`Wishlist Toggle Error: ${error.message}`);
         return res.status(500).json({ success: false, message: "Server error occurred." });
+    }
+};
+
+export const loadWishlistPage = async (req, res) => {
+    try {
+        const userId = req.user._id;
+        const page = parseInt(req.query.page, 10) || 1;
+        const limit = 6; 
+
+        const [wishlistData, bannerText] = await Promise.all([
+            wishlistService.getWishlistItemsPaginated(userId, page, limit),
+            getActivePromoBanner()
+        ]);
+
+        return res.render('user/wishlist', {
+            user: req.user,
+            items: wishlistData.items,
+            currentPage: wishlistData.currentPage,
+            totalPages: wishlistData.totalPages,
+            totalItems: wishlistData.totalItems,
+            bannerText
+        });
+
+    } catch (error) {
+        logger.error(`Error loading Wishlist Page (IP: ${req.ip}): ${error.message}\nStack: ${error.stack}`);
+        return res.status(500).json({ success: false, message: "Server error occurred while loading wishlist." });
     }
 };

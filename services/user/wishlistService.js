@@ -1,4 +1,5 @@
 import Wishlist from '../../models/Wishlist.js';
+import ProductVariant from '../../models/ProductVariant.js';
 
 export const toggleVariantInWishlist = async (userId, productVariantId) => {
     try {
@@ -38,5 +39,35 @@ export const getUserWishlistArray = async (userId) => {
     } catch (error) {
         console.error("Error fetching wishlist array:", error);
         return [];
+    }
+};
+
+export const getWishlistItemsPaginated = async (userId, page = 1, limit = 6) => {
+    try {
+        const skip = (page - 1) * limit;
+
+        const wishlist = await Wishlist.findOne({ userId });
+        
+        if (!wishlist || !wishlist.variants || wishlist.variants.length === 0) {
+            return { items: [], totalItems: 0, totalPages: 0, currentPage: page };
+        }
+
+        const totalItems = wishlist.variants.length;
+        const totalPages = Math.ceil(totalItems / limit);
+
+        const paginatedVariantIds = wishlist.variants.slice(skip, skip + limit);
+
+        const items = await ProductVariant.find({ _id: { $in: paginatedVariantIds } })
+            .populate('productId') 
+            .exec();
+
+        const orderedItems = paginatedVariantIds.map(id => 
+            items.find(item => item._id.toString() === id.toString())
+        ).filter(Boolean);
+
+        return { items: orderedItems, totalItems, totalPages, currentPage: page };
+
+    } catch (error) {
+        throw new Error(`Database error while fetching paginated wishlist: ${error.message}`);
     }
 };
