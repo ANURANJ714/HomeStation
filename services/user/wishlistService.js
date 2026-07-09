@@ -71,3 +71,16 @@ export const getWishlistItemsPaginated = async (userId, page = 1, limit = 6) => 
         throw new Error(`Database error while fetching paginated wishlist: ${error.message}`);
     }
 };
+
+export const removeVariantFromWishlist = async (userId, productVariantId) => {
+    try {
+        const result = await Wishlist.updateOne(
+            { userId },
+            { $pull: { variants: productVariantId } }
+        );
+        
+        return result.modifiedCount > 0;
+    } catch (error) {
+        throw new Error(`Database error while deleting item from wishlist: ${error.message}`);
+    }
+};

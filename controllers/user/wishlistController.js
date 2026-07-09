@@ -61,3 +61,27 @@ export const loadWishlistPage = async (req, res) => {
         return res.status(500).json({ success: false, message: "Server error occurred while loading wishlist." });
     }
 };
+
+export const deleteWishlistItem = async (req, res) => {
+    try {
+        const { variantId } = req.body;
+        const userId = req.user._id;
+
+        if (!variantId) {
+            return res.status(400).json({ success: false, message: "Variant ID is required." });
+        }
+
+        await wishlistService.removeVariantFromWishlist(userId, variantId);
+
+        logger.info(`User (${req.user.email}) deleted variant ${variantId} from their wishlist page template.`);
+
+        return res.status(200).json({
+            success: true,
+            message: "Item removed from your wishlist successfully."
+        });
+
+    } catch (error) {
+        logger.error(`Wishlist Deletion Endpoint Failure (IP: ${req.ip}): ${error.message}`);
+        return res.status(500).json({ success: false, message: "Failed to remove item from wishlist." });
+    }
+};

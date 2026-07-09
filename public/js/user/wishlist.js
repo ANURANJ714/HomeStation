@@ -81,7 +81,7 @@ document.addEventListener("DOMContentLoaded", () => {
             if (!currentDeleteId) return;
 
             try {
-                const response = await fetch("/wishlist/add", {
+                const response = await fetch("/wishlist/remove", {
                     method: "POST",
                     headers: {
                         "Content-Type": "application/json",
@@ -92,7 +92,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
                 const data = await response.json();
 
-                if (data.success && data.action === "removed") {
+                if (data.success) {
                     const itemElement = document.querySelector(`.wishlist-item[data-variant-id="${currentDeleteId}"]`);
                     if (itemElement) {
                         itemElement.style.opacity = '0';
@@ -104,11 +104,32 @@ document.addEventListener("DOMContentLoaded", () => {
                             }
                         }, 300);
                     }
+
+                    Swal.fire({
+                        icon: "success",
+                        title: "Removed!",
+                        text: data.message || "Item removed from your wishlist successfully.",
+                        timer: 1500,
+                        showConfirmButton: false,
+                        heightAuto: false
+                    });
+
                 } else {
-                    Swal.fire({ icon: "error", title: "Oops...", text: data.message || "Failed to remove item.", heightAuto: false });
+                    Swal.fire({ 
+                        icon: "error", 
+                        title: "Oops...", 
+                        text: data.message || "Failed to remove item.", 
+                        heightAuto: false 
+                    });
                 }
             } catch (error) {
-                Swal.fire({ icon: "error", title: "Network Error", text: "Could not connect to the server.", heightAuto: false });
+                console.error("Wishlist deletion frontend error:", error);
+                Swal.fire({ 
+                    icon: "error", 
+                    title: "Network Error", 
+                    text: "Could not connect to the server.", 
+                    heightAuto: false 
+                });
             } finally {
                 closeModal(deleteModal);
                 currentDeleteId = null;
