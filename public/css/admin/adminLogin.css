@@ -30,8 +30,7 @@ body {
 .admin-bg {
     background:
         linear-gradient(rgba(240, 240, 245, 0.8), rgba(240, 240, 245, 0.8)),
-        url("https://images.unsplash.com/photo-1497366216548-37526070297c?auto=format&fit=crop&q=80&w=1600") center / cover no-repeat !important;
-    background-blend-mode: normal;
+        url("https://images.unsplash.com/photo-1497366216548-37526070297c?auto=format&fit=crop&q=80&w=1600") center / cover no-repeat;
 }
 
 .login-container {
@@ -53,7 +52,6 @@ body {
     background-size: cover;
     background-position: center;
     display: flex;
-    flex-direction: column;
     justify-content: center;
     align-items: center;
     padding: 2.5rem;
@@ -65,7 +63,11 @@ body {
     content: '';
     position: absolute;
     inset: 0;
-    background: linear-gradient(to bottom, rgba(15, 15, 15, 0.6), rgba(15, 15, 15, 0.9));
+    background: linear-gradient(
+        to bottom,
+        rgba(15, 15, 15, 0.6),
+        rgba(15, 15, 15, 0.9)
+    );
     z-index: 1;
 }
 
@@ -85,7 +87,6 @@ body {
     line-height: 1.2;
     letter-spacing: -0.02em;
     text-shadow: 0 2px 4px rgba(0, 0, 0, 0.4);
-    margin: 0;
 }
 
 .admin-badge {
@@ -106,7 +107,7 @@ body {
     justify-content: center;
     align-items: center;
     padding: 2rem;
-    background: #ffffff;
+    background: #fff;
     overflow-y: auto;
 }
 
@@ -125,7 +126,6 @@ body {
 .login-form {
     display: flex;
     flex-direction: column;
-    gap: 0;
 }
 
 .form-group {
@@ -153,7 +153,6 @@ body {
     border-radius: 6px;
     font-size: 13px;
     transition: border-color 0.3s;
-    font-family: inherit;
     outline: none;
     background-color: #fff;
 }
@@ -171,14 +170,24 @@ body {
 }
 
 .password-container input {
-    padding-right: 35px;
+    padding-right: 45px;
+}
+
+.toggle-password-btn {
+    position: absolute;
+    right: 10px;
+    border: none;
+    background: transparent;
+    cursor: pointer;
+    padding: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
 }
 
 .toggle-password {
-    position: absolute;
-    right: 12px;
-    cursor: pointer;
     color: #888;
+    font-size: 14px;
     transition: color 0.3s;
 }
 
@@ -213,7 +222,9 @@ body {
     font-size: 15px;
     font-weight: 500;
     cursor: pointer;
-    transition: background-color 0.3s, transform 0.1s;
+    transition:
+        background-color 0.3s,
+        transform 0.1s;
 }
 
 .btn-login:hover {
@@ -225,7 +236,12 @@ body {
     transform: scale(0.98);
 }
 
+.hidden-error-data {
+    display: none;
+}
+
 @media (max-width: 850px) {
+
     .login-container {
         flex-direction: column;
         height: auto;

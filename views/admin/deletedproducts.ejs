@@ -1,0 +1,198 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>HomeStation - ADMIN</title>
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,600;0,700;1,600&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="icon" type="image/x-icon" href="https://res.cloudinary.com/dz7fuqwnr/image/upload/v1778395481/WhatsApp_Image_2026-05-10_at_12.12.36_nra5vk.jpg">
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <link rel="stylesheet" href="/css/admin/products.css">
+    <link rel="stylesheet" href="/css/admin/deletedproducts.css">
+</head>
+
+<body>
+    <div class="dashboard-layout">
+        <div class="sidebar-overlay" id="sidebarOverlay"></div>
+
+        <aside class="sidebar" id="appSidebar">
+            <div class="sidebar-header">
+                <h2 class="brand-title">HomeStation</h2>
+                <button class="close-sidebar" id="closeSidebar"><i class="fa-solid fa-xmark"></i></button>
+            </div>
+            <nav class="sidebar-nav">
+                <ul class="nav-list">
+                    <li class="nav-item"><a href="/admin/dashboard" class="nav-link"><i class="fa-solid fa-chart-pie nav-icon"></i> Dashboard</a></li>
+                    <li class="nav-item"><a href="/admin/products" class="nav-link active"><i class="fa-solid fa-box nav-icon"></i> Products</a></li>
+                    <li class="nav-item"><a href="/admin/categories" class="nav-link"><i class="fa-solid fa-tags nav-icon"></i> Categories</a></li>
+                    <li class="nav-item"><a href="#" class="nav-link"><i class="fa-solid fa-cart-shopping nav-icon"></i> Orders</a></li>
+                    <li class="nav-item"><a href="/admin/users" class="nav-link"><i class="fa-solid fa-users nav-icon"></i> User Management</a></li>
+                    <li class="nav-item"><a href="#" class="nav-link"><i class="fa-solid fa-file-invoice-dollar nav-icon"></i> Sales Report</a></li>
+                    <li class="nav-item"><a href="#" class="nav-link"><i class="fa-solid fa-ticket nav-icon"></i> Manage Coupons</a></li>
+                    <li class="nav-item">
+                        <a href="/admin/offers" class="nav-link">
+                            <i class="fa-solid fa-percent nav-icon"></i> Offers
+                        </a>
+                    </li>
+                    <li class="nav-item"><a href="#" class="nav-link"><i class="fa-solid fa-envelope nav-icon"></i> Enquiry</a></li>
+                </ul>
+                <ul class="nav-list logout-section">
+                    <li class="nav-item">
+                        <form action="/admin/logout" method="POST" id="adminLogoutForm" class="m-0">
+                            <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+                            <a href="#" class="nav-link logout-link" id="logoutButton">
+                                <i class="fa-solid fa-right-from-bracket nav-icon"></i> Logout
+                            </a>
+                        </form>
+                    </li>
+                </ul>
+            </nav>
+        </aside>
+
+        <div class="main-panel">
+            <header class="top-header">
+                <div class="header-left">
+                    <button class="hamburger-menu" id="hamburgerMenu"><i class="fa-solid fa-bars"></i></button>
+                </div>
+                <div class="header-right">
+                    <div class="datetime-display" id="datetimeDisplay"></div>
+                    <div class="notification-wrapper">
+                        <i class="fa-regular fa-bell notification-bell"></i>
+                    </div>
+                    <div class="admin-badge"><i class="fa-solid fa-user-shield"></i> Admin</div>
+                </div>
+            </header>
+
+            <main class="content-wrapper">
+                <input type="hidden" id="csrfToken" value="<%= csrfToken %>">
+                
+                <div class="page-header-row">
+                    <div class="header-left-title">
+                        <a href="/admin/products" class="back-link">
+                            <i class="fa-solid fa-arrow-left"></i> Back to Products
+                        </a>
+                        <h1 class="page-title">Recycle Bin</h1>
+                    </div>
+                </div>
+
+                <div class="table-container mt-20">
+                    <table class="data-table">
+                        <thead>
+                            <tr>
+                                <th class="w-90">Image</th>
+                                <th>Product ID</th>
+                                <th class="product-name-col">Product Name</th>
+                                <th>Category</th>
+                                <th>Price Range</th>
+                                <th>Total Stock</th>
+                                <th class="actions-header">Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <% if (products && products.length > 0) { %>
+                                <% products.forEach(product => { %>
+                                    <tr>
+                                        <td>
+                                            <img src="<%= product.images && product.images.length > 0 ? product.images[0] : 'https://placehold.co/60x60?text=No+Image' %>"
+                                                class="product-thumb"
+                                                alt="<%= product.name %>"
+                                                onerror="this.onerror=null;this.src='https://placehold.co/60x60?text=No+Image';">
+                                        </td>
+                                        <td class="fw-500 text-muted">
+                                            <%= product.productId || 'No SKU' %>
+                                        </td>
+                                        <td class="fw-500 product-name-col">
+                                            <%= product.name %>
+                                        </td>
+                                        <td>
+                                            <%= product.categoryId ? product.categoryId.name : 'Uncategorized' %>
+                                        </td>
+                                        
+                                        <td class="fw-700">
+                                            <%= product.priceDisplay %>
+                                        </td>
+                                        <td class="fw-500">
+                                            <%= product.calculatedStock %>
+                                        </td>
+                                        
+                                        <td class="actions-td">
+                                            <button class="btn-restore"
+                                                data-id="<%= product._id %>"
+                                                data-name="<%= product.name.replace(/"/g, '&quot;') %>">
+                                                <i class="fa-solid fa-rotate-left"></i> Restore
+                                            </button>
+                                        </td>
+                                    </tr>
+                                    <% }) %>
+                            <% } else { %>
+                                <tr>
+                                    <td colspan="7" class="empty-bin-cell">
+                                        <i class="fa-solid fa-trash-can empty-bin-icon"></i>
+                                        Recycle bin is empty.
+                                    </td>
+                                </tr>
+                            <% } %>
+                        </tbody>
+                    </table>
+                </div>
+
+                <div class="pagination-container">
+                    <% 
+                        let startEntry = (currentPage - 1) * limit + 1; 
+                        let endEntry = Math.min(currentPage * limit, totalProducts); 
+                        if (totalProducts === 0) { startEntry = 0; endEntry = 0; } 
+                    %>
+                    <span class="pagination-info">Showing <%= startEntry %> to <%= endEntry %> of <%= totalProducts %> deleted entries</span>
+
+                    <div class="pagination-controls">
+                        <% if (currentPage > 1) { %>
+                            <a href="?page=<%= currentPage - 1 %>" class="page-btn text-decoration-none">
+                                <i class="fa-solid fa-chevron-left"></i>
+                            </a>
+                        <% } else { %>
+                            <button class="page-btn disabled"><i class="fa-solid fa-chevron-left"></i></button>
+                        <% } %>
+
+                        <% for (let i = 1; i <= totalPages; i++) { %>
+                            <% if (i === currentPage) { %>
+                                <button class="page-btn active"><%= i %></button>
+                            <% } else { %>
+                                <a href="?page=<%= i %>" class="page-btn text-decoration-none"><%= i %></a>
+                            <% } %>
+                        <% } %>
+
+                        <% if (currentPage < totalPages) { %>
+                            <a href="?page=<%= currentPage + 1 %>" class="page-btn text-decoration-none">
+                                <i class="fa-solid fa-chevron-right"></i>
+                            </a>
+                        <% } else { %>
+                            <button class="page-btn disabled"><i class="fa-solid fa-chevron-right"></i></button>
+                        <% } %>
+                    </div>
+                </div>
+
+            </main>
+        </div>
+    </div>
+
+    <div class="modal-overlay" id="restoreModal">
+        <div class="modal-box">
+            <div class="modal-icon">
+                <i class="fa-solid fa-rotate-left"></i>
+            </div>
+            <h3 class="modal-title">Restore Product?</h3>
+            <p class="modal-message" id="restoreMessage">Are you sure you want to restore this product? It will be moved back to the active products list.</p>
+            <div class="modal-actions">
+                <button class="btn btn-secondary" id="cancelRestoreBtn">Cancel</button>
+                <button class="btn btn-primary btn-confirm-restore" id="confirmRestoreBtn">Restore</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="/js/admin/deletedProducts.js"></script>
+</body>
+
+</html>

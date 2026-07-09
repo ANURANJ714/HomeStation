@@ -1,0 +1,236 @@
+
+.m-0 {
+    margin: 0;
+}
+
+.w {
+    width: 90px;
+}
+
+.mt-20 {
+    margin-top: 20px;
+}
+
+.text-decoration-none {
+    text-decoration: none !important;
+}
+
+.header-left-title {
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+}
+
+.back-link {
+    color: #666;
+    text-decoration: none;
+    font-size: 14px;
+    transition: color 0.2s ease;
+}
+
+.back-link:hover {
+    color: #1a1a1a !important;
+}
+
+.text-muted {
+    color: #6c757d;
+}
+
+.empty-bin-cell {
+    text-align: center;
+    padding: 40px;
+    color: var(--text-muted);
+}
+
+.empty-bin-icon {
+    font-size: 30px;
+    color: #ccc;
+    margin-bottom: 10px;
+    display: block;
+}
+
+.notification-wrapper {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    padding: 6px;
+    border-radius: 50%;
+    transition: background-color 0.2s ease;
+}
+
+.notification-wrapper:hover {
+    background-color: #f0f0f5;
+}
+
+.notification-bell {
+    font-size: 18px;
+    color: #222;
+}
+
+.hamburger-menu {
+    display: none;
+    background: transparent;
+    border: none;
+    font-size: 24px;
+    color: #1a1a1a;
+    cursor: pointer;
+    padding: 5px;
+    transition: transform 0.2s ease;
+}
+
+.hamburger-menu:hover {
+    transform: scale(1.1);
+}
+
+.close-sidebar {
+    display: none;
+    background: transparent;
+    border: none;
+    color: #fff;
+    font-size: 24px;
+    cursor: pointer;
+    padding: 5px;
+    transition: color 0.2s ease, transform 0.2s ease;
+}
+
+.close-sidebar:hover {
+    color: #ff6b6b;
+    transform: scale(1.1);
+}
+
+.btn-restore {
+    background-color: #e8f5e9;
+    color: #2e7d32;
+    border: 1px solid #c8e6c9;
+    padding: 6px 12px;
+    border-radius: 6px;
+    font-size: 13px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.btn-restore:hover {
+    background-color: #c8e6c9;
+    color: #1b5e20;
+}
+
+.btn-confirm-restore {
+    background-color: #28a745;
+    border-color: #28a745;
+}
+
+.modal-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0, 0, 0, 0.5);
+    display: none;
+    align-items: center;
+    justify-content: center;
+    z-index: 1100;
+    opacity: 0;
+    visibility: hidden;
+    transition: all 0.3s ease;
+}
+
+.modal-overlay.active {
+    opacity: 1;
+    visibility: visible;
+    display: flex;
+}
+
+.modal-box {
+    background: #fff;
+    border-radius: 12px;
+    padding: 30px;
+    width: 90%;
+    max-width: 400px;
+    text-align: center;
+    box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
+    transform: translateY(20px);
+    transition: all 0.3s ease;
+}
+
+.modal-overlay.active .modal-box {
+    transform: translateY(0);
+}
+
+.modal-icon {
+    font-size: 40px;
+    margin-bottom: 15px;
+    color: #28a745;
+}
+
+.modal-title {
+    font-size: 20px;
+    color: #333;
+    margin-bottom: 10px;
+}
+
+.modal-message {
+    font-size: 14px;
+    color: #666;
+    margin-bottom: 25px;
+    line-height: 1.5;
+}
+
+.modal-actions {
+    display: flex;
+    gap: 12px;
+    justify-content: center;
+}
+
+.modal-actions .btn {
+    padding: 10px 20px;
+    font-weight: 500;
+    cursor: pointer;
+    border-radius: 6px;
+    border: 1px solid transparent;
+}
+
+.modal-actions .btn-secondary {
+    background-color: #f8f9fa;
+    border-color: #ddd;
+    color: #333;
+}
+
+.modal-actions .btn-secondary:hover {
+    background-color: #e2e6ea;
+}
+
+.modal-actions .btn-primary {
+    color: #fff;
+}
+
+@media (max-width: 992px) {
+    .hamburger-menu {
+        display: block !important;
+    }
+    .close-sidebar {
+        display: block !important; 
+    }
+    .sidebar {
+        position: fixed;
+        top: 0;
+        left: -260px;
+        height: 100vh;
+        z-index: 1050;
+        transition: left 0.3s ease-in-out;
+    }
+    .sidebar.active {
+        left: 0;
+    }
+}
+
+@media (max-width: 576px) {
+    .datetime-display {
+        display: none !important;
+    }
+}

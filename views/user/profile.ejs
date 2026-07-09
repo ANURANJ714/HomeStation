@@ -6,377 +6,219 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>HomeStation</title>
     <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&display=swap" rel="stylesheet">
-    <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,600;0,700;1,600&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,600;0,700;1,600&display=swap"
+        rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
-    <link rel="icon" type="image/x-icon" href="https://res.cloudinary.com/dz7fuqwnr/image/upload/v1778395481/WhatsApp_Image_2026-05-10_at_12.12.36_nra5vk.jpg">
+    <link rel="icon" type="image/x-icon"
+        href="https://res.cloudinary.com/dz7fuqwnr/image/upload/v1778395481/WhatsApp_Image_2026-05-10_at_12.12.36_nra5vk.jpg">
     <link rel="stylesheet" href="/css/user/profile.css">
 </head>
 
-<body>
-    <header class="header">
-        <div class="container-fluid header-container">
-            <a href="/home" class="logo">HomeStation</a>
-            <div class="header-actions">
-                <a href="/user/profile" class="icon-link"><i class="fa-solid fa-user"></i> Profile</a>
-            </div>
+<body class="shared-bg">
+    <% if (bannerText) { %>
+        <div class="promo-bar">
+            <b><%- bannerText %></b>
         </div>
-    </header>
+        <% } %>
 
-    <section class="profile-section">
-        <div class="container profile-layout">
-            <aside class="profile-sidebar">
-                <div class="profile-user-info">
-                    <img src="<%= user.profileImage || 'https://cdn.pixabay.com/photo/2015/10/05/22/37/blank-profile-picture-973460_1280.png' %>"
-                        alt="Profile" class="sidebar-avatar">
-                    <div class="user-greeting">
-                        <span class="hello-text">Hello,</span>
-                        <span class="user-name" id="sidebarName">
-                            <%= user.fullName || 'User' %>
-                        </span>
+            <header class="header">
+                <div class="container-fluid header-container">
+                    <a href="/home" class="logo">HomeStation</a>
+                    <nav class="nav">
+                        <ul class="nav-list">
+                            <li><a href="/home" class="nav-link">Home</a></li>
+                            <li><a href="/products" class="nav-link">World of Mattress</a></li>
+                            <li><a href="/deals" class="nav-link">Top Deals</a></li>
+                            <li><a href="/bestsellers" class="nav-link">Best Sellers</a></li>
+                            <li><a href="/contact" class="nav-link">Contact Us</a></li>
+                        </ul>
+                    </nav>
+                    <div class="search-container">
+                        <input type="text" placeholder="Search for products, brands and more..." id="searchInput">
+                        <button id="searchBtn" type="button"><i class="fa-solid fa-magnifying-glass"></i></button>
+                    </div>
+                    <div class="header-actions">
+                        <a href="/wishlist" class="icon-link wishlist-link"><i class="fa-regular fa-heart"></i>
+                            Wishlist</a>
+                        <a href="/user/profile" class="icon-link"><i class="fa-solid fa-user"></i> Profile</a>
+                        <a href="/cart" class="icon-link"><i class="fa-solid fa-cart-shopping"></i> Cart</a>
                     </div>
                 </div>
+            </header>
 
-                <hr class="sidebar-divider">
-                <div class="sidebar-menu">
-                    <h3>Account Settings</h3>
-                    <ul>
-                        <li><a href="/user/profile" class="active">Profile information</a></li>
-                        <li><a href="/user/addresses">Manage addresses</a></li>
-                    </ul>
-                    <hr class="sidebar-divider">
+            <section class="profile-section">
+                <div class="container profile-layout">
 
-                    <div class="logout-wrapper">
-                        <form action="/user/logout" method="POST" id="logoutForm">
-                            <a href="#" onclick="document.getElementById('logoutForm').submit();" class="logout-link"><i
-                                    class="fa-solid fa-power-off"></i> Logout</a>
-                        </form>
-                    </div>
-                </div>
-            </aside>
-
-            <main class="profile-content">
-                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px;">
-                    <h2 class="edit-profile-title" style="margin: 0;">Profile Information</h2>
-                    <button id="editBtn" class="btn" style="border: none; cursor: pointer;">Edit Profile</button>
-                </div>
-
-                <div class="profile-info-section"
-                    style="padding-bottom: 30px; border-bottom: 1px solid #eee; margin-bottom: 30px;">
-                    <div class="profile-edit-pic" style="margin-bottom: 24px;">
-                        <img src="<%= user.profileImage %>" alt="Profile" class="main-avatar" id="profileImagePreview">
-                        <input type="file" id="imageUploadInput" accept="image/png, image/jpeg, image/jpg, image/webp"
-                            style="display: none;">
-                        <button type="button" class="btn-upload" id="uploadBtn" style="display: none;">
-                            <i class="fa-solid fa-camera"></i> Upload Photo
-                        </button>
-                    </div>
-
-                    <form class="profile-form" id="profileForm">
-                        <div class="form-row">
-                            <div class="form-col form-group">
-                                <label for="fullName">Full Name</label>
-                                <input type="text" id="fullName" name="fullName" class="form-control"
-                                    value="<%= user.fullName %>" disabled>
-                            </div>
-                            <div class="form-col form-group">
-                                <label for="phone">Phone Number</label>
-                                <input type="tel" id="phone" name="phone" class="form-control" value="<%= user.phone %>"
-                                    disabled>
+                    <aside class="profile-sidebar" id="appSidebar">
+                        <div class="profile-user-info">
+                            <img src="<%= user.profileImage || 'https://cdn.pixabay.com/photo/2015/10/05/22/37/blank-profile-picture-973460_1280.png' %>"
+                                alt="Profile" class="sidebar-avatar">
+                            <div class="user-greeting">
+                                <span class="hello-text">Hello,</span>
+                                <span class="user-name" id="sidebarName">
+                                    <%= user.fullName || 'User' %>
+                                </span>
                             </div>
                         </div>
 
-                        <div class="form-group">
-                            <label for="email">Email Address</label>
-                            <input type="email" id="email" name="email" class="form-control" value="<%= user.email %>"
-                                disabled data-provider="<%= user.authProvider %>">
+                        <hr class="sidebar-divider">
+                        <div class="sidebar-menu">
+                            <h3>Account Settings</h3>
+                            <ul>
+                                <li><a href="/user/profile" class="active">Profile information</a></li>
+                                <li><a href="/user/addresses">Manage addresses</a></li>
+                            </ul>
+                            <hr class="sidebar-divider">
+                            <h3>My Stuffs</h3>
+                            <ul>
+                                <li><a href="/user/orders">My Orders</a></li>
+                                <li><a href="/user/wishlist">My Wishlists</a></li>
+                                <li><a href="/user/wallet">My Wallet</a></li>
+                                <li><a href="/user/coupons">Coupons Available</a></li>
+                            </ul>
+                            <hr class="sidebar-divider">
 
-                            <% if (user.authProvider==='google' ) { %>
-                                <small style="color: #888; font-size: 12px; margin-top: 5px; display: block;">
-                                    <i class="fa-brands fa-google"></i> Email linked to your Google account cannot be
-                                    changed.
-                                </small>
-                                <% } %>
+                            <div class="logout-wrapper">
+                                <form action="/user/logout" method="POST" id="logoutForm" class="m-0">
+                                    <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+                                    <button type="submit" class="logout-link">
+                                        <i class="fa-solid fa-power-off"></i> Logout
+                                    </button>
+                                </form>
+                            </div>
+                        </div>
+                    </aside>
+
+                    <main class="profile-content">
+                        <input type="hidden" id="csrfToken" value="<%= csrfToken %>">
+                        <div class="profile-header-flex">
+                            <h2 class="edit-profile-title m-0">Profile Information</h2>
+                            <button id="editBtn" class="btn profile-edit-trigger">Edit Profile</button>
                         </div>
 
-                        <div class="profile-actions" id="profileActions"
-                            style="display: none; gap: 15px; margin-top: 20px;">
-                            <button type="button" class="btn-cancel-gray" id="cancelBtn">Cancel</button>
-                            <button type="submit" class="btn-save">Save Changes</button>
-                        </div>
-                    </form>
+                        <div class="profile-info-section">
+                            <div class="profile-edit-pic">
+                                <img src="<%= user.profileImage || 'https://cdn.pixabay.com/photo/2015/10/05/22/37/blank-profile-picture-973460_1280.png' %>"
+                                    alt="Profile" class="main-avatar" id="profileImagePreview">
+                                <input type="file" id="imageUploadInput"
+                                    accept="image/png, image/jpeg, image/jpg, image/webp" class="d-none">
+                                <button type="button" class="btn-upload d-none" id="uploadBtn">
+                                    <i class="fa-solid fa-camera"></i> Upload Photo
+                                </button>
+                            </div>
 
-                    <% if (user.authProvider==='local' ) { %>
-                        <div class="profile-form">
-                            <form id="passwordForm" class="password-section"
-                                style="margin-top: 0; border-bottom: none;">
-                                <h3 class="section-title">Change Password</h3>
-
-                                <div class="form-group">
-                                    <label for="oldPassword">Old Password</label>
-                                    <div style="position: relative;">
-                                        <input type="password" id="oldPassword" name="oldPassword" class="form-control"
-                                            required style="padding-right: 40px;">
-                                        <i class="fa-regular fa-eye-slash toggle-password"
-                                            style="position: absolute; right: 12px; top: 50%; transform: translateY(-50%); cursor: pointer; color: #888;"></i>
+                            <form class="profile-form" id="profileForm" novalidate>
+                                <div class="form-row">
+                                    <div class="form-col form-group">
+                                        <label for="fullName">Full Name</label>
+                                        <input type="text" id="fullName" name="fullName" class="form-control"
+                                            value="<%= user.fullName %>" disabled>
+                                    </div>
+                                    <div class="form-col form-group">
+                                        <label for="phone">Phone Number</label>
+                                        <input type="tel" id="phone" name="phone" class="form-control"
+                                            value="<%= user.phone %>" disabled>
                                     </div>
                                 </div>
 
                                 <div class="form-group">
-                                    <label for="newPassword">New Password</label>
-                                    <div style="position: relative;">
-                                        <input type="password" id="newPassword" name="newPassword" class="form-control"
-                                            required style="padding-right: 40px;">
-                                        <i class="fa-regular fa-eye-slash toggle-password"
-                                            style="position: absolute; right: 12px; top: 50%; transform: translateY(-50%); cursor: pointer; color: #888;"></i>
-                                    </div>
+                                    <label for="email">Email Address</label>
+                                    <input type="email" id="email" name="email" class="form-control"
+                                        value="<%= user.email %>" disabled data-provider="<%= user.authProvider %>">
+
+                                    <% if (user.authProvider==='google' ) { %>
+                                        <small class="google-auth-warning">
+                                            <i class="fa-brands fa-google"></i> Email linked to your Google account
+                                            cannot be changed.
+                                        </small>
+                                        <% } %>
                                 </div>
 
-                                <div class="form-group">
-                                    <label for="confirmPassword">Confirm Password</label>
-                                    <div style="position: relative;">
-                                        <input type="password" id="confirmPassword" name="confirmPassword"
-                                            class="form-control" required style="padding-right: 40px;">
-                                        <i class="fa-regular fa-eye-slash toggle-password"
-                                            style="position: absolute; right: 12px; top: 50%; transform: translateY(-50%); cursor: pointer; color: #888;"></i>
-                                    </div>
-                                </div>
-
-                                <div class="password-actions">
-                                    <button type="reset" class="btn-cancel-gray">Clear</button>
-                                    <button type="submit" class="btn-save" style="padding: 10px 24px;">Update
-                                        Password</button>
+                                <div class="profile-actions" id="profileActions">
+                                    <button type="button" class="btn-cancel-gray" id="cancelBtn">Cancel</button>
+                                    <button type="submit" class="btn-save">Save Changes</button>
                                 </div>
                             </form>
+
+                            <% if (user.authProvider==='local' ) { %>
+                                <div class="profile-form mt-50">
+                                    <form id="passwordForm" class="password-section" novalidate>
+                                        <h3 class="section-title">Change Password</h3>
+
+                                        <div class="form-group">
+                                            <label for="oldPassword">Old Password</label>
+                                            <div class="password-input-relative">
+                                                <input type="password" id="oldPassword" name="oldPassword"
+                                                    class="form-control" required>
+                                                <i class="fa-regular fa-eye-slash toggle-password"></i>
+                                            </div>
+                                        </div>
+
+                                        <div class="form-group">
+                                            <label for="newPassword">New Password</label>
+                                            <div class="password-input-relative">
+                                                <input type="password" id="newPassword" name="newPassword"
+                                                    class="form-control" required>
+                                                <i class="fa-regular fa-eye-slash toggle-password"></i>
+                                            </div>
+                                        </div>
+
+                                        <div class="form-group">
+                                            <label for="confirmPassword">Confirm New Password</label>
+                                            <div class="password-input-relative">
+                                                <input type="password" id="confirmPassword" name="confirmPassword"
+                                                    class="form-control" required>
+                                                <i class="fa-regular fa-eye-slash toggle-password"></i>
+                                            </div>
+                                        </div>
+
+                                        <div class="password-actions">
+                                            <button type="button" class="btn-cancel-gray"
+                                                id="clearPasswordBtn">Clear</button>
+                                            <button type="submit" class="btn-save change-password-submit-btn">Update
+                                                Password</button>
+                                        </div>
+                                    </form>
+                                </div>
+                                <% } %>
                         </div>
-                        <% } %>
-            </main>
-        </div>
-    </section>
+                    </main>
+                </div>
+            </section>
 
-    <script>
-        const editBtn = document.getElementById('editBtn');
-        const cancelBtn = document.getElementById('cancelBtn');
-        const profileForm = document.getElementById('profileForm');
-        const profileActions = document.getElementById('profileActions');
-        const uploadBtn = document.getElementById('uploadBtn');
-        const inputs = [document.getElementById('fullName'), document.getElementById('phone'), document.getElementById('email')];
+            <footer class="footer">
+                <div class="container-fluid footer-container">
+                    <div class="footer-left">
+                        <a href="/home" class="logo footer-logo">HomeStation</a>
+                        <p>Your premier destination for high-quality mattresses and sleep essentials, crafted to bring
+                            cloud-like comfort to every night.</p>
+                    </div>
+                    <div class="footer-links-wrapper">
+                        <div class="footer-column">
+                            <h4>Shop</h4>
+                            <ul>
+                                <li><a href="/products">World of Mattress</a></li>
+                                <li><a href="/deals">Top Deals</a></li>
+                                <li><a href="/bestsellers">Best Sellers</a></li>
+                            </ul>
+                        </div>
+                        <div class="footer-column">
+                            <h4>Support</h4>
+                            <ul>
+                                <li><a href="/user/orders">Track Your Orders</a></li>
+                                <li><a href="/privacy-policy">Privacy Policy</a></li>
+                                <li><a href="/contact">Contact Us</a></li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+                <div class="container-fluid copyright">
+                    <p>&copy; 2026 HomeStation Store. All rights reserved.</p>
+                </div>
+            </footer>
 
-        const imageUploadInput = document.getElementById('imageUploadInput');
-        const profileImagePreview = document.getElementById('profileImagePreview');
-        const sidebarAvatar = document.querySelector('.sidebar-avatar');
-
-        let originalValues = {};
-        let originalImageSrc = profileImagePreview.src;
-        let selectedFile = null;
-
-        function toggleEdit(isEditing) {
-            inputs.forEach(input => {
-                if (input.id === 'email' && input.dataset.provider === 'google') {
-                    input.disabled = true;
-                } else {
-                    input.disabled = !isEditing;
-                }
-                
-                if (isEditing) originalValues[input.id] = input.value;
-            });
-            
-            profileActions.style.display = isEditing ? 'flex' : 'none';
-            editBtn.style.display = isEditing ? 'none' : 'block';
-            uploadBtn.style.display = isEditing ? 'inline-block' : 'none';
-        }
-
-        editBtn.addEventListener('click', () => toggleEdit(true));
-
-        uploadBtn.addEventListener('click', () => imageUploadInput.click());
-
-        imageUploadInput.addEventListener('change', (e) => {
-            const file = e.target.files[0];
-            if (!file) return;
-
-            selectedFile = file;
-            const previewUrl = URL.createObjectURL(file);
-            profileImagePreview.src = previewUrl;
-        });
-
-        cancelBtn.addEventListener('click', () => {
-            inputs.forEach(input => input.value = originalValues[input.id]);
-
-            profileImagePreview.src = originalImageSrc;
-            selectedFile = null;
-            imageUploadInput.value = '';
-
-            toggleEdit(false);
-        });
-
-
-        profileForm.addEventListener('submit', async (e) => {
-            e.preventDefault();
-
-            const fullName = document.getElementById('fullName').value.trim();
-            const phone = document.getElementById('phone').value.trim();
-            const email = document.getElementById('email').value.trim();
-
-            if (!fullName || !phone || !email) {
-                return Swal.fire({
-                    icon: 'warning',
-                    title: 'Missing Information',
-                    text: 'Please fill out all fields before saving.',
-                    confirmButtonColor: '#222',
-                    heightAuto: false
-                });
-            }
-
-            const phoneRegex = /^[0-9]{10}$/;
-            if (!phoneRegex.test(phone)) {
-                return Swal.fire({
-                    icon: 'warning',
-                    title: 'Invalid Phone Number',
-                    text: 'Please enter a valid 10-digit mobile number.',
-                    confirmButtonColor: '#222',
-                    heightAuto: false
-                });
-            }
-
-            const saveBtn = profileForm.querySelector('.btn-save');
-            const originalBtnText = saveBtn.innerText;
-            saveBtn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Saving...';
-            saveBtn.disabled = true;
-
-            const formData = new FormData();
-            formData.append('fullName', fullName);
-            formData.append('phone', phone);
-            formData.append('email', email);
-
-            if (selectedFile) {
-                formData.append('profileImage', selectedFile);
-            }
-
-            try {
-                const response = await fetch('/user/profile', {
-                    method: 'PATCH',
-                    body: formData
-                });
-
-                const result = await response.json();
-
-                if (result.success) {
-                    if (result.requiresVerification) {
-                        return window.location.href = '/user/verify-email';
-                    }
-
-                    Swal.fire({ 
-                        icon: 'success', 
-                        title: 'Saved!', 
-                        text: result.message, 
-                        timer: 1500, 
-                        showConfirmButton: false, 
-                        heightAuto: false 
-                    }).then(() => {
-                        window.location.href = '/user/profile'; 
-                    });
-
-                } else {
-                    Swal.fire({ icon: 'error', title: 'Update Failed', text: result.message, heightAuto: false });
-                }
-            } catch (err) {
-                Swal.fire({ icon: 'error', title: 'Error', text: 'An error occurred while saving.', heightAuto: false });
-            } finally {
-                saveBtn.innerHTML = originalBtnText;
-                saveBtn.disabled = false;
-            }
-        });
-
-        const passwordForm = document.getElementById('passwordForm');
-
-        if (passwordForm) {
-            passwordForm.addEventListener('submit', async (e) => {
-                e.preventDefault();
-
-                const oldPassword = document.getElementById('oldPassword').value;
-                const newPassword = document.getElementById('newPassword').value;
-                const confirmPassword = document.getElementById('confirmPassword').value;
-
-                if (newPassword !== confirmPassword) {
-                    return Swal.fire({ 
-                        icon: 'warning', 
-                        title: 'Check Passwords', 
-                        text: 'Your new passwords do not match!', 
-                        confirmButtonColor: '#222', 
-                        heightAuto: false 
-                    });
-                }
-
-                const saveBtn = passwordForm.querySelector('.btn-save');
-                const originalBtnText = saveBtn.innerText;
-                saveBtn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Updating...';
-                saveBtn.disabled = true;
-
-                try {
-                    const response = await fetch('/user/password', {
-                        method: 'PATCH',
-                        headers: {
-                            'Content-Type': 'application/json'
-                        },
-                        body: JSON.stringify({ oldPassword, newPassword, confirmPassword })
-                    });
-
-                    const result = await response.json();
-
-                    if (result.success) {
-                        Swal.fire({ 
-                            icon: 'success', 
-                            title: 'Success!', 
-                            text: result.message, 
-                            confirmButtonColor: '#222', 
-                            heightAuto: false 
-                        });
-                        passwordForm.reset();
-                    } else {
-                        Swal.fire({ 
-                            icon: 'error', 
-                            title: 'Update Failed', 
-                            text: result.message, 
-                            confirmButtonColor: '#222', 
-                            heightAuto: false 
-                        });
-                    }
-                } catch (err) {
-                    Swal.fire({ 
-                        icon: 'error', 
-                        title: 'Server Error', 
-                        text: 'Could not connect to the server.', 
-                        confirmButtonColor: '#222', 
-                        heightAuto: false 
-                    });
-                } finally {
-                    saveBtn.innerHTML = originalBtnText;
-                    saveBtn.disabled = false;
-                }
-            });
-        }
-
-        
-        const togglePasswordIcons = document.querySelectorAll('.toggle-password');
-
-        togglePasswordIcons.forEach(icon => {
-            icon.addEventListener('click', function () {
-                const input = this.parentElement.querySelector('input');
-
-                if (input.type === 'password') {
-                    input.type = 'text';
-                    this.classList.remove('fa-eye-slash');
-                    this.classList.add('fa-eye');
-                    this.style.color = '#222';
-                } else {
-                    input.type = 'password';
-                    this.classList.remove('fa-eye');
-                    this.classList.add('fa-eye-slash');
-                    this.style.color = '#888';
-                }
-            });
-        });
-    </script>
+            <script src="/js/user/profile.js"></script>
 </body>
 
 </html>

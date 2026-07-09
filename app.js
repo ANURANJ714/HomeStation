@@ -4,13 +4,17 @@ dotenv.config();
 import express from 'express';
 import path from 'path';
 import { fileURLToPath } from 'url';
-import session from 'express-session';
 import passport from 'passport';
 
 import { connectDB } from './config/db.js';
 import configurePassport from './config/passport.js';
+
+import { requestLogger } from './middlewares/loggerMiddleware.js';
+import helmetMiddleware from "./middlewares/helmetConfig.js";
+import mongoSanitizeMiddleware from "./middlewares/mongoSanitizeMiddleware.js";
 import { noCache } from './middlewares/cache.js';
-import MongoStore from 'connect-mongo';
+import { sessionMiddleware } from './middlewares/session.js';
+import { csrfProtection, injectCsrfToken } from './middlewares/csrf.js';
 
 import userRoutes from './routes/user/authRoutes.js';
 import profileRoutes from './routes/user/profileRoutes.js';
@@ -18,6 +22,9 @@ import pageRoutes from './routes/user/pageRoutes.js';
 import addressRoutes from './routes/user/addressRoutes.js';
 
 import adminAuthRoutes from './routes/admin/adminAuthRoutes.js';
+import adminCategoryRoutes from './routes/admin/adminCategoryRoutes.js';
+import adminProductRoutes from './routes/admin/adminProductRoutes.js';
+import adminDashboardRoutes from './routes/admin/adminDashboardRoutes.js';
 
 configurePassport(passport);
 connectDB();
@@ -27,57 +34,39 @@ const __dirname = path.dirname(__filename);
 
 const app = express();
 
+if (process.env.NODE_ENV === 'production') {
+    app.set('trust proxy', 1); 
+}
+
 app.set('view engine', 'ejs');
 app.set('views', path.join(__dirname, 'views'));
-
 app.use(express.urlencoded({ extended: true }));
 app.use(express.json());
+app.use(requestLogger);
+app.use(express.static(path.join(__dirname, 'public')));
 
-const userSession = session({
-    name: 'user_session',
-    secret: process.env.USER_SESSION_SECRET,
-    resave: false,
-    saveUninitialized: false,
-    store: MongoStore.create({ mongoUrl: process.env.MONGODB_URI }),
-    cookie: { 
-        maxAge: 1000 * 60 * 60 * 24 * 7
-    }
-});
+app.use(helmetMiddleware);
+app.use(mongoSanitizeMiddleware);
 
-const adminSession = session({
-    name: 'admin_session', 
-    secret: process.env.ADMIN_SESSION_SECRET,
-    resave: false,
-    saveUninitialized: false,
-    store: MongoStore.create({ mongoUrl: process.env.MONGODB_URI }),
-    cookie: { 
-        maxAge: 1000 * 60 * 60 * 24,
-        collectionName: 'admin_sessions',
-        path: '/' 
-    }
-});
-
-app.use((req, res, next) => {
-    if (req.originalUrl.startsWith('/admin')) {
-        return adminSession(req, res, next);
-    }
-    return userSession(req, res, next);
-});
-
+app.use(sessionMiddleware);
 app.use(passport.initialize());
 app.use(passport.session());
 
+app.use(csrfProtection);
+app.use(injectCsrfToken);
 app.use(noCache);
-
-app.use(express.static(path.join(__dirname, 'public')));
 
 app.use('/user', userRoutes);
 app.use('/user', profileRoutes);
 app.use('/user/addresses', addressRoutes);
 
 app.use('/admin', adminAuthRoutes);
+app.use('/admin', adminCategoryRoutes);
+app.use('/admin', adminProductRoutes);
+app.use('/admin', adminDashboardRoutes);
 
 app.use('/', pageRoutes);
+
 
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {

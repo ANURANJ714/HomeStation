@@ -1,0 +1,224 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>HomeStation - ADMIN</title>
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,600;0,700;1,600&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="icon" type="image/x-icon" href="https://res.cloudinary.com/dz7fuqwnr/image/upload/v1778395481/WhatsApp_Image_2026-05-10_at_12.12.36_nra5vk.jpg">
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <link rel="stylesheet" href="/css/admin/products.css">
+    <link rel="stylesheet" href="/css/admin/addproduct.css">
+</head>
+
+<body>
+    <div class="dashboard-layout">
+
+        <div class="sidebar-overlay" id="sidebarOverlay"></div>
+
+        <aside class="sidebar" id="appSidebar">
+            <div class="sidebar-header">
+                <h2 class="brand-title">HomeStation</h2>
+                <button class="close-sidebar" id="closeSidebar">
+                    <i class="fa-solid fa-xmark"></i>
+                </button>
+            </div>
+
+            <nav class="sidebar-nav">
+                <ul class="nav-list">
+                    <li class="nav-item">
+                        <a href="/admin/dashboard" class="nav-link">
+                            <i class="fa-solid fa-chart-pie nav-icon"></i> Dashboard
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a href="/admin/products" class="nav-link active">
+                            <i class="fa-solid fa-box nav-icon"></i> Products
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a href="/admin/categories" class="nav-link">
+                            <i class="fa-solid fa-tags nav-icon"></i> Categories
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a href="#" class="nav-link">
+                            <i class="fa-solid fa-cart-shopping nav-icon"></i> Orders
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a href="/admin/users" class="nav-link">
+                            <i class="fa-solid fa-users nav-icon"></i> User Management
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a href="#" class="nav-link">
+                            <i class="fa-solid fa-file-invoice-dollar nav-icon"></i> Sales Report
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a href="#" class="nav-link">
+                            <i class="fa-solid fa-ticket nav-icon"></i> Manage Coupons
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a href="/admin/offers" class="nav-link">
+                            <i class="fa-solid fa-percent nav-icon"></i> Offers
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a href="#" class="nav-link">
+                            <i class="fa-solid fa-envelope nav-icon"></i> Enquiry
+                        </a>
+                    </li>
+                </ul>
+
+                <ul class="nav-list logout-section">
+                    <li class="nav-item">
+                        <form action="/admin/logout" method="POST" id="adminLogoutForm" class="m-0">
+                            <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+                            <button type="submit" class="logout-link logout-btn-submit">
+                                <i class="fa-solid fa-right-from-bracket nav-icon"></i> Logout
+                            </button>
+                        </form>
+                    </li>
+                </ul>
+            </nav>
+        </aside>
+
+        <div class="main-panel">
+
+            <header class="top-header">
+                <div class="header-left">
+                    <button class="hamburger-menu" id="hamburgerMenu">
+                        <i class="fa-solid fa-bars"></i>
+                    </button>
+                </div>
+                <div class="header-right">
+                    <div class="datetime-display" id="datetimeDisplay"></div>
+                    <div class="notification-wrapper">
+                        <i class="fa-regular fa-bell notification-bell"></i>
+                    </div>
+                    <div class="admin-badge">
+                        <i class="fa-solid fa-user-shield"></i> Admin
+                    </div>
+                </div>
+            </header>
+
+            <main class="content-wrapper">
+                <input type="hidden" id="csrfToken" value="<%= csrfToken %>">
+
+                <div class="page-header-row mb-30">
+                    <div class="header-left-title">
+                        <a href="/admin/products" class="back-link"><i class="fa-solid fa-arrow-left"></i> Back</a>
+                        <h1 class="page-title mt-5">Add New Product</h1>
+                    </div>
+                </div>
+
+                <div class="form-card">
+                    <form id="addProductForm" novalidate>
+                        <div class="form-grid">
+
+                            <div class="form-group full-width">
+                                <label>Product Name <span class="required-asterisk">*</span></label>
+                                <input type="text" id="productName" name="name" placeholder="Enter product name">
+                            </div>
+
+                            <div class="form-group full-width">
+                                <label>Category <span class="required-asterisk">*</span></label>
+                                <select id="productCategory" name="categoryId">
+                                    <option value="">Select Category</option>
+                                    <% if (typeof categories !=='undefined' && categories.length> 0) { %>
+                                        <% categories.forEach(category=> { %>
+                                            <option value="<%= category._id %>">
+                                                <%= category.name %>
+                                            </option>
+                                        <% }) %>
+                                    <% } %>
+                                </select>
+                            </div>
+
+                            <div class="form-group full-width" id="variantsSection">
+                                <div class="variants-header-row">
+                                    <h3 class="variants-heading">Product Variants <span class="required-asterisk">*</span></h3>
+                                    <button type="button" class="btn btn-secondary btn-sm" id="addVariantBtn">
+                                        <i class="fa-solid fa-plus"></i> Add Another Variant
+                                    </button>
+                                </div>
+                                <div class="variants-container" id="variantsContainer"></div>
+                            </div>
+
+                            <div class="form-group full-width mt-20">
+                                <label>Description <span class="required-asterisk">*</span></label>
+                                <textarea id="productDescription" name="description" rows="4" placeholder="Enter product description"></textarea>
+                            </div>
+
+                            <div class="form-group">
+                                <label>Brand <span class="required-asterisk">*</span></label>
+                                <input type="text" id="productBrand" name="brand" placeholder="Enter brand name">
+                            </div>
+
+                            <div class="form-group">
+                                <label>Material <span class="required-asterisk">*</span></label>
+                                <input type="text" id="productMaterial" name="material" placeholder="Enter material type">
+                            </div>
+
+                            <div class="form-group full-width">
+                                <label>Warranty <span class="required-asterisk">*</span></label>
+                                <input type="text" id="productWarranty" name="warranty" placeholder="e.g., 1 Year Manufacturing Warranty">
+                            </div>
+
+                            <div class="form-group full-width">
+                                <label>Specifications <span class="required-asterisk">*</span></label>
+                                <textarea id="productSpecs" name="specifications" rows="3" placeholder="Enter product specifications"></textarea>
+                            </div>
+
+                            <div class="form-group full-width">
+                                <label>Product Images (Upload up to 3) <span class="required-asterisk">*</span></label>
+                                <div class="image-upload-row">
+                                    <div class="upload-box">
+                                        <input type="file" name="images" class="image-input" accept="image/*" title="Main Image">
+                                        <img class="preview-img hidden" src="" alt="Main Preview">
+                                        <div class="upload-placeholder show-flex">
+                                            <i class="fa-solid fa-cloud-arrow-up"></i>
+                                            <span>Main Image *</span>
+                                        </div>
+                                    </div>
+                                    <div class="upload-box">
+                                        <input type="file" name="images" class="image-input" accept="image/*" title="Side Image 1">
+                                        <img class="preview-img hidden" src="" alt="Side 1 Preview">
+                                        <div class="upload-placeholder show-flex">
+                                            <i class="fa-solid fa-cloud-arrow-up"></i>
+                                            <span>Side Image 1</span>
+                                        </div>
+                                    </div>
+                                    <div class="upload-box">
+                                        <input type="file" name="images" class="image-input" accept="image/*" title="Side Image 2">
+                                        <img class="preview-img hidden" src="" alt="Side 2 Preview">
+                                        <div class="upload-placeholder show-flex">
+                                            <i class="fa-solid fa-cloud-arrow-up"></i>
+                                            <span>Side Image 2</span>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                        </div>
+
+                        <div class="form-actions mt-30">
+                            <a href="/admin/products" class="btn btn-secondary text-decoration-none">Cancel</a>
+                            <button type="submit" class="btn btn-primary" id="saveProductBtn">Save Product</button>
+                        </div>
+                    </form>
+                </div>
+            </main>
+        </div>
+    </div>
+
+    <script src="/js/admin/addproduct.js"></script>
+</body>
+
+</html>

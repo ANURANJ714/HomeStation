@@ -1,0 +1,192 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>HomeStation - ADMIN</title>
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,600;0,700;1,600&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="icon" type="image/x-icon" href="https://res.cloudinary.com/dz7fuqwnr/image/upload/v1778395481/WhatsApp_Image_2026-05-10_at_12.12.36_nra5vk.jpg">
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <link rel="stylesheet" href="/css/admin/products.css">
+    <link rel="stylesheet" href="/css/admin/viewproduct.css">
+</head>
+
+<body>
+    <div class="dashboard-layout">
+
+        <div class="sidebar-overlay" id="sidebarOverlay"></div>
+
+        <aside class="sidebar" id="appSidebar">
+            <div class="sidebar-header">
+                <h2 class="brand-title">HomeStation</h2>
+                <button class="close-sidebar" id="closeSidebar">
+                    <i class="fa-solid fa-xmark"></i>
+                </button>
+            </div>
+            <nav class="sidebar-nav">
+                <ul class="nav-list">
+                    <li class="nav-item"><a href="/admin/dashboard" class="nav-link"><i class="fa-solid fa-chart-pie nav-icon"></i> Dashboard</a></li>
+                    <li class="nav-item"><a href="/admin/products" class="nav-link active"><i class="fa-solid fa-box nav-icon"></i> Products</a></li>
+                    <li class="nav-item"><a href="/admin/categories" class="nav-link"><i class="fa-solid fa-tags nav-icon"></i> Categories</a></li>
+                    <li class="nav-item"><a href="#" class="nav-link"><i class="fa-solid fa-cart-shopping nav-icon"></i> Orders</a></li>
+                    <li class="nav-item"><a href="/admin/users" class="nav-link"><i class="fa-solid fa-users nav-icon"></i> User Management</a></li>
+                    <li class="nav-item"><a href="#" class="nav-link"><i class="fa-solid fa-file-invoice-dollar nav-icon"></i> Sales Report</a></li>
+                    <li class="nav-item"><a href="#" class="nav-link"><i class="fa-solid fa-ticket nav-icon"></i> Manage Coupons</a></li>
+                    <li class="nav-item"><a href="/admin/offers" class="nav-link"><i class="fa-solid fa-percent nav-icon"></i> Offers</a></li>
+                    <li class="nav-item"><a href="#" class="nav-link"><i class="fa-solid fa-envelope nav-icon"></i> Enquiry</a></li>
+                </ul>
+                <ul class="nav-list logout-section">
+                    <li class="nav-item">
+                        <form action="/admin/logout" method="POST" id="adminLogoutForm" class="m-0">
+                            <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+                            <button type="submit" class="nav-link logout-link logout-btn-submit">
+                                <i class="fa-solid fa-right-from-bracket nav-icon"></i> Logout
+                            </button>
+                        </form>
+                    </li>
+                </ul>
+            </nav>
+        </aside>
+
+        <div class="main-panel">
+            <header class="top-header">
+                <div class="header-left">
+                    <button class="hamburger-menu" id="hamburgerMenu">
+                        <i class="fa-solid fa-bars"></i>
+                    </button>
+                </div>
+                <div class="header-right">
+                    <div class="datetime-display" id="datetimeDisplay"></div>
+                    <div class="notification-wrapper">
+                        <i class="fa-regular fa-bell notification-bell"></i>
+                    </div>
+                    <div class="admin-badge"><i class="fa-solid fa-user-shield"></i> Admin</div>
+                </div>
+            </header>
+
+            <main class="content-wrapper">
+
+                <div class="page-header-row mb-30">
+                    <div class="header-left-title">
+                        <a href="/admin/products" class="back-link"><i class="fa-solid fa-arrow-left"></i> Back to Products</a>
+                        <h1 class="page-title mt-5">Product Details</h1>
+                    </div>
+                    <div class="header-actions">
+                        <a href="/admin/products/<%= product.productId %>/edit" class="btn btn-primary"><i class="fa-solid fa-pen-to-square"></i> Edit Product</a>
+                    </div>
+                </div>
+
+                <div class="view-card">
+                    <div class="view-grid">
+
+                        <div class="view-image-section">
+                            <% const mainImage = (product.images && product.images.length > 0) ? product.images[0] : 'https://placehold.co/400x400?text=No+Image'; %>
+                            <img id="mainProductImage" src="<%= mainImage %>" alt="<%= product.name %>" class="main-view-image" onerror="this.onerror=null;this.src='https://placehold.co/400x400?text=Image+Unavailable';">
+
+                            <% if (product.images && product.images.length > 1) { %>
+                                <div class="thumbnail-gallery mt-20">
+                                    <% product.images.forEach((img, index) => { %>
+                                        <img src="<%= img %>" 
+                                             class="thumb-img <%= index === 0 ? 'active' : '' %>" 
+                                             alt="Thumbnail <%= index + 1 %>"
+                                             onerror="this.onerror=null;this.src='https://placehold.co/100x100?text=Unavailable';">
+                                    <% }) %>
+                                </div>
+                            <% } %>
+                        </div>
+
+                        <div class="view-details-section">
+                            <h2 class="view-title"><%= product.name %></h2>
+                            <p class="product-id">Product ID: <strong><%= product.productId %></strong></p>
+
+                            <div class="detail-cards-row mb-20">
+                                <div class="detail-card">
+                                    <span class="detail-label">Total Stock</span>
+                                    <span class="detail-value fw-700 <%= totalStock > 0 ? 'text-success' : 'text-danger' %>"><%= totalStock %></span>
+                                </div>
+                                <div class="detail-card">
+                                    <span class="detail-label">Price Range</span>
+                                    <span class="detail-value fw-700 text-primary"><%= priceDisplay %></span>
+                                </div>
+                                <div class="detail-card">
+                                    <span class="detail-label">Category</span>
+                                    <span class="detail-value"><%= product.categoryId ? product.categoryId.name : 'Uncategorized' %></span>
+                                </div>
+                            </div>
+
+                            <div class="detail-group full mt-20">
+                                <h3 class="section-heading">Description</h3>
+                                <p class="detail-text"><%= product.description || 'No description provided.' %></p>
+                            </div>
+
+                            <div class="detail-group full mt-20">
+                                <h3 class="section-heading">Specifications</h3>
+                                <p class="detail-text"><%= product.specifications || 'No specifications provided.' %></p>
+                            </div>
+
+                            <div class="detail-group full mt-30">
+                                <h3 class="section-heading">Variant Stock Levels</h3>
+                                <div class="variants-table-wrapper">
+                                    <table class="variants-table" id="variantsTable">
+                                        <thead>
+                                            <tr>
+                                                <th>Variant Name</th>
+                                                <th>Original Price</th>
+                                                <th>Current Price</th>
+                                                <th>Discount(%)</th>
+                                                <th>Stock</th>
+                                                <th>Status</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            <% if (product.variants && product.variants.length > 0) { %>
+                                                <% product.variants.forEach(variant => { 
+                                                    let statusText = 'In Stock';
+                                                    let dotClass = 'success';
+                                                    if (variant.stock === 0) {
+                                                        statusText = 'Out of Stock';
+                                                        dotClass = 'danger';
+                                                    } else if (variant.stock <= 10) {
+                                                        statusText = 'Low Stock';
+                                                        dotClass = 'warning';
+                                                    }
+                                                %>
+                                                <tr>
+                                                    <td class="fw-500">
+                                                        <%= variant.variantName %>
+                                                        <% if (variant.length || variant.width || variant.height) { %>
+                                                            <br><span class="variant-dimensions">(<%= variant.length || 0 %>"L x <%= variant.width || 0 %>"W x <%= variant.height || 0 %>"H)</span>
+                                                        <% } %>
+                                                    </td>
+                                                    <td>₹<%= Math.round(variant.originalPrice || 0).toLocaleString('en-IN') %></td>
+                                                    <td>₹<%= Math.round(variant.currentPrice).toLocaleString('en-IN') %></td>
+                                                    <td><%= variant.discount %>%</td>
+                                                    <td class="stock-cell"><%= variant.stock %></td>
+                                                    <td><span class="status-dot <%= dotClass %>"></span> <%= statusText %></td>
+                                                </tr>
+                                                <% }) %>
+                                            <% } else { %>
+                                                <tr>
+                                                    <td colspan="6" class="no-variants-fallback">No variants available.</td>
+                                                </tr>
+                                            <% } %>
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+
+                        </div>
+                    </div>
+                </div>
+
+            </main>
+        </div>
+    </div>
+
+    <script src="/js/admin/viewproduct.js"></script>
+</body>
+
+</html>

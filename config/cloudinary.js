@@ -10,7 +10,7 @@ cloudinary.config({
     api_secret: process.env.CLOUDINARY_API_SECRET
 });
 
-const storage = new CloudinaryStorage({
+const userStorage = new CloudinaryStorage({
     cloudinary: cloudinary,
     params: {
         folder: 'homestation/users', 
@@ -19,4 +19,25 @@ const storage = new CloudinaryStorage({
     }
 });
 
-export const upload = multer({ storage: storage });
+const categoryStorage = new CloudinaryStorage({
+    cloudinary: cloudinary,
+    params: {
+        folder: 'homestation/categories', 
+        allowed_formats: ['jpg', 'jpeg', 'png', 'webp'],
+        transformation: [{ width: 600, height: 400, crop: 'fill' }] 
+    }
+});
+
+const productStorage = new CloudinaryStorage({
+    cloudinary: cloudinary,
+    params: {
+        folder: 'homestation/products', 
+        allowed_formats: ['jpg', 'jpeg', 'png', 'webp'],
+        transformation: [{ width: 800, height: 800, crop: 'limit' }] 
+    }
+});
+
+
+export const upload = multer({ storage: userStorage });
+export const uploadCategory = multer({ storage: categoryStorage });
+export const uploadProduct = multer({ storage: productStorage });

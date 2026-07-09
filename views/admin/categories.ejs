@@ -1,0 +1,226 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>HomeStation - ADMIN</title>
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,600;0,700;1,600&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <link rel="icon" type="image/x-icon" href="https://res.cloudinary.com/dz7fuqwnr/image/upload/v1778395481/WhatsApp_Image_2026-05-10_at_12.12.36_nra5vk.jpg">
+    <link rel="stylesheet" href="/css/admin/products.css">
+    <link rel="stylesheet" href="/css/admin/categories.css">
+</head>
+
+<body>
+    <div class="dashboard-layout">
+        <div class="sidebar-overlay" id="sidebarOverlay"></div>
+
+        <aside class="sidebar" id="appSidebar">
+            <div class="sidebar-header">
+                <h2 class="brand-title">HomeStation</h2>
+                <button id="closeSidebar" class="close-sidebar-btn"><i class="fa-solid fa-xmark"></i></button>
+            </div>
+            <nav class="sidebar-nav">
+                <ul class="nav-list">
+                    <li class="nav-item"><a href="/admin/dashboard" class="nav-link"><i class="fa-solid fa-chart-pie nav-icon"></i> Dashboard</a></li>
+                    <li class="nav-item"><a href="/admin/products" class="nav-link"><i class="fa-solid fa-box nav-icon"></i> Products</a></li>
+                    <li class="nav-item"><a href="/admin/categories" class="nav-link active"><i class="fa-solid fa-tags nav-icon"></i> Categories</a></li>
+                    <li class="nav-item"><a href="#" class="nav-link"><i class="fa-solid fa-cart-shopping nav-icon"></i> Orders</a></li>
+                    <li class="nav-item"><a href="/admin/users" class="nav-link"><i class="fa-solid fa-users nav-icon"></i> User Management</a></li>
+                    <li class="nav-item"><a href="#" class="nav-link"><i class="fa-solid fa-file-invoice-dollar nav-icon"></i> Sales Report</a></li>
+                    <li class="nav-item"><a href="#" class="nav-link"><i class="fa-solid fa-ticket nav-icon"></i> Manage Coupons</a></li>
+                    <li class="nav-item"><a href="/admin/offers" class="nav-link"><i class="fa-solid fa-percent nav-icon"></i> Offers</a></li>
+                    <li class="nav-item"><a href="#" class="nav-link"><i class="fa-solid fa-envelope nav-icon"></i> Enquiry</a></li>
+                </ul>
+                <ul class="nav-list logout-section">
+                    <li class="nav-item">
+                        <form action="/admin/logout" method="POST" class="m-0">
+                            <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+                            <button type="submit" class="logout-link logout-btn-submit">
+                                <i class="fa-solid fa-right-from-bracket nav-icon"></i> Logout
+                            </button>
+                        </form>
+                    </li>
+                </ul>
+            </nav>
+        </aside>
+
+        <div class="main-panel">
+            <header class="top-header">
+                <div class="header-left">
+                    <button id="hamburgerBtn" class="hamburger-btn">
+                        <i class="fa-solid fa-bars"></i>
+                    </button>
+                </div>
+                <div class="header-right">
+                    <div class="datetime-display" id="datetimeDisplay"></div>
+                    <div class="notification-wrapper">
+                        <i class="fa-regular fa-bell notification-bell"></i>
+                    </div>
+                    <div class="admin-badge"><i class="fa-solid fa-user-shield"></i> Admin</div>
+                </div>
+            </header>
+
+            <main class="content-wrapper">
+                <input type="hidden" id="csrfToken" value="<%= csrfToken %>">
+                <div class="page-header-row">
+                    <h1 class="page-title">Categories</h1>
+                    <div class="header-controls">
+                        <label class="sort-label">Sort:</label>
+                        <select class="filter-select" id="sortDropdown">
+                            <option value="newest" <%=currentSort==='newest' ? 'selected' : '' %>>Newest</option>
+                            <option value="oldest" <%=currentSort==='oldest' ? 'selected' : '' %>>Oldest</option>
+                            <option value="az" <%=currentSort==='az' ? 'selected' : '' %>>Sort by: A-Z</option>
+                            <option value="za" <%=currentSort==='za' ? 'selected' : '' %>>Sort by: Z-A</option>
+                        </select>
+                        <button class="btn btn-primary" id="openAddModalBtn">
+                            <i class="fa-solid fa-plus"></i> Add New Category
+                        </button>
+                    </div>
+                </div>
+
+                <section class="category-section">
+                    <div class="subcategory-grid">
+                        <% if(categories && categories.length > 0) { %>
+                            <% categories.forEach(category => { %>
+                                <div class="subcategory-card <%= category.isDeleted ? 'category-deleted' : '' %>">
+                                    <img src="<%= category.image %>" class="category-image" alt="<%= category.name %>"
+                                        onerror="this.onerror=null;this.src='https://placehold.co/600x400?text=No+Image'">
+                                    <h3 class="sub-title">
+                                        <%= category.name %>
+                                    </h3>
+                                    <div class="sub-stats">
+                                        <div class="stat-item"><span class="stat-label">Products</span><span class="stat-value"><%= category.productCount %></span></div>
+                                        <div class="stat-item"><span class="stat-label">Sold</span><span class="stat-value">0</span></div>
+                                        <div class="stat-item"><span class="stat-label">Sales</span><span class="stat-value">₹0</span></div>
+                                    </div>
+                                    <div class="card-actions-wrapper">
+                                        <a href="/admin/categories/<%= category._id %>/products"
+                                            class="btn btn-outline-primary action-view-link <%= category.isDeleted ? 'hide-btn' : '' %>">View</a>
+
+                                        <button class="btn btn-secondary action-edit <%= category.isDeleted ? 'hide-btn' : '' %>"
+                                            data-id="<%= category._id %>"
+                                            data-name="<%= encodeURIComponent(category.name) %>">Edit</button>
+
+                                        <% if(category.isDeleted) { %>
+                                            <button class="btn btn-success action-toggle" data-action="restore"
+                                                data-id="<%= category._id %>"
+                                                data-name="<%= encodeURIComponent(category.name) %>">Restore</button>
+                                        <% } else { %>
+                                            <button class="btn btn-danger-light action-toggle" data-action="delete"
+                                                data-id="<%= category._id %>"
+                                                data-name="<%= encodeURIComponent(category.name) %>">Delete</button>
+                                        <% } %>
+                                    </div>
+                                </div>
+                            <% }) %>
+                        <% } else { %>
+                            <div class="empty-categories-box">
+                                <h3>No Categories Found</h3>
+                                <p>Click 'Add New Category' to get started.</p>
+                            </div>
+                        <% } %>
+                    </div>
+
+                    <% if (totalPages > 0) { %>
+                        <div class="pagination-container">
+                            <span class="pagination-info">Page <%= currentPage %> of <%= totalPages===0 ? 1 : totalPages %></span>
+                            <div class="pagination-controls">
+                                <% if (currentPage > 1) { %>
+                                    <a href="?sort=<%= currentSort %>&page=<%= currentPage - 1 %>" class="page-btn"><i class="fa-solid fa-chevron-left"></i></a>
+                                <% } else { %>
+                                    <button class="page-btn disabled"><i class="fa-solid fa-chevron-left"></i></button>
+                                <% } %>
+
+                                <% for(let i=1; i <= (totalPages===0 ? 1 : totalPages); i++) { %>
+                                    <a href="?sort=<%= currentSort %>&page=<%= i %>"
+                                        class="page-btn <%= currentPage === i ? 'active' : '' %>">
+                                        <%= i %>
+                                    </a>
+                                <% } %>
+
+                                <% if (currentPage < totalPages) { %>
+                                    <a href="?sort=<%= currentSort %>&page=<%= currentPage + 1 %>" class="page-btn"><i class="fa-solid fa-chevron-right"></i></a>
+                                <% } else { %>
+                                    <button class="page-btn disabled"><i class="fa-solid fa-chevron-right"></i></button>
+                                <% } %>
+                            </div>
+                        </div>
+                    <% } %>
+                </section>
+            </main>
+        </div>
+    </div>
+
+    <div class="modal-overlay" id="addCategoryModal">
+        <div class="modal-content modal-w-500">
+            <div class="modal-header">
+                <h2>Add New Category</h2>
+                <button type="button" class="close-modal-btn" data-close="addCategoryModal"><i class="fa-solid fa-xmark"></i></button>
+            </div>
+            <div class="modal-body">
+                <form id="addCategoryForm" enctype="multipart/form-data">
+                    <div class="form-group">
+                        <label>Category Name</label>
+                        <input type="text" name="name" id="categoryName" placeholder="e.g. Latex Mattress">
+                    </div>
+                    <div class="form-group mt-15">
+                        <label>Category Image</label>
+                        <input type="file" name="image" id="categoryImage" accept="image/*" class="p-6">
+                    </div>
+                    <div class="modal-footer pt-20">
+                        <button type="button" class="btn btn-secondary" data-close="addCategoryModal">Cancel</button>
+                        <button type="submit" class="btn btn-primary" id="addBtn">Add Category</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <div class="modal-overlay" id="editCategoryModal">
+        <div class="modal-content modal-w-500">
+            <div class="modal-header">
+                <h2>Edit Category</h2>
+                <button type="button" class="close-modal-btn" data-close="editCategoryModal"><i class="fa-solid fa-xmark"></i></button>
+            </div>
+            <div class="modal-body">
+                <form id="editCategoryForm" enctype="multipart/form-data">
+                    <input type="hidden" id="editCategoryId" name="id">
+                    <div class="form-group">
+                        <label>Edit Category Name</label>
+                        <input type="text" id="editCategoryNameInput" name="name">
+                    </div>
+                    <div class="form-group mt-15">
+                        <label>Edit Category Image (Leave empty to keep current)</label>
+                        <input type="file" name="image" id="editCategoryImage" accept="image/*" class="p-6">
+                    </div>
+                    <div class="modal-footer pt-20">
+                        <button type="button" class="btn btn-secondary" data-close="editCategoryModal">Cancel</button>
+                        <button type="submit" class="btn btn-primary" id="editBtn">Save</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <div class="modal-overlay" id="confirmModal">
+        <div class="modal-content modal-w-400 text-center">
+            <div class="modal-body pt-30">
+                <i class="fa-solid fa-circle-exclamation modal-exclamation-icon"></i>
+                <h3 id="confirmTitle" class="mb-10">Confirm Action</h3>
+                <p id="confirmMessage" class="modal-msg-text">Are you sure?</p>
+                <div class="modal-actions-layout">
+                    <button type="button" class="btn btn-secondary" data-close="confirmModal">Cancel</button>
+                    <button type="button" id="confirmBtn" class="btn btn-primary">Confirm</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="/js/admin/categories.js"></script>
+</body>
+
+</html>

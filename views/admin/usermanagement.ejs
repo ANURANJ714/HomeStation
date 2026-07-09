@@ -6,10 +6,8 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>HomeStation - ADMIN</title>
     <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&display=swap" rel="stylesheet">
-    <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,600;0,700;1,600&display=swap"
-        rel="stylesheet">
-    <link rel="icon" type="image/x-icon"
-        href="https://res.cloudinary.com/dz7fuqwnr/image/upload/v1778395481/WhatsApp_Image_2026-05-10_at_12.12.36_nra5vk.jpg">
+    <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,600;0,700;1,600&display=swap" rel="stylesheet">
+    <link rel="icon" type="image/x-icon" href="https://res.cloudinary.com/dz7fuqwnr/image/upload/v1778395481/WhatsApp_Image_2026-05-10_at_12.12.36_nra5vk.jpg">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
     <link rel="stylesheet" href="/css/admin/usermanagement.css">
@@ -17,46 +15,33 @@
 
 <body>
     <div class="dashboard-layout">
+        <div class="sidebar-overlay" id="sidebarOverlay"></div>
 
-        <aside class="sidebar">
+        <aside class="sidebar" id="appSidebar">
             <div class="sidebar-header">
                 <h2 class="brand-title">HomeStation</h2>
+                <button id="closeSidebar" class="close-sidebar-btn"><i class="fa-solid fa-xmark"></i></button>
             </div>
             <nav class="sidebar-nav">
                 <ul class="nav-list">
-                    <li class="nav-item">
-                        <a href="/admin/dashboard" class="nav-link">
-                            <i class="fa-solid fa-chart-pie nav-icon"></i> Dashboard
-                        </a>
-                    </li>
-                    <li class="nav-item"><a href="#" class="nav-link"><i class="fa-solid fa-box nav-icon"></i>
-                            Products</a></li>
-                    <li class="nav-item"><a href="#" class="nav-link"><i class="fa-solid fa-tags nav-icon"></i>
-                            Categories</a></li>
-                    <li class="nav-item"><a href="#" class="nav-link"><i class="fa-solid fa-cart-shopping nav-icon"></i>
-                            Orders</a></li>
-
-                    <li class="nav-item">
-                        <a href="/admin/users" class="nav-link active">
-                            <i class="fa-solid fa-users nav-icon"></i> User Management
-                        </a>
-                    </li>
-
-                    <li class="nav-item"><a href="#" class="nav-link"><i
-                                class="fa-solid fa-file-invoice-dollar nav-icon"></i> Sales Report</a></li>
-                    <li class="nav-item"><a href="#" class="nav-link"><i class="fa-solid fa-ticket nav-icon"></i> Manage
-                            Coupons</a></li>
-                    <li class="nav-item"><a href="#" class="nav-link"><i class="fa-solid fa-envelope nav-icon"></i>
-                            Enquiry</a></li>
+                    <li class="nav-item"><a href="/admin/dashboard" class="nav-link"><i class="fa-solid fa-chart-pie nav-icon"></i> Dashboard</a></li>
+                    <li class="nav-item"><a href="/admin/products" class="nav-link"><i class="fa-solid fa-box nav-icon"></i> Products</a></li>
+                    <li class="nav-item"><a href="/admin/categories" class="nav-link"><i class="fa-solid fa-tags nav-icon"></i> Categories</a></li>
+                    <li class="nav-item"><a href="#" class="nav-link"><i class="fa-solid fa-cart-shopping nav-icon"></i> Orders</a></li>
+                    <li class="nav-item"><a href="/admin/users" class="nav-link active"><i class="fa-solid fa-users nav-icon"></i> User Management</a></li>
+                    <li class="nav-item"><a href="#" class="nav-link"><i class="fa-solid fa-file-invoice-dollar nav-icon"></i> Sales Report</a></li>
+                    <li class="nav-item"><a href="#" class="nav-link"><i class="fa-solid fa-ticket nav-icon"></i> Manage Coupons</a></li>
+                    <li class="nav-item"><a href="/admin/offers" class="nav-link"><i class="fa-solid fa-percent nav-icon"></i> Offers</a></li>
+                    <li class="nav-item"><a href="#" class="nav-link"><i class="fa-solid fa-envelope nav-icon"></i> Enquiry</a></li>
                 </ul>
 
                 <ul class="nav-list logout-section">
                     <li class="nav-item">
-                        <form action="/admin/logout" method="POST" id="adminLogoutForm">
-                            <a href="#" class="nav-link logout-link"
-                                onclick="document.getElementById('adminLogoutForm').submit(); return false;">
+                        <form action="/admin/logout" method="POST" id="adminLogoutForm" class="m-0">
+                            <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+                            <button type="submit" class="logout-link logout-btn-submit" id="logoutButton">
                                 <i class="fa-solid fa-right-from-bracket nav-icon"></i> Logout
-                            </a>
+                            </button>
                         </form>
                     </li>
                 </ul>
@@ -65,9 +50,16 @@
 
         <div class="main-panel">
             <header class="top-header">
-                <div class="header-left"></div>
+                <div class="header-left">
+                    <button id="hamburgerBtn" class="hamburger-btn">
+                        <i class="fa-solid fa-bars"></i>
+                    </button>
+                </div>
                 <div class="header-right">
                     <div class="datetime-display" id="datetimeDisplay"></div>
+                    <div class="notification-wrapper">
+                        <i class="fa-regular fa-bell notification-bell"></i>
+                    </div>
                     <div class="admin-badge">
                         <i class="fa-solid fa-user-shield"></i> Admin
                     </div>
@@ -75,10 +67,10 @@
             </header>
 
             <main class="content-wrapper">
-
+                <input type="hidden" id="csrfToken" value="<%= csrfToken %>">
                 <div class="page-header-row">
                     <h1 class="page-title">User Management</h1>
-                    <button class="btn btn-primary" onclick="openModal('addUserModal')">
+                    <button class="btn btn-primary" id="openAddUserModal">
                         <i class="fa-solid fa-plus"></i> Add User
                     </button>
                 </div>
@@ -89,65 +81,62 @@
                         <div class="stat-details">
                             <p class="stat-label">Total Users</p>
                             <h3 class="stat-value" id="totalUsersCount">
-                                <%= stats.totalUsers %>
+                                <%= stats ? stats.totalUsers : 0 %>
                             </h3>
                         </div>
                     </div>
-
                     <div class="stat-card">
                         <div class="stat-icon active-users-icon"><i class="fa-solid fa-user-check"></i></div>
                         <div class="stat-details">
                             <p class="stat-label">Active Users</p>
                             <h3 class="stat-value" id="activeUsersCount">
-                                <%= stats.activeUsers %>
+                                <%= stats ? stats.activeUsers : 0 %>
                             </h3>
                         </div>
                     </div>
-
                     <div class="stat-card">
                         <div class="stat-icon blocked-users-icon"><i class="fa-solid fa-user-lock"></i></div>
                         <div class="stat-details">
                             <p class="stat-label">Blocked Users</p>
                             <h3 class="stat-value" id="blockedUsersCount">
-                                <%= stats.blockedUsers %>
+                                <%= stats ? stats.blockedUsers : 0 %>
                             </h3>
                         </div>
                     </div>
                 </div>
 
-                <form action="/admin/users" method="GET" class="filters-container">
-                    <div class="search-container" style="display: flex; gap: 10px; align-items: center;">
+                <form action="/admin/users" method="GET" class="filters-container" id="userFilterForm">
+                    <div class="search-container-box">
                         <div class="search-box">
                             <i class="fa-solid fa-magnifying-glass search-icon"></i>
-                            <input type="text" name="search" value="<%= filters.search %>"
+                            <input type="text" name="search"
+                                value="<%= typeof filters !== 'undefined' ? filters.search : '' %>"
                                 placeholder="Search by Name or Email...">
                         </div>
                         <button type="submit" class="btn btn-primary">Search</button>
-                        <% if(filters.search || filters.role || filters.status || filters.sort !=='newest' ) { %>
-                            <a href="/admin/users" class="btn btn-secondary">Clear</a>
-                            <% } %>
+                        <% if(typeof filters !== 'undefined' && (filters.search || filters.role || filters.status || filters.sort !== 'newest')) { %>
+                            <a href="/admin/users" class="btn btn-secondary text-decoration-none">Clear</a>
+                        <% } %>
                     </div>
 
                     <div class="filter-dropdowns">
-                        <select name="role" class="filter-select" onchange="this.form.submit()">
-                            <option value="" <%=filters.role==='' ? 'selected' : '' %>>All Roles</option>
-                            <option value="user" <%=filters.role==='user' ? 'selected' : '' %>>User</option>
-                            <option value="admin" <%=filters.role==='admin' ? 'selected' : '' %>>Admin</option>
+                        <select name="role" class="filter-select" id="roleFilter">
+                            <option value="" <%= typeof filters !== 'undefined' && filters.role === '' ? 'selected' : '' %>>All Roles</option>
+                            <option value="user" <%= typeof filters !== 'undefined' && filters.role === 'user' ? 'selected' : '' %>>User</option>
+                            <option value="admin" <%= typeof filters !== 'undefined' && filters.role === 'admin' ? 'selected' : '' %>>Admin</option>
                         </select>
 
-                        <select name="status" class="filter-select" onchange="this.form.submit()">
-                            <option value="" <%=filters.status==='' ? 'selected' : '' %>>All Status</option>
-                            <option value="active" <%=filters.status==='active' ? 'selected' : '' %>>Active</option>
-                            <option value="blocked" <%=filters.status==='blocked' ? 'selected' : '' %>>Blocked</option>
+                        <select name="status" class="filter-select" id="statusFilter">
+                            <option value="" <%= typeof filters !== 'undefined' && filters.status === '' ? 'selected' : '' %>>All Status</option>
+                            <option value="active" <%= typeof filters !== 'undefined' && filters.status === 'active' ? 'selected' : '' %>>Active</option>
+                            <option value="blocked" <%= typeof filters !== 'undefined' && filters.status === 'blocked' ? 'selected' : '' %>>Blocked</option>
                         </select>
 
-                        <select name="sort" class="filter-select" onchange="this.form.submit()">
-                            <option value="newest" <%=filters.sort==='newest' ? 'selected' : '' %>>Sort by: Newest
-                            </option>
-                            <option value="oldest" <%=filters.sort==='oldest' ? 'selected' : '' %>>Sort by: Oldest
-                            </option>
-                            <option value="az" <%=filters.sort==='az' ? 'selected' : '' %>>Sort by: A - Z</option>
-                            <option value="za" <%=filters.sort==='za' ? 'selected' : '' %>>Sort by: Z - A</option>
+                        <select name="sort" class="filter-select" id="sortFilter">
+                            <option value="newest" <%= typeof filters !== 'undefined' && filters.sort === 'newest' ? 'selected' : '' %>>Sort by: Newest</option>
+                            <option value="oldest" <%= typeof filters !== 'undefined' && filters.sort === 'oldest' ? 'selected' : '' %>>Sort by: Oldest</option>
+                            <option value="az" <%= typeof filters !== 'undefined' && filters.sort === 'az' ? 'selected' : '' %>>Sort by: A - Z</option>
+                            <option value="za" <%= typeof filters !== 'undefined' && filters.sort === 'za' ? 'selected' : '' %>>Sort by: Z - A</option>
                         </select>
                     </div>
                 </form>
@@ -168,401 +157,163 @@
                             </tr>
                         </thead>
                         <tbody>
-                            <% if (users.length> 0) { %>
-                                <% users.forEach(user=> { %>
-                                    <tr id="user-row-<%= user._id %>"
-                                        class="<%= user.status && user.status.toLowerCase() === 'blocked' ? 'blocked-row' : '' %>">
+                            <% if (typeof users !== 'undefined' && users.length > 0) { %>
+                                <% users.forEach(user => { %>
+                                    <tr id="user-row-<%= user._id %>" class="<%= user.status && user.status.toLowerCase() === 'blocked' ? 'blocked-row' : '' %>">
                                         <td>
                                             <div class="user-profile">
-                                                <img src="<%= user.profileImage || 'https://www.gravatar.com/avatar/00000000000000000000000000000000?d=mp&f=y' %>"
-                                                    alt="Avatar" class="avatar">
-                                                <span
-                                                    class="fw-500 <%= user.status && user.status.toLowerCase() === 'blocked' ? 'text-muted' : '' %>">
+                                                <img src="<%= user.profileImage || 'https://www.gravatar.com/avatar/00000000000000000000000000000000?d=mp&f=y' %>" alt="Avatar" class="avatar">
+                                                <span class="fw-500 <%= user.status && user.status.toLowerCase() === 'blocked' ? 'text-muted' : '' %>">
                                                     <%= user.fullName %>
                                                 </span>
                                             </div>
                                         </td>
-
                                         <td class="text-muted">
                                             <%= user.userId || 'N/A' %>
                                         </td>
-
-                                        <td
-                                            class="<%= user.status && user.status.toLowerCase() === 'blocked' ? 'text-muted' : '' %>">
+                                        <td class="<%= user.status && user.status.toLowerCase() === 'blocked' ? 'text-muted' : '' %>">
                                             <%= user.email %>
                                         </td>
-
                                         <td>
-                                            <% let displayRole='User' ; let isAdmin=false; if (user.role && typeof
-                                                user.role==='string' ) { displayRole=user.role.charAt(0).toUpperCase() +
-                                                user.role.slice(1).toLowerCase(); if (displayRole==='Admin' ) {
-                                                isAdmin=true; } } %>
-
-                                                <% if (isAdmin) { %>
-                                                    <span class="badge badge-primary"
-                                                        style="background-color: var(--primary); color: #fff;">
-                                                        Admin
-                                                    </span>
-                                                    <% } else { %>
-                                                        <span class="badge badge-info">
-                                                            <%= displayRole %>
-                                                        </span>
-                                                        <% } %>
+                                            <% let displayRole = 'User'; let isAdmin = false; if (user.role && typeof user.role === 'string') { displayRole = user.role.charAt(0).toUpperCase() + user.role.slice(1).toLowerCase(); if (displayRole === 'Admin') isAdmin = true; } %>
+                                            <% if (isAdmin) { %>
+                                                <span class="badge badge-admin-role">Admin</span>
+                                            <% } else { %>
+                                                <span class="badge badge-info">
+                                                    <%= displayRole %>
+                                                </span>
+                                            <% } %>
                                         </td>
-
                                         <td>-</td>
-                                        <td
-                                            class="fw-500 <%= user.status && user.status.toLowerCase() === 'blocked' ? 'text-muted' : '' %>">
-                                            -</td>
-
+                                        <td class="fw-500 <%= user.status && user.status.toLowerCase() === 'blocked' ? 'text-muted' : '' %>">-</td>
                                         <td class="status-cell">
-                                            <% if (user.status && user.status.toLowerCase()==='active' ) { %>
+                                            <% if (user.status && user.status.toLowerCase() === 'active') { %>
                                                 <span class="badge badge-success">Active</span>
-                                                <% } else { %>
-                                                    <span class="badge badge-danger">Blocked</span>
-                                                    <% } %>
+                                            <% } else { %>
+                                                <span class="badge badge-danger">Blocked</span>
+                                            <% } %>
                                         </td>
-
                                         <td>
-                                            <%= new Date(user.createdAt).toLocaleDateString('en-GB', { day: '2-digit' ,
-                                                month: 'short' , year: 'numeric' }) %>
+                                            <%= new Date(user.createdAt).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }) %>
                                         </td>
-
                                         <td class="actions-td">
-                                            <% if (user.role==='Admin' ) { %>
-                                                <span class="text-muted text-sm"
-                                                    style="font-size: 12px; font-style: italic;">No actions</span>
-                                                <% } else if (user.status==='Active' ) { %>
-                                                    <button class="btn-action btn-block"
-                                                        onclick="prepareStatusChange('<%= user._id %>', 'Block')">
-                                                        <i class="fa-solid fa-ban"></i> Block
-                                                    </button>
-                                                    <% } else { %>
-                                                        <button class="btn-action btn-unblock"
-                                                            onclick="prepareStatusChange('<%= user._id %>', 'Unblock')">
-                                                            <i class="fa-solid fa-unlock"></i> Unblock
-                                                        </button>
-                                                        <% } %>
+                                            <% if (user.role === 'Admin') { %>
+                                                <span class="text-muted italic-no-actions">No actions</span>
+                                            <% } else if (user.status === 'Active' || user.status === 'active') { %>
+                                                <button class="btn-action btn-block action-status" data-id="<%= user._id %>" data-action="Block">
+                                                    <i class="fa-solid fa-ban"></i> Block
+                                                </button>
+                                            <% } else { %>
+                                                <button class="btn-action btn-unblock action-status" data-id="<%= user._id %>" data-action="Unblock">
+                                                    <i class="fa-solid fa-unlock"></i> Unblock
+                                                </button>
+                                            <% } %>
                                         </td>
                                     </tr>
-                                    <% }) %>
-                                        <% } else { %>
-                                            <tr>
-                                                <td colspan="9" class="text-center" style="padding: 30px;">
-                                                    <i class="fa-solid fa-users-slash"
-                                                        style="font-size: 30px; color: #ccc; margin-bottom: 10px;"></i>
-                                                    <p style="color: #666;">No users found matching your search or
-                                                        filters.</p>
-                                                </td>
-                                            </tr>
-                                            <% } %>
+                                <% }) %>
+                            <% } else { %>
+                                <tr>
+                                    <td colspan="9" class="empty-users-cell">
+                                        <i class="fa-solid fa-users-slash empty-users-icon"></i>
+                                        <p class="empty-users-text">No users found matching your search or filters.</p>
+                                    </td>
+                                </tr>
+                            <% } %>
                         </tbody>
                     </table>
                 </div>
 
-                <% if (pagination.totalPages> 1) { %>
-                    <% let
-                        queryString=`&search=${filters.search}&role=${filters.role}&status=${filters.status}&sort=${filters.sort}`;
-                        %>
-                        <div class="pagination-container">
-                            <span class="pagination-info">
-                                Showing <%= ((pagination.page - 1) * pagination.limit) + 1 %> to
-                                    <%= Math.min(pagination.page * pagination.limit, pagination.totalFiltered) %> of
-                                        <%= pagination.totalFiltered %> entries
-                            </span>
-
-                            <div class="pagination-controls">
-                                <a href="<%= pagination.page > 1 ? `?page=${pagination.page - 1}${queryString}` : '#' %>"
-                                    class="page-btn <%= pagination.page === 1 ? 'disabled' : '' %>"
-                                    style="text-decoration: none;">
-                                    <i class="fa-solid fa-chevron-left"></i>
+                <% if (typeof pagination !== 'undefined' && pagination.totalPages > 0) { %>
+                    <% let queryString = `&search=${filters.search || ''}&role=${filters.role || ''}&status=${filters.status || ''}&sort=${filters.sort || ''}`; %>
+                    <div class="pagination-container">
+                        <span class="pagination-info">
+                            Showing <%= ((pagination.page - 1) * pagination.limit) + 1 %> to <%= Math.min(pagination.page * pagination.limit, pagination.totalFiltered) %> of <%= pagination.totalFiltered %> entries
+                        </span>
+                        <div class="pagination-controls">
+                            <a href="<%= pagination.page > 1 ? `?page=${pagination.page - 1}${queryString}` : '#' %>" class="page-btn text-decoration-none <%= pagination.page === 1 ? 'disabled' : '' %>">
+                                <i class="fa-solid fa-chevron-left"></i>
+                            </a>
+                            <% for(let i=1; i <= pagination.totalPages; i++) { %>
+                                <a href="?page=<%= i %><%= queryString %>" class="page-btn text-decoration-none <%= pagination.page === i ? 'active' : '' %>">
+                                    <%= i %>
                                 </a>
-
-                                <% for(let i=1; i <=pagination.totalPages; i++) { %>
-                                    <a href="?page=<%= i %><%= queryString %>"
-                                        class="page-btn <%= pagination.page === i ? 'active' : '' %>"
-                                        style="text-decoration: none;">
-                                        <%= i %>
-                                    </a>
-                                    <% } %>
-
-                                        <a href="<%= pagination.page < pagination.totalPages ? `?page=${pagination.page + 1}${queryString}` : '#' %>"
-                                            class="page-btn <%= pagination.page === pagination.totalPages ? 'disabled' : '' %>"
-                                            style="text-decoration: none;">
-                                            <i class="fa-solid fa-chevron-right"></i>
-                                        </a>
-                            </div>
+                            <% } %>
+                            <a href="<%= pagination.page < pagination.totalPages ? `?page=${pagination.page + 1}${queryString}` : '#' %>" class="page-btn text-decoration-none <%= pagination.page === pagination.totalPages ? 'disabled' : '' %>">
+                                <i class="fa-solid fa-chevron-right"></i>
+                            </a>
                         </div>
-                        <% } %>
-
+                    </div>
+                <% } %>
             </main>
         </div>
     </div>
 
-    <div id="addUserModal" class="modal-overlay" style="display: none; z-index: 9999;">
-        <div class="modal-content" style="background: #fff; padding: 30px; border-radius: 8px; max-width: 500px; width: 90%; margin: 5% auto; box-shadow: 0 10px 30px rgba(0,0,0,0.2);">
-            
-            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
-                <h2 style="color: #1a1a1a; margin: 0;">Add New User</h2>
-                <i class="fa-solid fa-times" style="cursor: pointer; font-size: 20px; color: #666;" onclick="closeModal('addUserModal')"></i>
+    <div id="addUserModal" class="modal-overlay">
+        <div class="modal-content modal-box-max">
+            <div class="modal-header-wrapper">
+                <h2 class="modal-header-title">Add New User</h2>
+                <i class="fa-solid fa-times modal-close-x" data-close="addUserModal"></i>
             </div>
-
             <form id="addUserForm">
-                <div style="margin-bottom: 15px; text-align: left;">
-                    <label style="display: block; margin-bottom: 5px; color: #333; font-weight: 500;">Full Name</label>
-                    <input type="text" id="addFullName" name="fullName" placeholder="Enter full name" style="width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 4px; box-sizing: border-box;">
+                <div class="modal-form-group">
+                    <label class="modal-form-label">Full Name</label>
+                    <input type="text" id="addFullName" name="fullName" placeholder="Enter full name" class="modal-form-input">
                 </div>
-
-                <div style="margin-bottom: 15px; text-align: left;">
-                    <label style="display: block; margin-bottom: 5px; color: #333; font-weight: 500;">Email Address</label>
-                    <input type="email" id="addEmail" name="email" placeholder="Enter email address" style="width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 4px; box-sizing: border-box;">
+                <div class="modal-form-group">
+                    <label class="modal-form-label">Email Address</label>
+                    <input type="email" id="addEmail" name="email" placeholder="Enter email address" class="modal-form-input">
                 </div>
-
-                <div style="margin-bottom: 15px; text-align: left;">
-                    <label style="display: block; margin-bottom: 5px; color: #333; font-weight: 500;">Phone Number</label>
-                    <input type="text" id="addPhone" name="phone" placeholder="10-digit phone number" style="width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 4px; box-sizing: border-box;">
+                <div class="modal-form-group">
+                    <label class="modal-form-label">Phone Number</label>
+                    <input type="text" id="addPhone" name="phone" placeholder="10-digit phone number" class="modal-form-input">
                 </div>
-
-                <div style="margin-bottom: 15px; text-align: left;">
-                    <label style="display: block; margin-bottom: 5px; color: #333; font-weight: 500;">Password</label>
-                    <div style="position: relative;">
-                        <input type="password" id="addPassword" name="password" placeholder="Create a strong password" style="width: 100%; padding: 10px; padding-right: 40px; border: 1px solid #ddd; border-radius: 4px; box-sizing: border-box;">
-                        <i class="fa-solid fa-eye-slash" onclick="togglePasswordVisibility('addPassword', this)" style="position: absolute; right: 12px; top: 50%; transform: translateY(-50%); cursor: pointer; color: #666;"></i>
+                <div class="modal-form-group">
+                    <label class="modal-form-label">Password</label>
+                    <div class="password-input-relative">
+                        <input type="password" id="addPassword" name="password" placeholder="Create a strong password" class="modal-form-input pr-40">
+                        <i class="fa-solid fa-eye-slash toggle-password" data-target="addPassword"></i>
                     </div>
                 </div>
-
-                <div style="margin-bottom: 25px; text-align: left;">
-                    <label style="display: block; margin-bottom: 5px; color: #333; font-weight: 500;">Confirm Password</label>
-                    <div style="position: relative;">
-                        <input type="password" id="addConfirmPassword" name="confirmPassword" placeholder="Confirm password" style="width: 100%; padding: 10px; padding-right: 40px; border: 1px solid #ddd; border-radius: 4px; box-sizing: border-box;">
-                        <i class="fa-solid fa-eye-slash" onclick="togglePasswordVisibility('addConfirmPassword', this)" style="position: absolute; right: 12px; top: 50%; transform: translateY(-50%); cursor: pointer; color: #666;"></i>
+                <div class="modal-form-group mb-25">
+                    <label class="modal-form-label">Confirm Password</label>
+                    <div class="password-input-relative">
+                        <input type="password" id="addConfirmPassword" name="confirmPassword" placeholder="Confirm password" class="modal-form-input pr-40">
+                        <i class="fa-solid fa-eye-slash toggle-password" data-target="addConfirmPassword"></i>
                     </div>
                 </div>
-
-                <div style="display: flex; justify-content: flex-end; gap: 10px;">
-                    <button type="button" class="btn btn-secondary" onclick="closeModal('addUserModal')">Cancel</button>
-                    <button type="button" class="btn btn-primary" onclick="submitAddUser()">Create User</button>
+                <div class="modal-actions-flex">
+                    <button type="button" class="btn btn-secondary" data-close="addUserModal">Cancel</button>
+                    <button type="submit" class="btn btn-primary">Create User</button>
                 </div>
             </form>
         </div>
     </div>
 
-    <div id="blockUserModal" class="modal-overlay" style="display: none; z-index: 9999;">
-        <div class="modal-content"
-            style="background: #ffffff; padding: 30px; border-radius: 8px; max-width: 400px; width: 90%; margin: auto; text-align: center; box-shadow: 0 10px 30px rgba(0,0,0,0.2);">
-            <i class="fa-solid fa-ban" style="font-size: 45px; color: #dc3545; margin-bottom: 15px;"></i>
-            <h2 style="color: #1a1a1a; margin-bottom: 10px; font-size: 1.5rem;">Block User</h2>
-            <p style="color: #666; margin-bottom: 25px; font-size: 14px;">Are you sure you want to block this user? They
-                will not be able to log in.</p>
+    <div id="blockUserModal" class="modal-overlay">
+        <div class="modal-content modal-confirmation-box">
+            <i class="fa-solid fa-ban modal-icon-block"></i>
+            <h2 class="modal-confirmation-title">Block User</h2>
+            <p class="modal-confirmation-desc">Are you sure you want to block this user? They will not be able to log in.</p>
             <div>
-                <button class="btn btn-secondary" onclick="closeModal('blockUserModal')"
-                    style="margin-right: 10px;">Cancel</button>
-                <button class="btn btn-primary" onclick="executeStatusChange()"
-                    style="background-color: #dc3545; border-color: #dc3545;">Confirm Block</button>
+                <button class="btn btn-secondary mr-10" data-close="blockUserModal">Cancel</button>
+                <button class="btn btn-primary btn-bg-danger" id="confirmBlockBtn">Confirm Block</button>
             </div>
         </div>
     </div>
 
-    <div id="unblockUserModal" class="modal-overlay" style="display: none; z-index: 9999;">
-        <div class="modal-content"
-            style="background: #ffffff; padding: 30px; border-radius: 8px; max-width: 400px; width: 90%; margin: auto; text-align: center; box-shadow: 0 10px 30px rgba(0,0,0,0.2);">
-            <i class="fa-solid fa-unlock" style="font-size: 45px; color: #28a745; margin-bottom: 15px;"></i>
-            <h2 style="color: #1a1a1a; margin-bottom: 10px; font-size: 1.5rem;">Unblock User</h2>
-            <p style="color: #666; margin-bottom: 25px; font-size: 14px;">Are you sure you want to unblock this user?
-                Their access will be restored.</p>
+    <div id="unblockUserModal" class="modal-overlay">
+        <div class="modal-content modal-confirmation-box">
+            <i class="fa-solid fa-unlock modal-icon-unblock"></i>
+            <h2 class="modal-confirmation-title">Unblock User</h2>
+            <p class="modal-confirmation-desc">Are you sure you want to unblock this user? Their access will be restored.</p>
             <div>
-                <button class="btn btn-secondary" onclick="closeModal('unblockUserModal')"
-                    style="margin-right: 10px;">Cancel</button>
-                <button class="btn btn-primary" onclick="executeStatusChange()"
-                    style="background-color: #28a745; border-color: #28a745;">Confirm Unblock</button>
+                <button class="btn btn-secondary mr-10" data-close="unblockUserModal">Cancel</button>
+                <button class="btn btn-primary btn-bg-success" id="confirmUnblockBtn">Confirm Unblock</button>
             </div>
         </div>
     </div>
 
-    <script>
-        function updateDateTime() {
-            const now = new Date();
-            const options = { weekday: 'long', year: 'numeric', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' };
-            document.getElementById('datetimeDisplay').textContent = now.toLocaleDateString('en-IN', options);
-        }
-        updateDateTime();
-        setInterval(updateDateTime, 60000);
-
-        function openModal(modalId) {
-            document.getElementById(modalId).style.display = 'flex';
-        }
-
-        function closeModal(modalId) {
-            document.getElementById(modalId).style.display = 'none';
-        }
-
-        window.onclick = function (event) {
-            if (event.target.classList.contains('modal-overlay')) {
-                event.target.style.display = 'none';
-            }
-        }
-
-        function togglePasswordVisibility(inputId, iconElement) {
-            var passwordInput = document.getElementById(inputId);
-            if (passwordInput.type === "password") {
-                passwordInput.type = "text";
-                iconElement.classList.remove("fa-eye-slash");
-                iconElement.classList.add("fa-eye");
-            } else {
-                passwordInput.type = "password";
-                iconElement.classList.remove("fa-eye");
-                iconElement.classList.add("fa-eye-slash");
-            }
-        }
-
-        async function submitAddUser() {
-            const fullName = document.getElementById('addFullName').value.trim();
-            const email = document.getElementById('addEmail').value.trim();
-            const phone = document.getElementById('addPhone').value.trim();
-            const password = document.getElementById('addPassword').value;
-            const confirmPassword = document.getElementById('addConfirmPassword').value;
-
-            if (!fullName || !email || !phone || !password || !confirmPassword) {
-                return Swal.fire({ icon: 'warning', title: 'Missing Fields', text: 'All fields are required.' });
-            }
-
-            const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-            if (!emailRegex.test(email)) {
-                return Swal.fire({ icon: 'warning', title: 'Invalid Email', text: 'Please enter a valid email format.' });
-            }
-
-            const phoneRegex = /^[0-9]{10}$/;
-            if (!phoneRegex.test(phone)) {
-                return Swal.fire({ icon: 'warning', title: 'Invalid Phone', text: 'Please enter a valid 10-digit phone number.' });
-            }
-
-            const passwordRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[!@#$]).{12,}$/;
-            if (!passwordRegex.test(password)) {
-                return Swal.fire({ 
-                    icon: 'warning', 
-                    title: 'Weak Password', 
-                    text: 'Password must be at least 12 characters and include an uppercase letter, a lowercase letter, a number, and a special character (!, @, #, $).' 
-                });
-            }
-
-            if (password !== confirmPassword) {
-                return Swal.fire({ icon: 'warning', title: 'Mismatch', text: 'Passwords do not match.' });
-            }
-
-            try {
-                const response = await fetch('/admin/users', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ fullName, email, phone, password, confirmPassword })
-                });
-
-                const data = await response.json();
-
-                if (data.success) {
-                    closeModal('addUserModal');
-                    document.getElementById('addUserForm').reset();
-                    
-                    Swal.fire({
-                        icon: 'success',
-                        title: 'Success!',
-                        text: data.message,
-                        timer: 2000,
-                        showConfirmButton: false
-                    }).then(() => {
-                        window.location.reload(); 
-                    });
-                } else {
-                    Swal.fire({ icon: 'error', title: 'Creation Failed', text: data.message });
-                }
-            } catch (error) {
-                console.error("Error:", error);
-                Swal.fire({ icon: 'error', title: 'System Error', text: 'Could not connect to the server.' });
-            }
-        }
-
-        let pendingUserId = null;
-        let pendingAction = null;
-
-        function prepareStatusChange(userId, action) {
-            pendingUserId = userId;
-            pendingAction = action;
-
-            if (action === 'Block') {
-                openModal('blockUserModal');
-            } else {
-                openModal('unblockUserModal');
-            }
-        }
-
-        async function executeStatusChange() {
-            closeModal(pendingAction === 'Block' ? 'blockUserModal' : 'unblockUserModal');
-
-            try {
-                const response = await fetch(`/admin/users/${pendingUserId}/status`, {
-                    method: 'PATCH',
-                    headers: { 'Content-Type': 'application/json' }
-                });
-
-                const data = await response.json();
-
-                if (data.success) {
-                    const row = document.getElementById(`user-row-${pendingUserId}`);
-
-                    if (row) {
-                        const statusCell = row.querySelector('.status-cell');
-                        const actionsCell = row.querySelector('.actions-td');
-
-                        if (pendingAction === 'Block') {
-                            row.classList.add('blocked-row');
-                            statusCell.innerHTML = '<span class="badge badge-danger">Blocked</span>';
-                            actionsCell.innerHTML = `
-                                <button class="btn-action btn-unblock" onclick="prepareStatusChange('${pendingUserId}', 'Unblock')">
-                                    <i class="fa-solid fa-unlock"></i> Unblock
-                                </button>`;
-                        } else {
-                            row.classList.remove('blocked-row');
-                            statusCell.innerHTML = '<span class="badge badge-success">Active</span>';
-                            actionsCell.innerHTML = `
-                                <button class="btn-action btn-block" onclick="prepareStatusChange('${pendingUserId}', 'Block')">
-                                    <i class="fa-solid fa-ban"></i> Block
-                                </button>`;
-                        }
-                    }
-
-                    const activeElement = document.getElementById('activeUsersCount');
-                    const blockedElement = document.getElementById('blockedUsersCount');
-
-                    let activeCount = parseInt(activeElement.innerText.replace(/,/g, '')) || 0;
-                    let blockedCount = parseInt(blockedElement.innerText.replace(/,/g, '')) || 0;
-
-                    if (pendingAction === 'Block') {
-                        activeCount = Math.max(0, activeCount - 1);
-                        blockedCount++;
-                    } else {
-                        activeCount++;
-                        blockedCount = Math.max(0, blockedCount - 1);
-                    }
-
-                    activeElement.innerText = activeCount;
-                    blockedElement.innerText = blockedCount;
-
-                    Swal.fire({
-                        icon: 'success',
-                        title: pendingAction === 'Block' ? 'User Blocked' : 'User Unblocked',
-                        text: data.message,
-                        timer: 2000,
-                        showConfirmButton: false
-                    });
-
-                } else {
-                    Swal.fire({ icon: 'error', title: 'Action Failed', text: data.message });
-                }
-            } catch (error) {
-                console.error("Error:", error);
-                Swal.fire({ icon: 'error', title: 'System Error', text: 'Something went wrong.' });
-            }
-        }
-    </script>
+    <script src="/js/admin/usermanagement.js"></script>
 </body>
 
 </html>

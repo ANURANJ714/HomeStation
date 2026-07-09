@@ -1,24 +1,56 @@
-import User from '../../models/User.js';
 import bcrypt from 'bcryptjs';
 import crypto from 'crypto';
 import {sendOtpEmail} from '../../services/user/emailService.js'
+import logger from '../../utils/logger.js';
+import {getActivePromoBanner} from '../../services/user/bannerService.js';
+import * as profileService from '../../services/user/profileService.js';
 
-export const getProfile = (req,res) =>{
-    try{
-        res.render('user/profile', {user: req.user});
-    }catch(error){
-        res.status(500).send('Server Error');
+export const getProfile = async (req, res) => { 
+    try {
+        const clientIp = req.ip;
+        const userEmail = req.user?.email || 'Unknown User';
+
+        const bannerText = await getActivePromoBanner();
+
+        logger.info(`User profile page accessed by ${userEmail}. IP: ${clientIp}`);
+
+        res.render('user/profile', { 
+            user: req.user,
+            bannerText: bannerText 
+        });
+
+    } catch (error) {
+        logger.error(`Error loading profile page for ${req.user?.email || 'Unknown'} (IP: ${req.ip}): ${error.message}\nStack: ${error.stack}`);
+        
+        return res.status(500).json({
+            success: false,
+            title: "Server Error",
+            message: "An internal server error occurred while loading the profile page."
+        });
     }
-}
+};
 
 export const updateProfile = async (req, res) => {
     try {
         const { fullName, phone, email } = req.body; 
+        const clientIp = req.ip;
         
+        const userId = req.user._id;
+        const userEmail = req.user.email;
+
         let updateData = { fullName, phone }; 
         let requiresEmailVerification = false;
 
-        if (req.user.authProvider === 'local' && email && email !== req.user.email) {
+        if (email && email !== userEmail) {
+            
+            if (req.user.authProvider !== 'local') {
+                logger.warn(`Profile update blocked: Attempted email change on Google account (${userEmail}). IP: ${clientIp}`);
+                return res.status(403).json({ 
+                    success: false, 
+                    message: "Google accounts cannot change email." 
+                });
+            }
+
             const otp = crypto.randomInt(100000, 999999).toString();
             
             req.session.newEmailPending = email; 
@@ -27,131 +59,302 @@ export const updateProfile = async (req, res) => {
             
             await sendOtpEmail(email, otp); 
             requiresEmailVerification = true;
-        } else if (email && email !== req.user.email) {
-            return res.status(403).json({ success: false, message: "Google accounts cannot change email." });
         }
 
-        if (req.file) { updateData.profileImage = req.file.path; }
+        if (req.file) { 
+            updateData.profileImage = req.file.path; 
+        }
 
-        const updatedUser = await User.findByIdAndUpdate(
-            req.user._id, 
-            updateData, 
-            { returnDocument: 'after' } 
-        );
+        const result = await profileService.updateUserProfileData(userId, updateData);
+
+        if (!result.isUpdated) {
+            logger.warn(`Profile update failed: User document not found for ID ${userId}. IP: ${clientIp}`);
+            return res.status(404).json({ success: false, message: "User account not found." });
+        }
 
         if (requiresEmailVerification) {
-            return res.status(200).json({ 
-                success: true, 
-                message: "Profile saved. Please verify your new email.", 
-                requiresVerification: true 
+            req.session.save((err) => {
+                if (err) {
+                    logger.error(`Session Save Error during profile update (email change) for ${userEmail}: ${err.message}`);
+                    return res.status(500).json({ success: false, message: "Session error occurred." });
+                }
+                
+                logger.info(`Profile updated (partial) and email change initiated for ${userEmail}. OTP sent to ${email}. IP: ${clientIp}`);
+                
+                return res.status(200).json({ 
+                    success: true, 
+                    message: "Profile saved. Please verify your new email.", 
+                    requiresVerification: true 
+                });
             });
+            
+            return; 
         }
 
-        res.status(200).json({ success: true, message: "Profile updated successfully", user: updatedUser });
+        logger.info(`Profile updated successfully for ${userEmail}. IP: ${clientIp}`);
+        
+        return res.status(200).json({ 
+            success: true, 
+            message: "Profile updated successfully", 
+            user: result.user 
+        });
+
     } catch (error) {
-        console.error("Update Profile Error:", error);
-        res.status(500).json({ success: false, message: "Server error." });
+        logger.error(`Update Profile Error for ${req.user?.email || 'Unknown'} (IP: ${req.ip}): ${error.message}\nStack: ${error.stack}`);
+        
+        return res.status(500).json({ 
+            success: false, 
+            message: "Server error." 
+        });
     }
 };
 
 export const updatePassword = async (req, res) => {
     try {
         const { oldPassword, newPassword, confirmPassword } = req.body;
-        const user = await User.findById(req.user._id);
+        
+        const userId = req.user._id;
+        const userEmail = req.user.email || 'Unknown User';
+        const clientIp = req.ip;
 
-        if (user.authProvider === 'google') {
-            return res.status(403).json({ success: false, message: "Google accounts do not use local passwords." });
+        if (!oldPassword) {
+            logger.warn(`Password update blocked: Missing old password for ${userEmail}. IP: ${clientIp}`);
+            return res.status(400).json({ success: false, message: "Old password is required." });
         }
 
         if (newPassword !== confirmPassword) {
+            logger.warn(`Password update blocked: New passwords do not match for ${userEmail}. IP: ${clientIp}`);
             return res.status(400).json({ success: false, message: "New passwords do not match." });
         }
 
-        if (!oldPassword) {
-            return res.status(400).json({ success: false, message: "Old password is required." });
-        }
-        
-        const isMatch = await bcrypt.compare(oldPassword, user.passwordHash);
-        if (!isMatch) {
-            return res.status(401).json({ success: false, message: "Incorrect old password." });
+        const result = await profileService.changeUserPassword(userId, oldPassword, newPassword);
+
+        if (!result.success) {
+            
+            if (result.reason === 'SAME_AS_OLD_PASSWORD') {
+                logger.warn(`Password update blocked: New password is the same as the old password for ${userEmail}. IP: ${clientIp}`);
+                return res.status(400).json({ success: false, message: "Enter a new password. It cannot be the same as your old password." });
+            }
+
+            if (result.reason === 'NOT_FOUND') {
+                logger.warn(`Password update failed: Account not found for ID ${userId}. IP: ${clientIp}`);
+                return res.status(404).json({ success: false, message: "User account not found." });
+            }
+            
+            if (result.reason === 'GOOGLE_AUTH') {
+                logger.warn(`Password update blocked: Attempted on Google Auth account (${userEmail}). IP: ${clientIp}`);
+                return res.status(403).json({ success: false, message: "Google accounts do not use local passwords." });
+            }
+
+            if (result.reason === 'INCORRECT_OLD_PASSWORD') {
+                logger.warn(`Password update failed: Incorrect old password provided for ${userEmail}. IP: ${clientIp}`);
+                return res.status(401).json({ success: false, message: "Incorrect old password." });
+            }
         }
 
-        const salt = await bcrypt.genSalt(10);
-        const newPasswordHash = await bcrypt.hash(newPassword, salt);
-
-        user.passwordHash = newPasswordHash;
-        await user.save();
+        logger.info(`User password successfully updated for ${userEmail}. IP: ${clientIp}`);
         
-        res.status(200).json({ success: true, message: "Password updated successfully!" });
+        return res.status(200).json({ 
+            success: true, 
+            message: "Password updated successfully!" 
+        });
 
     } catch (error) {
-        console.error("Update Password Error:", error);
-        res.status(500).json({ success: false, message: "Failed to update password." });
+        logger.error(`Update Password Error for ${req.user?.email || 'Unknown'} (IP: ${req.ip}): ${error.message}\nStack: ${error.stack}`);
+        
+        return res.status(500).json({ 
+            success: false, 
+            message: "Failed to update password." 
+        });
     }
 };
 
+export const loadVerifyEmailPage = async (req, res) => {
+    try {
+        const clientIp = req.ip;
+        const userEmail = req.user?.email || 'Unknown User';
+        const pendingEmail = req.session.newEmailPending;
 
-export const loadVerifyEmailPage = (req, res) => {
-    if (!req.session.newEmailPending) {
-        return res.redirect('/user/profile'); 
+        if (!pendingEmail) {
+            logger.warn(`Unauthorized or expired access attempt to email verification page by ${userEmail}. IP: ${clientIp}`);
+            return res.redirect('/user/profile'); 
+        }
+
+        const bannerText = await getActivePromoBanner();
+
+        logger.info(`User (${userEmail}) accessed verify-email page to confirm new email: ${pendingEmail}. IP: ${clientIp}`);
+
+        res.render('user/verify-email', { 
+            user: req.user, 
+            newEmail: pendingEmail,
+            bannerText: bannerText
+        });
+
+    } catch (error) {
+        logger.error(`Error loading verify-email page for ${req.user?.email || 'Unknown'} (IP: ${req.ip}): ${error.message}\nStack: ${error.stack}`);
+        
+        return res.status(500).json({
+            success: false,
+            title: "Server Error",
+            message: "An internal server error occurred while loading the verification page."
+        });
     }
-    res.render('user/verify-email', { user: req.user, newEmail: req.session.newEmailPending });
 };
 
 
 export const verifyEmailChange = async (req, res) => {
     try {
         const { otp } = req.body;
+        const clientIp = req.ip;
         
-        if (!req.session.emailOtp || req.session.emailOtpExpires < Date.now()) {
-            return res.status(400).json({ success: false, message: "OTP has expired. Please request a new one." });
+        const userId = req.user._id;
+        const oldEmail = req.user.email || 'Unknown User';
+        const newEmail = req.session.newEmailPending;
+
+        if (!newEmail || !req.session.emailOtp || req.session.emailOtpExpires < Date.now()) {
+            logger.warn(`Email change verification blocked: OTP expired or session missing for ${oldEmail}. IP: ${clientIp}`);
+            return res.status(400).json({ 
+                success: false, 
+                message: "OTP has expired. Please request a new one." 
+            });
         }
 
         if (req.session.emailOtp !== otp) {
-            return res.status(400).json({ success: false, message: "Invalid OTP." });
+            logger.warn(`Email change verification failed: Invalid OTP entered for ${oldEmail}. IP: ${clientIp}`);
+            return res.status(400).json({ 
+                success: false, 
+                message: "Invalid OTP." 
+            });
         }
 
-        await User.findByIdAndUpdate(req.user._id, { email: req.session.newEmailPending });
+        const result = await profileService.updateUserEmail(userId, newEmail);
+
+        if (!result.isUpdated) {
+            logger.error(`Email change failed: User document not found for ID ${userId}. IP: ${clientIp}`);
+            return res.status(404).json({ success: false, message: "User account not found." });
+        }
         
         req.session.newEmailPending = null;
         req.session.emailOtp = null;
         req.session.emailOtpExpires = null;
 
-        res.status(200).json({ success: true, message: "Email successfully updated." });
+        req.session.save((err) => {
+            if (err) {
+                logger.error(`Session Save Error during email update for ${oldEmail}: ${err.message}`);
+                return res.status(500).json({ success: false, message: "Session error occurred." });
+            }
+
+            logger.info(`User email successfully updated from ${oldEmail} to ${newEmail}. IP: ${clientIp}`);
+            
+            return res.status(200).json({ 
+                success: true, 
+                message: "Email successfully updated." 
+            });
+        });
+
     } catch (error) {
-        res.status(500).json({ success: false, message: "Server error." });
+        logger.error(`Verify Email Change Error for ${req.user?.email || 'Unknown'} (IP: ${req.ip}): ${error.message}\nStack: ${error.stack}`);
+        
+        return res.status(500).json({ 
+            success: false, 
+            message: "Server error." 
+        });
     }
 };
 
 export const resendEmailOtp = async (req, res) => {
     try {
-        if (!req.session.newEmailPending) return res.status(400).json({ success: false, message: "No email change pending." });
+        const clientIp = req.ip;
+        const pendingEmail = req.session.newEmailPending;
+        const userEmail = req.user?.email || 'Unknown User';
+
+        if (!pendingEmail) {
+            logger.warn(`Email OTP resend blocked: No pending email change found for ${userEmail}. IP: ${clientIp}`);
+            return res.status(400).json({ 
+                success: false, 
+                message: "No email change pending." 
+            });
+        }
 
         if (req.session.emailOtp && req.session.emailOtpExpires > Date.now()) {
-            return res.status(400).json({ success: false, message: "An OTP is already active and valid. Please check your inbox." });
+            logger.warn(`Email OTP resend blocked: OTP still active for pending email ${pendingEmail}. IP: ${clientIp}`);
+            return res.status(400).json({ 
+                success: false, 
+                message: "An OTP is already active and valid. Please check your inbox." 
+            });
         }
 
         const newOtp = crypto.randomInt(100000, 999999).toString();
         req.session.emailOtp = newOtp;
         req.session.emailOtpExpires = Date.now() + 60 * 1000;
 
-        await sendOtpEmail(req.session.newEmailPending, newOtp);
+        await sendOtpEmail(pendingEmail, newOtp);
 
-        res.status(200).json({ success: true, message: "A new OTP has been sent." });
+        req.session.save((err) => {
+            if (err) {
+                logger.error(`Session Save Error during email OTP resend for ${userEmail}: ${err.message}`);
+                return res.status(500).json({ success: false, message: "Session error occurred." });
+            }
+
+            logger.info(`A new email change OTP was successfully sent to ${pendingEmail}. IP: ${clientIp}`);
+            
+            return res.status(200).json({ 
+                success: true, 
+                message: "A new OTP has been sent." 
+            });
+        });
+
     } catch (error) {
-        res.status(500).json({ success: false, message: "Failed to resend OTP." });
+        logger.error(`Resend Email OTP Error for ${req.user?.email || 'Unknown'} (IP: ${req.ip}): ${error.message}\nStack: ${error.stack}`);
+        
+        return res.status(500).json({ 
+            success: false, 
+            message: "Failed to resend OTP." 
+        });
     }
 };
 
 export const logoutUser = (req, res) => {
-    req.logout((err) => {
-        if (err) {
-            return res.status(500).json({ success: false, message: "Error logging out" });
-        }
-        req.session.destroy((err) => {
-            if (err) console.log("Session destruction error:", err);
-            res.clearCookie('user_session'); 
-            return res.redirect('/user/login');
+    try {
+        const userEmail = req.user?.email || 'Unknown User';
+        const clientIp = req.ip;
+
+        req.logout((err) => {
+            if (err) {
+                logger.error(`User logout error for ${userEmail} (IP: ${clientIp}): ${err.message}`);
+                return res.status(500).json({ 
+                    success: false, 
+                    message: "An error occurred during the logout process." 
+                });
+            }
+            
+            req.session.destroy((destroyErr) => {
+                if (destroyErr) {
+                    logger.error(`Session destruction error during user logout for ${userEmail}: ${destroyErr.message}`);
+                    return res.status(500).json({ 
+                        success: false, 
+                        message: "Failed to completely destroy session." 
+                    });
+                }
+                
+                res.clearCookie('user_session'); 
+                
+                logger.info(`User (${userEmail}) successfully logged out. IP: ${clientIp}`);
+                
+                return res.status(200).json({
+                    success: true,
+                    message: "Logged out successfully.",
+                    redirectUrl: '/'
+                });
+            });
         });
-    });
+
+    } catch (error) {
+        logger.error(`Unexpected error during user logout (IP: ${req.ip}): ${error.message}\nStack: ${error.stack}`);
+        
+        return res.status(500).json({ 
+            success: false, 
+            message: "An internal server error occurred." 
+        });
+    }
 };

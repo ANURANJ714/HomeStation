@@ -192,6 +192,22 @@ body {
     text-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
 }
 
+.security-title-icon {
+    margin-right: 8px; 
+    font-size: 0.85em;
+}
+
+.resend-otp-anchor {
+    color: #222; 
+    text-decoration: underline; 
+    font-weight: 600; 
+    cursor: pointer;
+}
+
+.resend-otp-anchor:hover {
+    color: #000;
+}
+
 @media (max-width: 850px) {
     .signup-container {
         flex-direction: column;

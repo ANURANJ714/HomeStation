@@ -250,6 +250,7 @@ body {
 .signup-right::before {
     content: '';
     position: absolute;
+    position: absolute;
     inset: 0;
     background: linear-gradient(to bottom, rgba(0, 0, 0, 0.3), rgba(0, 0, 0, 0.8));
     z-index: 1;
@@ -308,6 +309,10 @@ body {
     transform: translateY(0);
     box-shadow: none;
 }
+
+.m-0 { margin: 0; }
+.text-decoration-none { text-decoration: none !important; }
+.show-flex { display: flex !important; }
 
 @media (max-width: 850px) {
     .signup-container {
