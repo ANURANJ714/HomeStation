@@ -1,0 +1,211 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>HomeStation - Shopping Cart</title>
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,600;0,700;1,600&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="/css/user/cart.css">
+</head>
+
+<body>
+    <input type="hidden" id="csrfToken" value="<%= typeof csrfToken !== 'undefined' ? csrfToken : '' %>">
+
+    <% if (typeof bannerText !== 'undefined' && bannerText) { %>
+        <div class="promo-bar">
+            <b><%- bannerText %></b>
+        </div>
+    <% } %>
+
+    <header class="header">
+        <div class="container-fluid header-container">
+            <a href="/home" class="logo">HomeStation</a>
+            <nav class="nav">
+                <ul class="nav-list">
+                    <li><a href="/home" class="nav-link">Home</a></li>
+                    <li><a href="/products" class="nav-link">World of Mattress</a></li>
+                    <li><a href="/deals" class="nav-link">Top Deals</a></li>
+                    <li><a href="/bestsellers" class="nav-link">Best Sellers</a></li>
+                    <li><a href="/contact" class="nav-link">Contact Us</a></li>
+                </ul>
+            </nav>
+            <div class="search-container">
+                <input type="text" placeholder="Search for products, brands and more..." id="searchInput">
+                <button id="searchBtn" type="button"><i class="fa-solid fa-magnifying-glass"></i></button>
+            </div>
+            <div class="header-actions">
+                <a href="/user/wishlist" class="icon-link wishlist-link"><i class="fa-regular fa-heart"></i> Wishlist</a>
+                <a href="/user/profile" class="icon-link"><i class="fa-regular fa-user"></i> Profile</a>
+                <a href="/cart" class="icon-link active"><i class="fa-solid fa-cart-shopping"></i> Cart</a>
+            </div>
+        </div>
+    </header>
+
+    <main class="cart-main">
+        <div class="container">
+            <div class="checkout-steps">
+                <div class="step active">1. Cart</div>
+                <div class="step">2. Address</div>
+                <div class="step">3. Payment</div>
+            </div>
+            
+            <h1 class="page-title">Shopping Cart (<%= totalQuantity %> Items)</h1>
+
+            <div class="cart-content">
+                <section class="cart-items-section">
+                    <% if (cartItems && cartItems.length > 0) { %>
+                        <% cartItems.forEach(item => { 
+                            const variant = item.productVariantId;
+                            const product = variant.productId;
+                            const currentPrice = Math.round(variant.originalPrice * (1 - (variant.discount || 0) / 100));
+                        %>
+                        <div class="cart-item" data-cart-id="<%= item._id %>">
+                            <div class="item-image">
+                                <img src="<%= product.images && product.images[0] ? product.images[0] : 'https://placehold.co/300' %>" alt="<%= product.name %>">
+                            </div>
+                            <div class="item-details">
+                                <div class="item-header">
+                                    <h2 class="item-name"><%= product.name %> | Size : <%= variant.variantName %></h2>
+                                    <button class="btn-remove trigger-delete-btn" data-cart-id="<%= item._id %>" title="Remove Item">
+                                        <i class="fa-solid fa-trash-can"></i>
+                                    </button>
+                                </div>
+                                <div class="item-rating">
+                                    <i class="fa-solid fa-star"></i>
+                                    <i class="fa-solid fa-star"></i>
+                                    <i class="fa-solid fa-star"></i>
+                                    <i class="fa-solid fa-star"></i>
+                                    <i class="fa-solid fa-star-half-stroke"></i>
+                                    <span>4.8 (120 reviews)</span>
+                                </div>
+                                <div class="item-actions">
+                                    <div class="quantity-selector">
+                                        <button class="qty-btn minus" data-cart-id="<%= item._id %>"><i class="fa-solid fa-minus"></i></button>
+                                        <input type="text" value="<%= item.quantity %>" readonly>
+                                        <button class="qty-btn plus" data-cart-id="<%= item._id %>"><i class="fa-solid fa-plus"></i></button>
+                                    </div>
+                                    <div class="item-price">
+                                        <% if (variant.discount > 0) { %>
+                                            <span class="discount-badge"><%= variant.discount %>% OFF</span>
+                                            <span class="current-price">₹<%= currentPrice.toLocaleString('en-IN') %></span>
+                                            <span class="original-price">₹<%= variant.originalPrice.toLocaleString('en-IN') %></span>
+                                        <% } else { %>
+                                            <span class="current-price">₹<%= currentPrice.toLocaleString('en-IN') %></span>
+                                        <% } %>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <% }); %>
+                    <% } else { %>
+                        <div class="empty-cart-message">
+                            <p>Your cart is empty. Start exploring our mattresses!</p>
+                            <a href="/products" class="btn-primary">Shop Now</a>
+                        </div>
+                    <% } %>
+                </section>
+
+                <section class="cart-summary-section">
+                    <div class="summary-card">
+                        <h2 class="summary-title">Order Summary</h2>
+                        <div class="summary-details">
+                            <div class="summary-row">
+                                <span>Cart Subtotal (<%= totalQuantity %> items) <br><small>(Inclusive of 18% GST)</small></span>
+                                <span>₹<%= subtotal.toLocaleString('en-IN') %></span>
+                            </div>
+                            
+                            <div class="summary-row">
+                                <span>Offers <span class="summary-badge">Summer10</span></span>
+                                <span class="discount-value">-₹1,000</span>
+                            </div>
+                            <div class="summary-row">
+                                <span>Coupon applied <span class="summary-badge">FirstCart</span></span>
+                                <span class="discount-value">-₹500</span>
+                            </div>
+                            <div class="summary-row">
+                                <span>Delivery Charges</span>
+                                <span class="free-text">FREE</span>
+                            </div>
+                            
+                            <hr class="summary-divider">
+                            <div class="summary-row total">
+                                <span>Total Payable</span>
+                                <% 
+                                    // Make the total logical by subtracting the dummy discounts safely
+                                    const totalPayable = Math.max(subtotal - 1500, 0); 
+                                %>
+                                <span>₹<%= totalPayable.toLocaleString('en-IN') %></span>
+                            </div>
+                        </div>
+                        <div class="coupon-area">
+                            <div class="coupon-header">
+                                <p>Have a coupon?</p>
+                                <a href="/user/coupons" class="check-coupons">Check available coupons</a>
+                            </div>
+                            <div class="coupon-input">
+                                <input type="text" placeholder="Enter coupon code">
+                                <button class="btn-apply">Apply</button>
+                            </div>
+                        </div>
+                        <% if (cartItems && cartItems.length > 0) { %>
+                            <a href="/user/checkout/address" class="btn-checkout" style="display:block; text-align:center;">Proceed to Checkout</a>
+                        <% } else { %>
+                            <button class="btn-checkout" disabled style="opacity: 0.5; cursor: not-allowed;">Proceed to Checkout</button>
+                        <% } %>
+                        <p class="secure-checkout"><i class="fa-solid fa-lock"></i> 100% Secure Checkout</p>
+                    </div>
+                </section>
+            </div>
+        </div>
+    </main>
+
+    <footer class="footer">
+        <div class="container-fluid footer-container">
+            <div class="footer-left">
+                <a href="/home" class="logo footer-logo">HomeStation</a>
+                <p>Your premier destination for high-quality mattresses and sleep essentials, crafted to bring cloud-like comfort to every night.</p>
+            </div>
+            <div class="footer-links-wrapper">
+                <div class="footer-column">
+                    <h4>Shop</h4>
+                    <ul>
+                        <li><a href="/products">World of Mattress</a></li>
+                        <li><a href="/deals">Top Deals</a></li>
+                        <li><a href="/bestsellers">Best Sellers</a></li>
+                    </ul>
+                </div>
+                <div class="footer-column">
+                    <h4>Support</h4>
+                    <ul>
+                        <li><a href="/user/orders">Track Your Orders</a></li>
+                        <li><a href="/privacy-policy">Privacy Policy</a></li>
+                        <li><a href="/contact">Contact Us</a></li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+        <div class="container-fluid copyright">
+            <p>&copy; 2026 HomeStation Store. All rights reserved.</p>
+        </div>
+    </footer>
+
+    <div id="deleteModal" class="modal-overlay">
+        <div class="modal-content">
+            <div class="modal-icon">
+                <i class="fa-solid fa-circle-question"></i>
+            </div>
+            <h3>Confirm Removal</h3>
+            <p>Are you sure want to remove this item from cart?</p>
+            <div class="modal-actions">
+                <button class="btn-modal-back" id="closeModal">Back</button>
+                <button class="btn-modal-delete" id="confirmDelete">Delete</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="/js/user/cart.js"></script>
+</body>
+</html>

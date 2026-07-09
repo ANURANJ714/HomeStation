@@ -1,5 +1,6 @@
 import * as cartService from '../../services/user/cartService.js';
 import { removeVariantFromWishlist } from '../../services/user/wishlistService.js';
+import {getActivePromoBanner} from '../../services/user/bannerService.js';
 import logger from '../../utils/logger.js';
 
 export const addToCartController = async (req, res) => {
@@ -37,5 +38,28 @@ export const addToCartController = async (req, res) => {
     } catch (error) {
         logger.error(`Cart Add Error (IP: ${req.ip}): ${error.message}`);
         return res.status(500).json({ success: false, message: "Failed to add to cart." });
+    }
+};
+
+export const loadCartPage = async (req, res) => {
+    try {
+        const userId = req.user._id;
+
+        const [cartData, bannerText] = await Promise.all([
+            cartService.getCartItems(userId),
+            getActivePromoBanner()
+        ]);
+
+        return res.render('user/cart', {
+            user: req.user,
+            cartItems: cartData.cartItems,
+            subtotal: cartData.subtotal,
+            totalQuantity: cartData.totalQuantity,
+            bannerText
+        });
+
+    } catch (error) {
+        logger.error(`Error loading Cart Page (IP: ${req.ip}): ${error.message}\nStack: ${error.stack}`);
+        return res.status(500).json({ success: false, message: "Server error occurred while loading the cart page." });
     }
 };

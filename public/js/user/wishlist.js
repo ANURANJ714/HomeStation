@@ -1,18 +1,41 @@
 document.addEventListener("DOMContentLoaded", () => {
     const csrfToken = document.getElementById("csrfToken")?.value || "";
-    const hamburgerBtn = document.getElementById("hamburgerBtn");
-    const closeSidebarBtn = document.getElementById("closeSidebar");
-    const appNavbar = document.getElementById("appNavbar");
-    const sidebarOverlay = document.getElementById("sidebarOverlay");
+    const logoutForm = document.getElementById('logoutForm');
+    if (logoutForm) {
+        logoutForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            
+            try {
+                const response = await fetch('/user/logout', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'CSRF-Token': csrfToken
+                    }
+                });
 
-    function toggleMobileDrawer(show) {
-        if (appNavbar) appNavbar.classList.toggle("active", show);
-        if (sidebarOverlay) sidebarOverlay.classList.toggle("active", show);
+                const data = await response.json();
+
+                if (data.success && data.redirectUrl) {
+                    Swal.fire({
+                        icon: "success",
+                        title: "Goodbye!",
+                        text: data.message || "Logged out successfully.",
+                        timer: 1500,
+                        showConfirmButton: false,
+                        heightAuto: false
+                    }).then(() => {
+                        window.location.href = data.redirectUrl;
+                    });
+                } else {
+                    Swal.fire({ icon: "error", title: "Logout Failed", text: data.message || "Something went wrong.", heightAuto: false });
+                }
+            } catch (error) {
+                console.error("Logout fetch error:", error);
+                Swal.fire({ icon: "error", title: "Network Error", text: "Could not connect to the server.", heightAuto: false });
+            }
+        });
     }
-
-    if (hamburgerBtn) hamburgerBtn.addEventListener("click", () => toggleMobileDrawer(true));
-    if (closeSidebarBtn) closeSidebarBtn.addEventListener("click", () => toggleMobileDrawer(false));
-    if (sidebarOverlay) sidebarOverlay.addEventListener("click", () => toggleMobileDrawer(false));
 
     const deleteModal = document.getElementById("deleteModal");
     const cartModal = document.getElementById("cartSuccessModal");
@@ -31,7 +54,6 @@ document.addEventListener("DOMContentLoaded", () => {
     document.getElementById("closeCartSuccessBtn")?.addEventListener("click", () => closeModal(cartModal));
 
     document.addEventListener("click", async (e) => {
-        
         const addToCartBtn = e.target.closest(".add-to-cart-btn");
         if (addToCartBtn) {
             e.preventDefault();
@@ -115,21 +137,11 @@ document.addEventListener("DOMContentLoaded", () => {
                     });
 
                 } else {
-                    Swal.fire({ 
-                        icon: "error", 
-                        title: "Oops...", 
-                        text: data.message || "Failed to remove item.", 
-                        heightAuto: false 
-                    });
+                    Swal.fire({ icon: "error", title: "Oops...", text: data.message || "Failed to remove item.", heightAuto: false });
                 }
             } catch (error) {
                 console.error("Wishlist deletion frontend error:", error);
-                Swal.fire({ 
-                    icon: "error", 
-                    title: "Network Error", 
-                    text: "Could not connect to the server.", 
-                    heightAuto: false 
-                });
+                Swal.fire({ icon: "error", title: "Network Error", text: "Could not connect to the server.", heightAuto: false });
             } finally {
                 closeModal(deleteModal);
                 currentDeleteId = null;

@@ -21,3 +21,41 @@ export const addVariantToCart = async (userId, productVariantId) => {
         throw new Error(`Database error while adding to cart: ${error.message}`);
     }
 };
+
+export const getCartItems = async (userId) => {
+    try {
+        const cartItems = await Cart.find({ userId })
+            .populate({
+                path: 'productVariantId',
+                populate: {
+                    path: 'productId',
+                    model: 'Product'
+                }
+            })
+            .exec();
+
+        let subtotal = 0;
+        let totalQuantity = 0;
+
+        const validCartItems = cartItems.filter(item => 
+            item.productVariantId && item.productVariantId.productId
+        );
+
+        validCartItems.forEach(item => {
+            const variant = item.productVariantId;
+            const currentPrice = Math.round(variant.originalPrice * (1 - (variant.discount || 0) / 100));
+            
+            subtotal += currentPrice * item.quantity;
+            totalQuantity += item.quantity;
+        });
+
+        return { 
+            cartItems: validCartItems, 
+            subtotal, 
+            totalQuantity 
+        };
+
+    } catch (error) {
+        throw new Error(`Database error while fetching cart items: ${error.message}`);
+    }
+};

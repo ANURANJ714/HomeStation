@@ -20,6 +20,7 @@ import userRoutes from './routes/user/authRoutes.js';
 import profileRoutes from './routes/user/profileRoutes.js';
 import pageRoutes from './routes/user/pageRoutes.js';
 import addressRoutes from './routes/user/addressRoutes.js';
+import pageAuthRoutes from './routes/user/pageAuthRoutes.js';
 
 import adminAuthRoutes from './routes/admin/adminAuthRoutes.js';
 import adminCategoryRoutes from './routes/admin/adminCategoryRoutes.js';
@@ -59,6 +60,7 @@ app.use(noCache);
 app.use('/user', userRoutes);
 app.use('/user', profileRoutes);
 app.use('/user/addresses', addressRoutes);
+app.use('/user', pageAuthRoutes);
 
 app.use('/admin', adminAuthRoutes);
 app.use('/admin', adminCategoryRoutes);

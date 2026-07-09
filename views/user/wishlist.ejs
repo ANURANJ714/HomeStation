@@ -43,14 +43,14 @@
             <div class="header-actions">
                 <a href="/user/wishlist" class="icon-link wishlist-link active"><i class="fa-solid fa-heart"></i> Wishlist</a>
                 <a href="/user/profile" class="icon-link"><i class="fa-solid fa-user"></i> Profile</a>
-                <a href="/cart" class="icon-link"><i class="fa-solid fa-cart-shopping"></i> Cart</a>
+                <a href="/user/cart" class="icon-link"><i class="fa-solid fa-cart-shopping"></i> Cart</a>
             </div>
         </div>
     </header>
 
     <section class="profile-section">
         <div class="container profile-layout">
-            <aside class="profile-sidebar">
+            <aside class="profile-sidebar" id="appSidebar">
                 <div class="profile-user-info">
                     <img src="<%= user.profileImage || 'https://cdn.pixabay.com/photo/2015/10/05/22/37/blank-profile-picture-973460_1280.png' %>" alt="Profile Image" class="sidebar-avatar">
                     <div class="user-greeting">
@@ -75,7 +75,7 @@
                     </ul>
                     <hr class="sidebar-divider">
                     <div class="logout-wrapper">
-                        <form action="/user/logout" method="POST" id="logoutForm" style="margin:0;">
+                        <form action="/user/logout" method="POST" id="logoutForm" class="m-0">
                             <input type="hidden" name="_csrf" value="<%= csrfToken %>">
                             <button type="submit" class="logout-link">
                                 <i class="fa-solid fa-power-off"></i> Logout
@@ -169,36 +169,6 @@
             </div>
         </div>
     </div>
-
-    <footer class="footer">
-        <div class="container-fluid footer-container">
-            <div class="footer-left">
-                <a href="/home" class="logo footer-logo">HomeStation</a>
-                <p>Your premier destination for high-quality mattresses and sleep essentials, crafted to bring cloud-like comfort to every night.</p>
-            </div>
-            <div class="footer-links-wrapper">
-                <div class="footer-column">
-                    <h4>Shop</h4>
-                    <ul>
-                        <li><a href="/products">World of Mattress</a></li>
-                        <li><a href="/deals">Top Deals</a></li>
-                        <li><a href="/bestsellers">Best Sellers</a></li>
-                    </ul>
-                </div>
-                <div class="footer-column">
-                    <h4>Support</h4>
-                    <ul>
-                        <li><a href="/user/orders">Track Your Orders</a></li>
-                        <li><a href="/privacy-policy">Privacy Policy</a></li>
-                        <li><a href="/contact">Contact Us</a></li>
-                    </ul>
-                </div>
-            </div>
-        </div>
-        <div class="container-fluid copyright">
-            <p>&copy; 2026 HomeStation Store. All rights reserved.</p>
-        </div>
-    </footer>
 
     <script src="/js/user/wishlist.js"></script>
 </body>
