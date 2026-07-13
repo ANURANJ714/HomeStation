@@ -70,6 +70,40 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
+    const searchInput = document.getElementById('categorySearchInput');
+    const searchBtn = document.getElementById('categorySearchBtn');
+
+    function performCategorySearch() {
+        if (!searchInput) return;
+        const query = searchInput.value.trim();
+        const activeSort = document.getElementById('sortDropdown')?.value || 'newest';
+        
+        window.location.href = `/admin/categories?page=1&sort=${activeSort}&q=${encodeURIComponent(query)}`;
+    }
+
+    if (searchBtn) {
+        searchBtn.addEventListener('click', function(e) {
+            if (this.classList.contains('clear-active')) {
+                const activeSort = document.getElementById('sortDropdown')?.value || 'newest';
+                window.location.href = `/admin/categories?page=1&sort=${activeSort}&q=`;
+            } else {
+                performCategorySearch();
+            }
+        });
+    }
+
+    if (searchInput) {
+        searchInput.addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') performCategorySearch();
+        });
+    }
+    if (sortDropdown) {
+        sortDropdown.addEventListener('change', function () {
+            const currentSearch = document.getElementById('categorySearchInput')?.value.trim() || '';
+            window.location.href = `/admin/categories?page=1&sort=${this.value}&q=${encodeURIComponent(currentSearch)}`;
+        });
+    }
+
     document.addEventListener('click', (e) => {
         const editBtn = e.target.closest('.action-edit');
         if (editBtn) {

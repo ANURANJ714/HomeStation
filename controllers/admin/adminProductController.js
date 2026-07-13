@@ -84,14 +84,29 @@ export const addProduct = async (req, res) => {
         });
 
     } catch (error) {
-        let errorMessage = "An internal server error occurred while saving the product.";
+        if (error.statusCode === 400) {
+            logger.warn(`Product processing error: ${error.message}`);
+            return res.status(400).json({
+                success: false,
+                message: error.message,
+            });
+        }
 
+        if (error.code === 11000) {
+            logger.warn(`Product variant duplicate error: ${error.message}`);
+            return res.status(400).json({
+                success: false,
+                message: "A variant with this name already exists for this product.",
+            });
+        }
+
+        let errorMessage = "An internal server error occurred while saving the product.";
         if (error.name === "ValidationError") {
             errorMessage = Object.values(error.errors)
                 .map((val) => val.message)
                 .join(", ");
                 
-            logger.warn(`Product validation failed: ${errorMessage}`);
+            logger.warn(`Product schema validation failed: ${errorMessage}`);
             
             return res.status(400).json({
                 success: false,

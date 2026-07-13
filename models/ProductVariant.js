@@ -35,4 +35,6 @@ const productVariantSchema = new mongoose.Schema({
     }
 });
 
+productVariantSchema.index({ productId: 1, variantName: 1 }, { unique: true });
+
 export default mongoose.model('ProductVariant', productVariantSchema);

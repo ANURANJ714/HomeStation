@@ -161,12 +161,44 @@ export const createProductWithVariants = async (productData, variantDataStr, ima
     try {
         const newProductId = await generateProductId();
 
+        let parsedVariants = [];
+        if (variantDataStr) {
+            try {
+                parsedVariants = typeof variantDataStr === 'string' ? JSON.parse(variantDataStr) : variantDataStr;
+            } catch (error) {
+                const err = new Error('Failed to parse variant data.');
+                err.statusCode = 400;
+                throw err;
+            }
+        }
+
+        if (Array.isArray(parsedVariants) && parsedVariants.length > 0) {
+            const incomingNamesSet = new Set();
+
+            for (const variant of parsedVariants) {
+                if (!variant.variantName || variant.variantName.trim() === '') {
+                    const err = new Error('Variant name cannot be empty.');
+                    err.statusCode = 400;
+                    throw err;
+                }
+
+                const normalizedName = variant.variantName.trim().toLowerCase();
+
+                if (incomingNamesSet.has(normalizedName)) {
+                    const err = new Error(`Duplicate variant name detected in your submission: "${variant.variantName.trim()}". Each variant name must be unique.`);
+                    err.statusCode = 400;
+                    throw err;
+                }
+                incomingNamesSet.add(normalizedName);
+            }
+        }
+
         const newProduct = new Product({
             productId: newProductId,
             name: productData.name,
             categoryId: productData.categoryId,
             description: productData.description,
-            brand: productData.brand,
+            brand: productData.brand.trim(),
             material: productData.material,
             warranty: productData.warranty,  
             specifications: productData.specifications,
@@ -175,28 +207,19 @@ export const createProductWithVariants = async (productData, variantDataStr, ima
 
         const savedProduct = await newProduct.save();
 
-        if (variantDataStr) {
-            let parsedVariants;
-            try {
-                parsedVariants = typeof variantDataStr === 'string' ? JSON.parse(variantDataStr) : variantDataStr;
-            } catch (error) {
-                throw new Error('Failed to parse variant data.');
-            }
+        if (Array.isArray(parsedVariants) && parsedVariants.length > 0) {
+            const variantDocuments = parsedVariants.map(variant => ({
+                productId: savedProduct._id,
+                variantName: variant.variantName.trim(), 
+                originalPrice: variant.originalPrice,
+                discount: variant.discount || 0,
+                stock: variant.stock,
+                length: variant.length || null,
+                width: variant.width || null,
+                height: variant.height || null
+            }));
 
-            if (Array.isArray(parsedVariants) && parsedVariants.length > 0) {
-                const variantDocuments = parsedVariants.map(variant => ({
-                    productId: savedProduct._id,
-                    variantName: variant.variantName,
-                    originalPrice: variant.originalPrice,
-                    discount: variant.discount || 0,
-                    stock: variant.stock,
-                    length: variant.length || null,
-                    width: variant.width || null,
-                    height: variant.height || null
-                }));
-
-                await ProductVariant.insertMany(variantDocuments);
-            }
+            await ProductVariant.insertMany(variantDocuments);
         }
 
         return savedProduct;

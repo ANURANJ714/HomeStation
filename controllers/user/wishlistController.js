@@ -13,7 +13,6 @@ export const toggleWishlistItem = async (req, res) => {
         if (!req.user || !req.isAuthenticated()) {
             req.session.pendingWishlistVariantId = variantId;
             req.session.save();
-
             return res.status(401).json({ 
                 success: false, 
                 message: "Please login to add to wishlist.",
@@ -31,6 +30,11 @@ export const toggleWishlistItem = async (req, res) => {
         });
 
     } catch (error) {
+        if (error.reason) {
+            logger.warn(`Wishlist addition rejected on checkpoint: ${error.message}`);
+            return res.status(200).json({ success: false, reason: error.reason, message: error.message });
+        }
+        
         logger.error(`Wishlist Toggle Error: ${error.message}`);
         return res.status(500).json({ success: false, message: "Server error occurred." });
     }
@@ -57,7 +61,7 @@ export const loadWishlistPage = async (req, res) => {
         });
 
     } catch (error) {
-        logger.error(`Error loading Wishlist Page (IP: ${req.ip}): ${error.message}\nStack: ${error.stack}`);
+        logger.error(`Error loading Wishlist Page (IP: ${req.ip}): ${error.message}`);
         return res.status(500).json({ success: false, message: "Server error occurred while loading wishlist." });
     }
 };

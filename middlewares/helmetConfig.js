@@ -15,7 +15,7 @@ const helmetMiddleware = helmet({
 
             styleSrc: [
                 "'self'",
-                "'unsafe-inline'",
+                "'unsafe-inline'", 
                 "https://fonts.googleapis.com",
                 "https://cdnjs.cloudflare.com"
             ],

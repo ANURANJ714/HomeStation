@@ -1,5 +1,9 @@
-.m-0 { margin: 0; }
-.mt-5 { margin-top: 5px; }
+.m-0 {
+  margin: 0;
+}
+.mt-5 {
+  margin-top: 5px;
+}
 
 .logout-btn-submit {
   background: none;
@@ -86,10 +90,18 @@
   color: #1a1a1a;
 }
 
-.mb-20 { margin-bottom: 20px; }
-.mb-30 { margin-bottom: 30px; }
-.mt-20 { margin-top: 20px; }
-.mt-30 { margin-top: 30px; }
+.mb-20 {
+  margin-bottom: 20px;
+}
+.mb-30 {
+  margin-bottom: 30px;
+}
+.mt-20 {
+  margin-top: 20px;
+}
+.mt-30 {
+  margin-top: 30px;
+}
 
 .view-grid {
   display: grid;
@@ -98,15 +110,49 @@
   align-items: start;
 }
 
+.main-image-wrapper {
+  position: relative;
+  border-radius: 12px;
+  overflow: hidden;
+  cursor: zoom-in;
+  border: 1px solid #eee;
+}
+
 .main-view-image {
   width: 100%;
   height: 360px;
   object-fit: cover;
   object-position: center;
-  border-radius: 12px;
-  border: 1px solid #eee;
   display: block;
   background-color: #f5f5f5;
+  transition: transform 0.3s ease;
+}
+
+.main-image-wrapper:hover .main-view-image {
+  transform: scale(1.02);
+}
+
+.zoom-hint-overlay {
+  position: absolute;
+  bottom: 0;
+  inset: auto 0 0 0;
+  background: rgba(0, 0, 0, 0.5);
+  color: #fff;
+  text-align: center;
+  font-size: 12px;
+  padding: 8px 0;
+  opacity: 0;
+  transform: translateY(100%);
+  transition:
+    opacity 0.25s ease,
+    transform 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+  font-weight: 500;
+  pointer-events: none;
+}
+
+.main-image-wrapper:hover .zoom-hint-overlay {
+  opacity: 1;
+  transform: translateY(0);
 }
 
 .thumbnail-gallery {
@@ -180,11 +226,21 @@
   color: #1a1a1a;
 }
 
-.fw-700 { font-weight: 700; }
-.fw-500 { font-weight: 500; }
-.text-primary { color: #2e7d32; }
-.text-success { color: #1e8e3e; }
-.text-danger { color: #d93025; }
+.fw-700 {
+  font-weight: 700;
+}
+.fw-500 {
+  font-weight: 500;
+}
+.text-primary {
+  color: #2e7d32;
+}
+.text-success {
+  color: #1e8e3e;
+}
+.text-danger {
+  color: #d93025;
+}
 
 .section-heading {
   font-size: 17px;
@@ -255,9 +311,15 @@
   vertical-align: middle;
 }
 
-.status-dot.success { background-color: #4caf50; }
-.status-dot.warning { background-color: #ff9800; }
-.status-dot.danger { background-color: #f44336; }
+.status-dot.success {
+  background-color: #4caf50;
+}
+.status-dot.warning {
+  background-color: #ff9800;
+}
+.status-dot.danger {
+  background-color: #f44336;
+}
 
 .hamburger-menu {
   display: none;
@@ -276,12 +338,112 @@
 }
 
 @media (max-width: 768px) {
-  .view-grid { grid-template-columns: 1fr; }
-  .detail-cards-row { grid-template-columns: 1fr 1fr; }
+  .view-grid {
+    grid-template-columns: 1fr;
+  }
+  .detail-cards-row {
+    grid-template-columns: 1fr 1fr;
+  }
 }
 
 @media (max-width: 576px) {
   .datetime-display {
     display: none !important;
+  }
+}
+
+.lightbox-overlay {
+  position: fixed;
+  inset: 0;
+  background-color: rgba(10, 10, 10, 0.95);
+  z-index: 9999;
+  display: none;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  opacity: 0;
+  backdrop-filter: blur(8px);
+  transition: opacity 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.lightbox-overlay.show {
+  display: flex;
+  opacity: 1;
+}
+
+.lightbox-close-btn {
+  position: absolute;
+  top: 30px;
+  right: 40px;
+  background: none;
+  border: none;
+  color: rgba(255, 255, 255, 0.7);
+  font-size: 32px;
+  cursor: pointer;
+  z-index: 10005;
+  width: 50px;
+  height: 50px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  background-color: rgba(255, 255, 255, 0.05);
+  transition: all 0.2s ease;
+}
+
+.lightbox-close-btn:hover {
+  color: #fff;
+  background-color: rgba(217, 48, 37, 0.9);
+  transform: rotate(90deg);
+}
+
+.lightbox-container {
+  width: 85vw;
+  height: 75vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  position: relative;
+  border-radius: 8px;
+}
+
+.lightbox-target-img {
+  max-width: 100%;
+  max-height: 100%;
+  object-fit: contain;
+  transition:
+    transform 0.3s ease,
+    cursor 0.2s ease;
+  cursor: zoom-in;
+  user-select: none;
+}
+
+.lightbox-target-img.zoomed {
+  transform: scale(2);
+  cursor: zoom-out;
+}
+
+.lightbox-controls-hint {
+  margin-top: 20px;
+  color: rgba(255, 255, 255, 0.5);
+  font-size: 13px;
+  letter-spacing: 0.3px;
+  pointer-events: none;
+}
+
+.lightbox-controls-hint i {
+  margin-right: 5px;
+}
+
+@media (max-width: 768px) {
+  .lightbox-close-btn {
+    top: 15px;
+    right: 20px;
+    font-size: 26px;
+  }
+  .lightbox-container {
+    width: 95vw;
+    height: 80vh;
   }
 }

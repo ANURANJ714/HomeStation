@@ -3,7 +3,7 @@ import Product from '../../models/Products.js';
 import ProductVariant from '../../models/ProductVariant.js';
 import { calculateProductStats } from '../../services/admin/productService.js';
 
-export const getPaginatedCategories = async (sortQuery, page, limit) => {
+export const getPaginatedCategories = async (sortQuery, page, limit, searchQuery = '') => {
     try {
         let sortCriteria = { createdAt: -1 };
         switch (sortQuery) {
@@ -14,11 +14,16 @@ export const getPaginatedCategories = async (sortQuery, page, limit) => {
             default: sortCriteria = { createdAt: -1 }; break;
         }
 
+        let filterConditions = {};
+        if (searchQuery && searchQuery.trim() !== '') {
+            filterConditions.name = { $regex: searchQuery.trim(), $options: 'i' };
+        }
+
         const skip = (page - 1) * limit;
         
         const [totalCategories, rawCategories] = await Promise.all([
-            Category.countDocuments(),
-            Category.find()
+            Category.countDocuments(filterConditions),
+            Category.find(filterConditions)
                 .sort(sortCriteria)
                 .skip(skip)
                 .limit(limit)

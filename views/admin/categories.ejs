@@ -66,19 +66,36 @@
 
             <main class="content-wrapper">
                 <input type="hidden" id="csrfToken" value="<%= csrfToken %>">
+                
                 <div class="page-header-row">
                     <h1 class="page-title">Categories</h1>
-                    <div class="header-controls">
+                    <button class="btn btn-primary" id="openAddModalBtn">
+                        <i class="fa-solid fa-plus"></i> Add New Category
+                    </button>
+                </div>
+
+                <div class="search-filter-controls-row">
+                    <div class="controls-search-box">
+                        <input type="text" id="categorySearchInput" placeholder="Search categories..." value="<%= typeof searchQuery !== 'undefined' ? searchQuery : '' %>">
+                        <% if (typeof searchQuery !== 'undefined' && searchQuery) { %>
+                            <button type="button" id="categorySearchBtn" class="search-toggle-btn clear-active" title="Clear Search">
+                                <i class="fa-solid fa-xmark"></i>
+                            </button>
+                        <% } else { %>
+                            <button type="button" id="categorySearchBtn" class="search-toggle-btn" title="Search">
+                                <i class="fa-solid fa-magnifying-glass"></i>
+                            </button>
+                        <% } %>
+                    </div>
+                    
+                    <div class="controls-filter-box">
                         <label class="sort-label">Sort:</label>
                         <select class="filter-select" id="sortDropdown">
-                            <option value="newest" <%=currentSort==='newest' ? 'selected' : '' %>>Newest</option>
-                            <option value="oldest" <%=currentSort==='oldest' ? 'selected' : '' %>>Oldest</option>
-                            <option value="az" <%=currentSort==='az' ? 'selected' : '' %>>Sort by: A-Z</option>
-                            <option value="za" <%=currentSort==='za' ? 'selected' : '' %>>Sort by: Z-A</option>
+                            <option value="newest" <%= currentSort==='newest' ? 'selected' : '' %>>Newest</option>
+                            <option value="oldest" <%= currentSort==='oldest' ? 'selected' : '' %>>Oldest</option>
+                            <option value="az" <%= currentSort==='az' ? 'selected' : '' %>>Sort by: A-Z</option>
+                            <option value="za" <%= currentSort==='za' ? 'selected' : '' %>>Sort by: Z-A</option>
                         </select>
-                        <button class="btn btn-primary" id="openAddModalBtn">
-                            <i class="fa-solid fa-plus"></i> Add New Category
-                        </button>
                     </div>
                 </div>
 
@@ -120,7 +137,7 @@
                         <% } else { %>
                             <div class="empty-categories-box">
                                 <h3>No Categories Found</h3>
-                                <p>Click 'Add New Category' to get started.</p>
+                                <p>Try adjusting your search criteria or click 'Add New Category' to get started.</p>
                             </div>
                         <% } %>
                     </div>
@@ -129,21 +146,27 @@
                         <div class="pagination-container">
                             <span class="pagination-info">Page <%= currentPage %> of <%= totalPages===0 ? 1 : totalPages %></span>
                             <div class="pagination-controls">
+                                <% 
+                                    // Utility variables parsing safe URL paths preserving tracking queries
+                                    const encodedSearch = typeof searchQuery !== 'undefined' && searchQuery ? encodeURIComponent(searchQuery) : '';
+                                    const baseQueryPath = `?sort=${currentSort}&q=${encodedSearch}`;
+                                %>
+
                                 <% if (currentPage > 1) { %>
-                                    <a href="?sort=<%= currentSort %>&page=<%= currentPage - 1 %>" class="page-btn"><i class="fa-solid fa-chevron-left"></i></a>
+                                    <a href="<%= baseQueryPath %>&page=<%= currentPage - 1 %>" class="page-btn"><i class="fa-solid fa-chevron-left"></i></a>
                                 <% } else { %>
                                     <button class="page-btn disabled"><i class="fa-solid fa-chevron-left"></i></button>
                                 <% } %>
 
                                 <% for(let i=1; i <= (totalPages===0 ? 1 : totalPages); i++) { %>
-                                    <a href="?sort=<%= currentSort %>&page=<%= i %>"
+                                    <a href="<%= baseQueryPath %>&page=<%= i %>"
                                         class="page-btn <%= currentPage === i ? 'active' : '' %>">
                                         <%= i %>
                                     </a>
                                 <% } %>
 
                                 <% if (currentPage < totalPages) { %>
-                                    <a href="?sort=<%= currentSort %>&page=<%= currentPage + 1 %>" class="page-btn"><i class="fa-solid fa-chevron-right"></i></a>
+                                    <a href="<%= baseQueryPath %>&page=<%= currentPage + 1 %>" class="page-btn"><i class="fa-solid fa-chevron-right"></i></a>
                                 <% } else { %>
                                     <button class="page-btn disabled"><i class="fa-solid fa-chevron-right"></i></button>
                                 <% } %>
@@ -222,5 +245,4 @@
 
     <script src="/js/admin/categories.js"></script>
 </body>
-
 </html>

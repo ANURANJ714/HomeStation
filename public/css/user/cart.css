@@ -37,7 +37,7 @@ ul {
     background-color: #ffeb3b;
     color: #333;
     text-align: center;
-    padding: 8px;
+    padding: 5px;
     font-size: 14px;
     border-bottom: 1px solid #ddd;
 }
@@ -46,6 +46,10 @@ ul {
     border-bottom: 1px solid #eaeaea;
     background-color: #fff;
     padding: 20px 0;
+    position: sticky;
+    top: 0;
+    z-index: 1000;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.06);
 }
 
 .header-container {
@@ -486,6 +490,15 @@ ul {
     align-items: center;
     justify-content: center;
     gap: 8px;
+}
+
+.stripe-logo {
+    display: block;
+    width: 150px;    
+    height: auto;
+    margin: 20px auto 0;
+    opacity: 0.9;
+    object-fit: contain;
 }
 
 .footer {

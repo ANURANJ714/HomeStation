@@ -120,7 +120,7 @@ export const processRegister = async (req, res) => {
             }
         }
 
-        await userAuthService.validateRegistrationData(email, phone, password);
+        await userAuthService.validateRegistrationData(fullName,email, phone, password);
 
         const otp = crypto.randomInt(100000, 999999).toString();
         await sendOtpEmail(email, otp);

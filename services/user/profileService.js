@@ -1,5 +1,35 @@
 import User from '../../models/User.js';
 
+export const validateData = async (fullName, email, phone) =>{
+    try{
+        const nameRegex = /^[A-Za-z]+(?:[ '-][A-Za-z]+)*$/;
+        if (!nameRegex.test(fullName)) {
+            const error = new Error('Please provide a valid name (letters and single spaces only, no numbers, special characters, or leading/trailing spaces).');
+            error.statusCode = 400;
+            throw error;
+        }
+
+        const phoneRegex = /^[0-9]{10}$/;
+        if (!phoneRegex.test(phone)) {
+            const error = new Error('Please provide a valid 10-digit phone number.');
+            error.statusCode = 400;
+            throw error;
+        }
+
+        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+        if (!emailRegex.test(email)) {
+            const error = new Error('Please provide a valid email address.');
+            error.statusCode = 400;
+            throw error;
+        }
+    }catch (error) {
+        if (error.statusCode) {
+            throw error;
+        }
+        throw new Error(`Something went wrong: ${error.message}`);
+    }
+}
+
 export const updateUserProfileData = async (userId, updateData) => {
     try {
         const updatedUser = await User.findByIdAndUpdate(

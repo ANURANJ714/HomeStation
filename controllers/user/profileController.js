@@ -32,17 +32,27 @@ export const getProfile = async (req, res) => {
 
 export const updateProfile = async (req, res) => {
     try {
-        const { fullName, phone, email } = req.body; 
         const clientIp = req.ip;
-        
         const userId = req.user._id;
         const userEmail = req.user.email;
+
+        const fullName = req.body.fullName ? req.body.fullName.trim() : '';
+        const phone = req.body.phone ? req.body.phone.trim() : '';
+        const email = req.body.email ? req.body.email.trim() : '';
+
+        if (!fullName || !phone || !email) {
+            return res.status(400).json({
+                success: false,
+                message: "Full Name, Phone Number, and Email Address are all strictly required."
+            });
+        }
+
+        await profileService.validateData(fullName, email, phone);
 
         let updateData = { fullName, phone }; 
         let requiresEmailVerification = false;
 
-        if (email && email !== userEmail) {
-            
+        if (email !== userEmail) {
             if (req.user.authProvider !== 'local') {
                 logger.warn(`Profile update blocked: Attempted email change on Google account (${userEmail}). IP: ${clientIp}`);
                 return res.status(403).json({ 
@@ -73,7 +83,7 @@ export const updateProfile = async (req, res) => {
         }
 
         if (requiresEmailVerification) {
-            req.session.save((err) => {
+            return req.session.save((err) => {
                 if (err) {
                     logger.error(`Session Save Error during profile update (email change) for ${userEmail}: ${err.message}`);
                     return res.status(500).json({ success: false, message: "Session error occurred." });
@@ -87,8 +97,6 @@ export const updateProfile = async (req, res) => {
                     requiresVerification: true 
                 });
             });
-            
-            return; 
         }
 
         logger.info(`Profile updated successfully for ${userEmail}. IP: ${clientIp}`);
@@ -100,6 +108,13 @@ export const updateProfile = async (req, res) => {
         });
 
     } catch (error) {
+        if (error.statusCode === 400) {
+            return res.status(400).json({
+                success: false,
+                message: error.message
+            });
+        }
+
         logger.error(`Update Profile Error for ${req.user?.email || 'Unknown'} (IP: ${req.ip}): ${error.message}\nStack: ${error.stack}`);
         
         return res.status(500).json({ 
@@ -108,7 +123,6 @@ export const updateProfile = async (req, res) => {
         });
     }
 };
-
 export const updatePassword = async (req, res) => {
     try {
         const { oldPassword, newPassword, confirmPassword } = req.body;

@@ -1,10 +1,10 @@
 document.addEventListener("DOMContentLoaded", () => {
     const csrfToken = document.getElementById("csrfToken")?.value || "";
     const logoutForm = document.getElementById('logoutForm');
+    
     if (logoutForm) {
         logoutForm.addEventListener('submit', async (e) => {
             e.preventDefault();
-            
             try {
                 const response = await fetch('/user/logout', {
                     method: 'POST',
@@ -13,9 +13,7 @@ document.addEventListener("DOMContentLoaded", () => {
                         'CSRF-Token': csrfToken
                     }
                 });
-
                 const data = await response.json();
-
                 if (data.success && data.redirectUrl) {
                     Swal.fire({
                         icon: "success",
@@ -32,13 +30,11 @@ document.addEventListener("DOMContentLoaded", () => {
                 }
             } catch (error) {
                 console.error("Logout fetch error:", error);
-                Swal.fire({ icon: "error", title: "Network Error", text: "Could not connect to the server.", heightAuto: false });
             }
         });
     }
 
     const deleteModal = document.getElementById("deleteModal");
-    const cartModal = document.getElementById("cartSuccessModal");
     let currentDeleteId = null;
 
     function closeModal(modalElement) {
@@ -47,11 +43,9 @@ document.addEventListener("DOMContentLoaded", () => {
 
     window.addEventListener("click", (e) => {
         if (e.target === deleteModal) closeModal(deleteModal);
-        if (e.target === cartModal) closeModal(cartModal);
     });
 
     document.getElementById("cancelDeleteBtn")?.addEventListener("click", () => closeModal(deleteModal));
-    document.getElementById("closeCartSuccessBtn")?.addEventListener("click", () => closeModal(cartModal));
 
     document.addEventListener("click", async (e) => {
         const addToCartBtn = e.target.closest(".add-to-cart-btn");
@@ -59,6 +53,8 @@ document.addEventListener("DOMContentLoaded", () => {
             e.preventDefault();
             const variantId = addToCartBtn.getAttribute("data-variant-id");
             if (!variantId) return;
+
+            const itemElement = addToCartBtn.closest(".wishlist-item");
 
             try {
                 const response = await fetch("/cart/add", {
@@ -76,10 +72,37 @@ document.addEventListener("DOMContentLoaded", () => {
                 }
 
                 const data = await response.json();
+                
                 if (data.success) {
-                    if (cartModal) cartModal.classList.add("show");
+                    if (itemElement) {
+                        itemElement.style.opacity = '0';
+                        itemElement.style.transform = 'scale(0.8)';
+                        setTimeout(() => {
+                            itemElement.remove();
+                            if (document.querySelectorAll('.wishlist-item').length === 0) {
+                                window.location.reload();
+                            }
+                        }, 300);
+                    }
+
+                    Swal.fire({
+                        icon: "success",
+                        title: "Added to Cart!",
+                        text: data.message || "Item successfully moved to your shopping cart.",
+                        timer: 1500,
+                        showConfirmButton: false,
+                        heightAuto: false
+                    });
                 } else {
-                    Swal.fire({ icon: "error", title: "Oops...", text: data.message || "Something went wrong.", heightAuto: false });
+                    if (data.reason === 'OUT_OF_STOCK') {
+                        Swal.fire({ icon: "warning", title: "Product Out Of Stock", text: data.message, heightAuto: false })
+                            .then(() => window.location.reload());
+                    } else if (data.reason === 'PRODUCT_REMOVED') {
+                        Swal.fire({ icon: "error", title: "Product Removed", text: data.message, heightAuto: false })
+                            .then(() => window.location.reload());
+                    } else {
+                        Swal.fire({ icon: "error", title: "Oops...", text: data.message || "Something went wrong.", heightAuto: false });
+                    }
                 }
             } catch (error) {
                 Swal.fire({ icon: "error", title: "Network Error", text: "Could not connect to the server.", heightAuto: false });
@@ -135,13 +158,11 @@ document.addEventListener("DOMContentLoaded", () => {
                         showConfirmButton: false,
                         heightAuto: false
                     });
-
                 } else {
                     Swal.fire({ icon: "error", title: "Oops...", text: data.message || "Failed to remove item.", heightAuto: false });
                 }
             } catch (error) {
-                console.error("Wishlist deletion frontend error:", error);
-                Swal.fire({ icon: "error", title: "Network Error", text: "Could not connect to the server.", heightAuto: false });
+                console.error("Wishlist deletion error:", error);
             } finally {
                 closeModal(deleteModal);
                 currentDeleteId = null;

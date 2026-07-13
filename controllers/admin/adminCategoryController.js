@@ -5,16 +5,18 @@ import logger from '../../utils/logger.js';
 export const loadCategories = async (req, res) => {
     try {
         const sortQuery = req.query.sort ? String(req.query.sort).trim() : 'newest';
+        const searchQuery = req.query.q ? String(req.query.q).trim() : '';
         const page = Math.max(1, parseInt(req.query.page) || 1); 
         const limit = 6; 
 
-        const { categories, totalPages } = await categoryService.getPaginatedCategories(sortQuery, page, limit);
+        const { categories, totalPages } = await categoryService.getPaginatedCategories(sortQuery, page, limit, searchQuery);
 
-        logger.info(`Admin (${req.user ? req.user.email : 'Unknown'}) loaded categories page ${page} sorted by ${sortQuery}`);
+        logger.info(`Admin (${req.user ? req.user.email : 'Unknown'}) loaded categories page ${page} filtered by: "${searchQuery}"`);
 
-        res.render('admin/categories', { 
+        return res.render('admin/categories', { 
             categories, 
             currentSort: sortQuery,
+            searchQuery: searchQuery,
             currentPage: page,
             totalPages: totalPages
         });
@@ -22,7 +24,7 @@ export const loadCategories = async (req, res) => {
     } catch (error) {
         logger.error(`Error loading categories: ${error.message}\nStack: ${error.stack}`);
         
-        res.status(500).json({
+        return res.status(500).json({
             success: false, 
             title: "Server Error", 
             message: "Internal Server Error Occurred!"
