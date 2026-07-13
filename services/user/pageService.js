@@ -8,39 +8,83 @@ export const getHomePageData = async () => {
 
         const bestSellers = await Product.aggregate([
             { $match: { isDeleted: false } },
-            { $sample: { size: 4 } }, 
             {
                 $lookup: {
-                    from: 'productvariants', 
+                    from: 'categories',
+                    localField: 'categoryId',
+                    foreignField: '_id',
+                    as: 'category'
+                }
+            },
+            { $unwind: '$category' },
+            { $match: { 'category.isDeleted': false } },
+            {
+                $lookup: {
+                    from: 'productvariants',
                     localField: '_id',
                     foreignField: 'productId',
                     as: 'variants'
                 }
             },
-            { $addFields: { firstVariant: { $arrayElemAt: ['$variants', 0] } } },
-            { $match: { firstVariant: { $exists: true } } } 
+            {
+                $addFields: {
+                    inStockVariants: {
+                        $filter: {
+                            input: '$variants',
+                            as: 'v',
+                            cond: { $gt: ['$$v.stock', 0] }
+                        }
+                    }
+                }
+            },
+            { $match: { $expr: { $gt: [{ $size: '$inStockVariants' }, 0] } } },
+            { $sample: { size: 4 } },
+            {
+                $addFields: {
+                    firstVariant: { $arrayElemAt: ['$inStockVariants', 0] }
+                }
+            }
         ]);
 
         const topDeals = await ProductVariant.aggregate([
-            { $sort: { discount: -1 } }, 
-            {
-                $group: {
-                    _id: '$productId', 
-                    variant: { $first: '$$ROOT' } 
-                }
-            },
-            { $sort: { 'variant.discount': -1 } }, 
-            { $limit: 4 }, 
+            { $match: { stock: { $gt: 0 } } },
+            { $sort: { discount: -1 } },
             {
                 $lookup: {
                     from: 'products',
-                    localField: '_id',
+                    localField: 'productId',
                     foreignField: '_id',
                     as: 'product'
                 }
             },
-            { $unwind: '$product' }, 
-            { $match: { 'product.isDeleted': false } }
+            { $unwind: '$product' },
+            { $match: { 'product.isDeleted': false } },
+            {
+                $lookup: {
+                    from: 'categories',
+                    localField: 'product.categoryId',
+                    foreignField: '_id',
+                    as: 'category'
+                }
+            },
+            { $unwind: '$category' },
+            { $match: { 'category.isDeleted': false } },
+            {
+                $group: {
+                    _id: '$productId',
+                    variant: { $first: '$$ROOT' },
+                    product: { $first: '$product' }
+                }
+            },
+            { $sort: { 'variant.discount': -1 } },
+            { $limit: 4 },
+            {
+                $project: {
+                    _id: 0,
+                    product: 1,
+                    variant: '$variant'
+                }
+            }
         ]);
 
         return { categories, bestSellers, topDeals };

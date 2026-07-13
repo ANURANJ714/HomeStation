@@ -6,12 +6,10 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>HomeStation</title>
     <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&display=swap" rel="stylesheet">
-    <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,600;0,700;1,600&display=swap"
-        rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,600;0,700;1,600&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
-    <link rel="icon" type="image/x-icon"
-        href="https://res.cloudinary.com/dz7fuqwnr/image/upload/v1778395481/WhatsApp_Image_2026-05-10_at_12.12.36_nra5vk.jpg">
+    <link rel="icon" type="image/x-icon" href="https://res.cloudinary.com/dz7fuqwnr/image/upload/v1778395481/WhatsApp_Image_2026-05-10_at_12.12.36_nra5vk.jpg">
     <link rel="stylesheet" href="/css/user/home.css">
 </head>
 
@@ -19,270 +17,235 @@
     <input type="hidden" id="csrfToken" value="<%= typeof csrfToken !== 'undefined' ? csrfToken : '' %>">
     <input type="hidden" id="cartJustAdded" value="<%= typeof cartJustAdded !== 'undefined' ? cartJustAdded : false %>">
     <input type="hidden" id="wishlistJustAdded" value="<%= typeof wishlistJustAdded !== 'undefined' ? wishlistJustAdded : false %>">
+    
     <% if (typeof bannerText !=='undefined' && bannerText) { %>
         <div class="promo-bar">
             <b><%- bannerText %></b>
         </div>
-        <% } %>
+    <% } %>
 
-            <div class="sidebar-overlay" id="sidebarOverlay"></div>
+    <div class="sidebar-overlay" id="sidebarOverlay"></div>
 
-            <header class="header">
-                <div class="container-fluid header-container">
-                    <div class="header-left-group">
-                        <button id="hamburgerBtn" class="hamburger-btn" type="button">
-                            <i class="fa-solid fa-bars"></i>
-                        </button>
-                        <a href="/home" class="logo">HomeStation</a>
-                    </div>
+    <header class="header">
+        <div class="container-fluid header-container">
+            <div class="header-left-group">
+                <button id="hamburgerBtn" class="hamburger-btn" type="button"><i class="fa-solid fa-bars"></i></button>
+                <a href="/home" class="logo">HomeStation</a>
+            </div>
 
-                    <nav class="nav" id="appNavbar">
-                        <div class="nav-drawer-header">
-                            <h2 class="brand-title">HomeStation</h2>
-                            <button id="closeSidebar" class="close-sidebar-btn" type="button">
-                                <i class="fa-solid fa-xmark"></i>
-                            </button>
-                        </div>
-                        <ul class="nav-list">
-                            <li><a href="/home" class="nav-link active">Home</a></li>
-                            <li><a href="/products" class="nav-link">World of Mattress</a></li>
-                            <li><a href="#" class="nav-link">Top Deals</a></li>
-                            <li><a href="#" class="nav-link">Best Sellers</a></li>
-                            <li><a href="#" class="nav-link">Contact Us</a></li>
-                        </ul>
-                    </nav>
-
-                    <div class="search-container">
-                        <input type="text" placeholder="Search for products, brands and more..." id="searchInput">
-                        <button id="searchBtn" type="button"><i class="fa-solid fa-magnifying-glass"></i></button>
-                    </div>
-
-                    <div class="header-actions">
-                        <a href="/user/wishlist" class="icon-link wishlist-link"><i class="fa-regular fa-heart"></i> <span
-                                class="action-text">Wishlist</span></a>
-
-                        <% if (user) { %>
-                            <a href="/user/profile" class="icon-link"><i class="fa-solid fa-user"></i> <span
-                                    class="action-text">Profile</span></a>
-                            <% } else { %>
-                                <a href="/user/login" class="icon-link"><i class="fa-solid fa-right-to-bracket"></i>
-                                    <span class="action-text">Login</span></a>
-                                <% } %>
-
-                                    <a href="/user/cart" class="icon-link"><i class="fa-solid fa-cart-shopping"></i> <span
-                                            class="action-text">Cart</span></a>
-                    </div>
+            <nav class="nav" id="appNavbar">
+                <div class="nav-drawer-header">
+                    <h2 class="brand-title">HomeStation</h2>
+                    <button id="closeSidebar" class="close-sidebar-btn" type="button"><i class="fa-solid fa-xmark"></i></button>
                 </div>
-            </header>
+                <ul class="nav-list">
+                    <li><a href="/home" class="nav-link active">Home</a></li>
+                    <li><a href="/products" class="nav-link">World of Mattress</a></li>
+                    <li><a href="/deals" class="nav-link">Top Deals</a></li>
+                    <li><a href="/bestsellers" class="nav-link">Best Sellers</a></li>
+                    <li><a href="/contact" class="nav-link">Contact Us</a></li>
+                </ul>
+            </nav>
 
-            <section class="hero-section">
-                <img src="https://images.unsplash.com/photo-1631049307264-da0ec9d70304?auto=format&fit=crop&q=80&w=1200"
-                    alt="Premium Mattress" class="hero-bg-image">
-                <div class="hero-content">
-                    <h1 class="hero-title">Experience Cloud Like Comfort</h1>
-                    <p class="hero-desc">Discover our exclusive range of premium mattresses designed for the perfect
-                        night's sleep.</p>
-                    <a href="/products" class="btn-primary hero-btn-link">Shop Mattress</a>
-                </div>
-            </section>
+            <div class="search-container">
+                <input type="text" placeholder="Search for products, brands and more..." id="searchInput">
+                <button id="searchBtn" type="button"><i class="fa-solid fa-magnifying-glass"></i></button>
+            </div>
 
-            <section class="products-section">
-                <div class="container">
-                    <div class="section-header">
-                        <h2>Best Sellers</h2>
-                        <a href="/products" class="see-all">See All <i class="fa-solid fa-arrow-right"></i></a>
-                    </div>
-                    <div class="products-grid">
-                        <% if (typeof bestSellers !=='undefined' && bestSellers && bestSellers.length> 0) { %>
-                            <% bestSellers.forEach(product=> {
-                                const variant = product.firstVariant;
-                                const currentPrice = Math.round(variant.originalPrice * (1 - (variant.discount || 0) /
-                                100));
-                                %>
-                                <div class="product-card">
-                                    <div class="product-image">
-                                        <img src="<%= product.images && product.images[0] ? product.images[0] : 'https://placehold.co/400' %>"
-                                            alt="<%= product.name %>">
-                                        <div class="badge-container">
-                                            <% if (variant.discount> 0) { %>
-                                                <span class="badge discount">
-                                                    <%= variant.discount %>% OFF
-                                                </span>
-                                                <% } %>
-                                        </div>
-                                        <% const variantIdStr=variant._id.toString(); const isInWishlist=typeof
-                                            userWishlist !=='undefined' && userWishlist.includes(variantIdStr); %>
-                                            <button class="wishlist-btn <%= isInWishlist ? 'liked' : '' %>"
-                                                type="button" data-variant-id="<%= variant._id %>">
-                                                <i class="<%= isInWishlist ? 'fa-solid' : 'fa-regular' %> fa-heart"></i>
-                                            </button>
-                                    </div>
-                                    <div class="product-info">
-                                        <h3>
-                                            <%= product.name %>
-                                        </h3>
-                                        <div class="stars"><i class="fa-solid fa-star"></i> 4.8 (120)</div>
-                                        <div class="card-footer">
-                                            <p class="price">
-                                                <% if (variant.discount> 0) { %>
-                                                    <span class="old-price">₹<%=
-                                                            variant.originalPrice.toLocaleString('en-IN') %></span>
-                                                    <% } %>
-                                                        ₹<%= currentPrice.toLocaleString('en-IN') %>
-                                            </p>
-                                            <button class="add-to-cart-btn" type="button"
-                                                data-variant-id="<%= variant._id %>">
-                                                <i class="fa-solid fa-cart-plus"></i> Add
-                                            </button>
-                                        </div>
-                                    </div>
+            <div class="header-actions">
+                <a href="/user/wishlist" class="icon-link wishlist-link"><i class="fa-regular fa-heart"></i> <span class="action-text">Wishlist</span></a>
+                <% if (user) { %>
+                    <a href="/user/profile" class="icon-link"><i class="fa-solid fa-user"></i> <span class="action-text">Profile</span></a>
+                <% } else { %>
+                    <a href="/user/login" class="icon-link"><i class="fa-solid fa-right-to-bracket"></i> <span class="action-text">Login</span></a>
+                <% } %>
+                <a href="/user/cart" class="icon-link"><i class="fa-solid fa-cart-shopping"></i> <span class="action-text">Cart</span></a>
+            </div>
+        </div>
+    </header>
+
+    <section class="hero-section">
+        <img src="https://images.unsplash.com/photo-1631049307264-da0ec9d70304?auto=format&fit=crop&q=80&w=1200" alt="Premium Mattress" class="hero-bg-image">
+        <div class="hero-content">
+            <h1 class="hero-title">Experience Cloud Like Comfort</h1>
+            <p class="hero-desc">Discover our range of premium mattresses designed for the perfect night's sleep.</p>
+            <a href="/products" class="btn-primary hero-btn-link">Shop Mattress</a>
+        </div>
+    </section>
+
+    <section class="products-section">
+        <div class="container">
+            <div class="section-header">
+                <h2>Best Sellers</h2>
+                <a href="/products" class="see-all">See All <i class="fa-solid fa-arrow-right"></i></a>
+            </div>
+            <div class="products-grid">
+                <% if (typeof bestSellers !=='undefined' && bestSellers && bestSellers.length > 0) { %>
+                    <% bestSellers.forEach(product => {
+                        const variant = product.firstVariant;
+                        if(variant) { 
+                            const currentPrice = Math.round(variant.originalPrice * (1 - (variant.discount || 0) / 100));
+                        %>
+                        <div class="product-card">
+                            <div class="product-image">
+                                <img src="<%= product.images && product.images[0] ? product.images[0] : 'https://placehold.co/400' %>" alt="<%= product.name %>">
+                                <div class="badge-container">
+                                    <% if (variant.discount > 0) { %>
+                                        <span class="badge discount"><%= variant.discount %>% OFF</span>
+                                    <% } %>
                                 </div>
-                                <% }); %>
-                                    <% } else { %>
-                                        <p class="fallback-notice-text">More amazing products coming soon!</p>
+                                <% const variantIdStr = variant._id.toString(); const isInWishlist = typeof userWishlist !=='undefined' && userWishlist.includes(variantIdStr); %>
+                                <button class="wishlist-btn <%= isInWishlist ? 'liked' : '' %>" type="button" data-variant-id="<%= variant._id %>">
+                                    <i class="<%= isInWishlist ? 'fa-solid' : 'fa-regular' %> fa-heart"></i>
+                                </button>
+                            </div>
+                            <div class="product-info">
+                                <h3><%= product.name %> (<%= variant.variantName %>)</h3>
+                                <div class="stars"><i class="fa-solid fa-star"></i> 4.8 (120)</div>
+                                <div class="card-footer">
+                                    <p class="price">
+                                        <% if (variant.discount > 0) { %>
+                                            <span class="old-price">₹<%= variant.originalPrice.toLocaleString('en-IN') %></span>
                                         <% } %>
-                    </div>
-                </div>
-            </section>
-
-            <section class="products-section deals-section">
-                <div class="container">
-                    <div class="section-header">
-                        <h2>Top Deals</h2>
-                        <a href="/deals" class="see-all">See All <i class="fa-solid fa-arrow-right"></i></a>
-                    </div>
-                    <div class="products-grid">
-                        <% if (typeof topDeals !=='undefined' && topDeals && topDeals.length> 0) { %>
-                            <% topDeals.forEach(deal=> {
-                                const product = deal.product;
-                                const variant = deal.variant;
-                                const currentPrice = Math.round(variant.originalPrice * (1 - (variant.discount || 0) /
-                                100));
-                                %>
-                                <div class="product-card">
-                                    <div class="product-image">
-                                        <img src="<%= product.images && product.images[0] ? product.images[0] : 'https://placehold.co/400' %>"
-                                            alt="<%= product.name %>">
-                                        <div class="badge-container">
-                                            <span class="badge discount">
-                                                <%= variant.discount %>% OFF
-                                            </span>
-                                        </div>
-                                        <% const variantIdStr=variant._id.toString(); const isInWishlist=typeof
-                                            userWishlist !=='undefined' && userWishlist.includes(variantIdStr); %>
-                                            <button class="wishlist-btn <%= isInWishlist ? 'liked' : '' %>"
-                                                type="button" data-variant-id="<%= variant._id %>">
-                                                <i class="<%= isInWishlist ? 'fa-solid' : 'fa-regular' %> fa-heart"></i>
-                                            </button>
-                                    </div>
-                                    <div class="product-info">
-                                        <h3>
-                                            <%= product.name %>
-                                        </h3>
-                                        <div class="stars"><i class="fa-solid fa-star"></i> 4.9 (150)</div>
-                                        <div class="card-footer">
-                                            <p class="price">
-                                                <span class="old-price">₹<%=
-                                                        variant.originalPrice.toLocaleString('en-IN') %></span>
-                                                ₹<%= currentPrice.toLocaleString('en-IN') %>
-                                            </p>
-                                            <button class="add-to-cart-btn" type="button"
-                                                data-variant-id="<%= variant._id %>">
-                                                <i class="fa-solid fa-cart-plus"></i> Add
-                                            </button>
-                                        </div>
-                                    </div>
+                                        ₹<%= currentPrice.toLocaleString('en-IN') %>
+                                    </p>
+                                    <button class="add-to-cart-btn" type="button" data-variant-id="<%= variant._id %>"><i class="fa-solid fa-cart-plus"></i> Add</button>
                                 </div>
-                                <% }); %>
-                                    <% } else { %>
-                                        <p class="fallback-notice-text">Check back later for incredible discounts!</p>
-                                        <% } %>
-                    </div>
-                </div>
-            </section>
+                            </div>
+                        </div>
+                        <% } %>
+                    <% }); %>
+                <% } else { %>
+                    <p class="fallback-notice-text">More amazing products coming soon!</p>
+                <% } %>
+            </div>
+        </div>
+    </section>
 
-            <section class="categories-section">
-                <div class="container">
-                    <div class="section-header">
-                        <h2>Shop by Category</h2>
-                    </div>
-                    <div class="categories-grid">
-                        <% if (typeof categories !=='undefined' && categories && categories.length> 0) { %>
-                            <% categories.forEach(category=> { %>
-                                <div class="category-item">
-                                    <a href="/products?category=<%= category._id %>">
-                                        <img src="<%= category.image %>" alt="<%= category.name %>">
-                                        <h3>
-                                            <%= category.name %>
-                                        </h3>
-                                    </a>
+    <section class="products-section deals-section">
+        <div class="container">
+            <div class="section-header">
+                <h2>Top Deals</h2>
+                <a href="/deals" class="see-all">See All <i class="fa-solid fa-arrow-right"></i></a>
+            </div>
+            <div class="products-grid">
+                <% if (typeof topDeals !=='undefined' && topDeals && topDeals.length > 0) { %>
+                    <% topDeals.forEach(deal => {
+                        const product = deal.product;
+                        const variant = deal.variant;
+                        if(product && variant) {
+                            const currentPrice = Math.round(variant.originalPrice * (1 - (variant.discount || 0) / 100));
+                        %>
+                        <div class="product-card">
+                            <div class="product-image">
+                                <img src="<%= product.images && product.images[0] ? product.images[0] : 'https://placehold.co/400' %>" alt="<%= product.name %>">
+                                <div class="badge-container">
+                                    <span class="badge discount"><%= variant.discount %>% OFF</span>
                                 </div>
-                                <% }); %>
-                                    <% } else { %>
-                                        <p class="fallback-notice-text">Categories currently unavailable.</p>
-                                        <% } %>
-                    </div>
-                </div>
-            </section>
+                                <% const variantIdStr = variant._id.toString(); const isInWishlist = typeof userWishlist !=='undefined' && userWishlist.includes(variantIdStr); %>
+                                <button class="wishlist-btn <%= isInWishlist ? 'liked' : '' %>" type="button" data-variant-id="<%= variant._id %>">
+                                    <i class="<%= isInWishlist ? 'fa-solid' : 'fa-regular' %> fa-heart"></i>
+                                </button>
+                            </div>
+                            <div class="product-info">
+                                <h3><%= product.name %> (<%= variant.variantName %>)</h3>
+                                <div class="stars"><i class="fa-solid fa-star"></i> 4.9 (150)</div>
+                                <div class="card-footer">
+                                    <p class="price">
+                                        <span class="old-price">₹<%= variant.originalPrice.toLocaleString('en-IN') %></span>
+                                        ₹<%= currentPrice.toLocaleString('en-IN') %>
+                                    </p>
+                                    <button class="add-to-cart-btn" type="button" data-variant-id="<%= variant._id %>"><i class="fa-solid fa-cart-plus"></i> Add</button>
+                                </div>
+                            </div>
+                        </div>
+                        <% } %>
+                    <% }); %>
+                <% } else { %>
+                    <p class="fallback-notice-text">Check back later for incredible discounts!</p>
+                <% } %>
+            </div>
+        </div>
+    </section>
 
-            <section class="features">
-                <div class="container features-container">
-                    <div class="feature-item">
-                        <i class="fa-solid fa-truck-fast"></i>
-                        <div class="feature-text">
-                            <h4>Free Shipping</h4>
-                            <p>On orders over &#x20B9;500</p>
+    <section class="categories-section">
+        <div class="container">
+            <div class="section-header">
+                <h2>Shop by Category</h2>
+            </div>
+            <div class="categories-grid">
+                <% if (typeof categories !=='undefined' && categories && categories.length > 0) { %>
+                    <% categories.forEach(category => { %>
+                        <div class="category-item">
+                            <a href="/products?category=<%= category._id %>">
+                                <img src="<%= category.image %>" alt="<%= category.name %>">
+                                <h3><%= category.name %></h3>
+                            </a>
                         </div>
-                    </div>
-                    <div class="feature-item">
-                        <i class="fa-solid fa-shield-halved"></i>
-                        <div class="feature-text">
-                            <h4>Secure Payment</h4>
-                            <p>100% secure checkout</p>
-                        </div>
-                    </div>
-                    <div class="feature-item">
-                        <i class="fa-solid fa-rotate-left"></i>
-                        <div class="feature-text">
-                            <h4>Easy Returns</h4>
-                            <p>30-day return policy</p>
-                        </div>
-                    </div>
-                </div>
-            </section>
+                    <% }); %>
+                <% } else { %>
+                    <p class="fallback-notice-text">Categories currently unavailable.</p>
+                <% } %>
+            </div>
+        </div>
+    </section>
 
-            <footer class="footer">
-                <div class="container-fluid footer-container">
-                    <div class="footer-left">
-                        <a href="/home" class="logo footer-logo">HomeStation</a>
-                        <p>Your premier destination for high-quality mattresses and sleep essentials, crafted to bring
-                            cloud-like comfort to every night.</p>
-                    </div>
-                    <div class="footer-links-wrapper">
-                        <div class="footer-column">
-                            <h4>Shop</h4>
-                            <ul>
-                                <li><a href="/products">World of Mattress</a></li>
-                                <li><a href="#">Top Deals</a></li>
-                                <li><a href="#">Best Sellers</a></li>
-                            </ul>
-                        </div>
-                        <div class="footer-column">
-                            <h4>Support</h4>
-                            <ul>
-                                <li><a href="#">Track Your Orders</a></li>
-                                <li><a href="#">Privacy Policy</a></li>
-                                <li><a href="#">Contact Us</a></li>
-                            </ul>
-                        </div>
-                    </div>
+    <section class="features">
+        <div class="container features-container">
+            <div class="feature-item">
+                <i class="fa-solid fa-truck-fast"></i>
+                <div class="feature-text">
+                    <h4>Free Shipping</h4>
+                    <p>On orders over ₹500</p>
                 </div>
-                <div class="container-fluid copyright">
-                    <p>&copy; 2026 HomeStation Store. All rights reserved.</p>
+            </div>
+            <div class="feature-item">
+                <i class="fa-solid fa-shield-halved"></i>
+                <div class="feature-text">
+                    <h4>Secure Payment</h4>
+                    <p>100% secure checkout</p>
                 </div>
-            </footer>
+            </div>
+            <div class="feature-item">
+                <i class="fa-solid fa-rotate-left"></i>
+                <div class="feature-text">
+                    <h4>Easy Returns</h4>
+                    <p>30-day return policy</p>
+                </div>
+            </div>
+        </div>
+    </section>
 
-            <script src="/js/user/home.js"></script>
+    <footer class="footer">
+        <div class="container-fluid footer-container">
+            <div class="footer-left">
+                <a href="/home" class="logo footer-logo">HomeStation</a>
+                <p>Your premier destination for high-quality mattresses and sleep essentials, crafted to bring cloud-like comfort to every night.</p>
+            </div>
+            <div class="footer-links-wrapper">
+                <div class="footer-column">
+                    <h4>Shop</h4>
+                    <ul>
+                        <li><a href="/products">World of Mattress</a></li>
+                        <li><a href="/deals">Top Deals</a></li>
+                        <li><a href="/bestsellers">Best Sellers</a></li>
+                    </ul>
+                </div>
+                <div class="footer-column">
+                    <h4>Support</h4>
+                    <ul>
+                        <li><a href="#">Track Your Orders</a></li>
+                        <li><a href="#">Privacy Policy</a></li>
+                        <li><a href="#">Contact Us</a></li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+        <div class="container-fluid copyright">
+            <p>&copy; 2026 HomeStation Store. All rights reserved.</p>
+        </div>
+    </footer>
+
+    <script src="/js/user/home.js"></script>
 </body>
-
 </html>
