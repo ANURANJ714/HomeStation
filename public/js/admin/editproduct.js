@@ -50,7 +50,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     function createVariantRow() {
         const row = document.createElement('div');
-        row.className = 'variant-row';
+        row.className = 'variant-row new-created-variant';
         row.innerHTML = `
             <div class="variant-col">
                 <label>Variant Name *</label>
@@ -99,18 +99,20 @@ document.addEventListener('DOMContentLoaded', () => {
 
     document.addEventListener('click', (e) => {
         const removeBtn = e.target.closest('.remove-variant-btn');
-        if (removeBtn) {
-            if (variantsContainer.children.length > 1) {
-                removeBtn.closest('.variant-row').remove();
-            } else {
-                Swal.fire({ 
-                    icon: 'warning', 
-                    title: 'Action Denied', 
-                    text: 'At least one variant is required.', 
-                    heightAuto: false, 
-                    confirmButtonColor: '#1a1a1a' 
-                });
-            }
+        if (!removeBtn) return;
+
+        const targetRow = removeBtn.closest('.variant-row');
+        
+        if (targetRow && targetRow.classList.contains('new-created-variant')) {
+            targetRow.remove();
+        } else {
+            Swal.fire({ 
+                icon: 'error', 
+                title: 'Action Prohibited', 
+                text: 'Pre-existing base product variants cannot be deleted from this view.', 
+                heightAuto: false, 
+                confirmButtonColor: '#1a1a1a' 
+            });
         }
     });
 

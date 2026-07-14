@@ -24,20 +24,13 @@
         </div>
     <% } %>
 
-    <div class="sidebar-overlay" id="sidebarOverlay"></div>
-
     <header class="header">
         <div class="container-fluid header-container">
             <div class="header-left-group">
-                <button id="hamburgerBtn" class="hamburger-btn" type="button"><i class="fa-solid fa-bars"></i></button>
                 <a href="/home" class="logo">HomeStation</a>
             </div>
 
             <nav class="nav" id="appNavbar">
-                <div class="nav-drawer-header">
-                    <h2 class="brand-title">HomeStation</h2>
-                    <button id="closeSidebar" class="close-sidebar-btn" type="button"><i class="fa-solid fa-xmark"></i></button>
-                </div>
                 <ul class="nav-list">
                     <li><a href="/home" class="nav-link active">Home</a></li>
                     <li><a href="/products" class="nav-link">World of Mattress</a></li>
@@ -100,7 +93,7 @@
                                 </button>
                             </div>
                             <div class="product-info">
-                                <h3><%= product.name %> (<%= variant.variantName %>)</h3>
+                                <h3><%= product.name %></h3>
                                 <div class="stars"><i class="fa-solid fa-star"></i> 4.8 (120)</div>
                                 <div class="card-footer">
                                     <p class="price">
@@ -148,7 +141,7 @@
                                 </button>
                             </div>
                             <div class="product-info">
-                                <h3><%= product.name %> (<%= variant.variantName %>)</h3>
+                                <h3><%= product.name %></h3>
                                 <div class="stars"><i class="fa-solid fa-star"></i> 4.9 (150)</div>
                                 <div class="card-footer">
                                     <p class="price">
@@ -227,8 +220,8 @@
                     <h4>Shop</h4>
                     <ul>
                         <li><a href="/products">World of Mattress</a></li>
-                        <li><a href="/deals">Top Deals</a></li>
-                        <li><a href="/bestsellers">Best Sellers</a></li>
+                        <li><a href="#">Top Deals</a></li>
+                        <li><a href="#">Best Sellers</a></li>
                     </ul>
                 </div>
                 <div class="footer-column">
@@ -248,4 +241,5 @@
 
     <script src="/js/user/home.js"></script>
 </body>
+
 </html>

@@ -4,154 +4,181 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>All Mattresses - HomeStation</title>
-    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght=400;500;700&display=swap" rel="stylesheet">
+    <title>HomeStation</title>
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&display=swap" rel="stylesheet">
     <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght=0,600;0,700;1,600&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <link rel="icon" type="image/x-icon" href="https://res.cloudinary.com/dz7fuqwnr/image/upload/v1778395481/WhatsApp_Image_2026-05-10_at_12.12.36_nra5vk.jpg">
+    <link rel="stylesheet" href="/css/user/home.css">
     <link rel="stylesheet" href="/css/user/categories.css">
 </head>
 
 <body>
-    <% if (typeof bannerText !== 'undefined' && bannerText !== '') { %>
+    <input type="hidden" id="csrfToken" value="<%= typeof csrfToken !== 'undefined' ? csrfToken : '' %>">
+    <input type="hidden" id="currentCategoryFilter" value="<%= currentCategory %>">
+
+    <% if (typeof bannerText !== 'undefined' && bannerText) { %>
         <div class="promo-bar">
-            <strong><%= bannerText %></strong>
+            <b><%- bannerText %></b>
         </div>
     <% } %>
 
     <header class="header">
         <div class="container-fluid header-container">
-            <div class="mobile-toggle" id="mobileToggle">
-                <i class="fa-solid fa-bars"></i>
+            <div class="header-left-group">
+                <a href="/home" class="logo">HomeStation</a>
             </div>
-            <a href="/home" class="logo">HomeStation</a>
-            <nav class="nav" id="navMenu">
+
+            <nav class="nav" id="appNavbar">
                 <ul class="nav-list">
                     <li><a href="/home" class="nav-link">Home</a></li>
-                    <li><a href="/admin/products" class="nav-link active">World of Mattress</a></li>
+                    <li><a href="/products" class="nav-link active">World of Mattress</a></li>
                     <li><a href="/deals" class="nav-link">Top Deals</a></li>
                     <li><a href="/bestsellers" class="nav-link">Best Sellers</a></li>
                     <li><a href="/contact" class="nav-link">Contact Us</a></li>
                 </ul>
             </nav>
-            
-            <form id="searchForm" action="/admin/products" method="GET" class="search-container" style="margin: 0;">
-                <input type="hidden" name="category" value="<%= categoryFilter %>">
-                <input type="hidden" name="price" value="<%= maxPriceFilter || '' %>">
-                <input type="text" name="search" placeholder="Search for products, brands and more..." id="searchInput" value="<%= searchQuery %>">
-                <button type="submit" id="searchBtn"><i class="fa-solid fa-magnifying-glass"></i></button>
-            </form>
+
+            <div class="search-container">
+                <input type="text" placeholder="Search for products, brands and more..." id="searchInput" value="<%= searchQuery %>">
+                <button id="searchBtn" type="button"><i class="fa-solid fa-magnifying-glass"></i></button>
+            </div>
 
             <div class="header-actions">
                 <a href="/user/wishlist" class="icon-link wishlist-link"><i class="fa-regular fa-heart"></i> <span class="action-text">Wishlist</span></a>
-                
                 <% if (user) { %>
-                    <a href="/user/profile" class="icon-link"><i class="fa-regular fa-user"></i> <span class="action-text">Profile</span></a>
+                    <a href="/user/profile" class="icon-link"><i class="fa-solid fa-user"></i> <span class="action-text">Profile</span></a>
                 <% } else { %>
-                    <a href="/user/login" class="icon-link"><i class="fa-solid fa-arrow-right-to-bracket"></i> <span class="action-text">Login</span></a>
+                    <a href="/user/login" class="icon-link"><i class="fa-solid fa-right-to-bracket"></i> <span class="action-text">Login</span></a>
                 <% } %>
-                
                 <a href="/user/cart" class="icon-link"><i class="fa-solid fa-cart-shopping"></i> <span class="action-text">Cart</span></a>
             </div>
         </div>
     </header>
 
     <main class="furniture-page">
-        <div class="container furniture-container">
-            
+        <div class="container-fluid furniture-container">
             <aside class="sidebar">
                 <div class="filter-group">
                     <h3>Categories</h3>
                     <ul class="filter-list" id="categoryFilterList">
                         <li>
-                            <a href="/admin/products?status=<%= typeof statusFilter !== 'undefined' ? statusFilter : 'all' %>" class="<%= !categoryFilter ? 'active' : '' %>">All Mattresses</a>
+                            <a href="/products?category=all" class="cat-filter-item <%= currentCategory === 'all' ? 'active' : '' %>" data-category="all">
+                                All Mattresses
+                            </a>
                         </li>
-                        <% categories.forEach(cat => { %>
-                            <li>
-                                <a href="/admin/products?category=<%= cat._id %>&status=<%= typeof statusFilter !== 'undefined' ? statusFilter : 'all' %>&search=<%= searchQuery %>" 
-                                   class="<%= categoryFilter === cat._id.toString() ? 'active' : '' %>">
-                                   <%= cat.name %>
-                                </a>
-                            </li>
-                        <% }) %>
+                        <% if (typeof categories !== 'undefined' && categories.length > 0) { %>
+                            <% categories.forEach(cat => { %>
+                                <li>
+                                    <a href="/products?category=<%= cat._id %>" class="cat-filter-item <%= currentCategory === cat._id.toString() ? 'active' : '' %>" data-category="<%= cat._id %>">
+                                        <%= cat.name %>
+                                    </a>
+                                </li>
+                            <% }) %>
+                        <% } %>
                     </ul>
                 </div>
 
                 <div class="filter-group">
-                    <h3>Filter by Price</h3>
-                    <form id="priceFilterForm" action="/admin/products" method="GET">
-                        <input type="hidden" name="search" value="<%= searchQuery %>">
-                        <input type="hidden" name="category" value="<%= categoryFilter %>">
-                        <div class="price-range-slider">
-                            <input type="range" name="price" min="0" max="150000" value="<%= maxPriceFilter || 150000 %>" class="slider" id="priceRange">
-                            <div class="price-labels">
-                                <span>Hex ₹0</span>
-                                <span id="priceValue">₹<%= (maxPriceFilter || 150000).toLocaleString('en-IN') %></span>
-                                <span>₹1.5L+</span>
-                            </div>
-                        </div>
-                    </form>
+                    <h3>Filter by Brand</h3>
+                    <ul class="filter-list checkbox-list" id="brandFilterList">
+                        <% if (typeof brands !== 'undefined' && brands.length > 0) { %>
+                            <% brands.forEach(brand => { %>
+                                <% const isChecked = currentBrands.includes(brand); %>
+                                <li>
+                                    <label>
+                                        <input type="checkbox" class="brand-checkbox" value="<%= brand %>" <%= isChecked ? 'checked' : '' %>> 
+                                        <%= brand %>
+                                    </label>
+                                </li>
+                            <% }) %>
+                        <% } %>
+                    </ul>
                 </div>
             </aside>
 
             <section class="main-content">
                 <div class="page-header">
-                    <h2>All Mattresses</h2>
+                    <h2><%= pageHeading %></h2>
+                    <div class="filter-dropdown">
+                        <label for="priceSort">Sort by Price</label>
+                        <select id="priceSort" class="sort-select">
+                            <option value="all" <%= currentSort === 'all' ? 'selected' : '' %>>All Price Range</option>
+                            <option value="highToLow" <%= currentSort === 'highToLow' ? 'selected' : '' %>>High to Low</option>
+                            <option value="lowToHigh" <%= currentSort === 'lowToHigh' ? 'selected' : '' %>>Low to High</option>
+                        </select>
+                    </div>
                 </div>
 
                 <div class="products-grid">
-                    <% if (products && products.length > 0) { %>
+                    <% if (typeof products !== 'undefined' && products.length > 0) { %>
                         <% products.forEach(product => { %>
+                            <% const variant = product.displayVariant; %>
                             <div class="product-card">
                                 <div class="product-image">
-                                    <img src="<%= product.images && product.images.length > 0 ? product.images[0] : 'https://placehold.co/400x330?text=No+Image' %>" alt="<%= product.name %>">
-                                    <% if (product.discount > 15) { %>
-                                        <span class="badge">Best Seller</span>
-                                    <% } %>
-                                    <button class="wishlist-btn" data-product-id="<%= product._id %>"><i class="fa-regular fa-heart"></i></button>
+                                    <img src="<%= product.images && product.images[0] ? product.images[0] : 'https://placehold.co/400' %>" alt="<%= product.name %>">
+                                    <div class="badge-container">
+                                        <% if (variant.discount > 0) { %>
+                                            <span class="badge discount"><%= variant.discount %>% OFF</span>
+                                        <% } %>
+                                    </div>
+                                    <% 
+                                        const variantIdStr = variant._id.toString(); 
+                                        const isInWishlist = typeof userWishlist !== 'undefined' && userWishlist.includes(variantIdStr); 
+                                    %>
+                                    <button class="wishlist-btn <%= isInWishlist ? 'liked' : '' %>" type="button" data-variant-id="<%= variantIdStr %>">
+                                        <i class="<%= isInWishlist ? 'fa-solid' : 'fa-regular' %> fa-heart"></i>
+                                    </button>
                                 </div>
                                 <div class="product-info">
-                                    <h3><%= product.name %></h3>
-                                    <div class="stars"><i class="fa-solid fa-star"></i> 4.8 (95)</div>
+                                    <h3><%= product.name %> (<%= variant.variantName %>)</h3>
+                                    <div class="stars"><i class="fa-solid fa-star"></i> 4.8 (150)</div>
                                     <div class="card-footer">
-                                        <div class="price-block" style="display: flex; flex-direction: column; gap: 2px;">
-                                            <span class="price" style="font-size: 20px; font-weight: 700; color: #000;">₹<%= Math.round(product.currentPrice).toLocaleString('en-IN') %></span>
-                                            <% if (product.discount > 0) { %>
-                                                <div style="display: flex; gap: 8px; align-items: center; font-size: 13px;">
-                                                    <span style="text-decoration: line-through; color: #888;">Fixed ₹<%= product.originalPrice.toLocaleString('en-IN') %></span>
-                                                    <span style="color: #4CAF50; font-weight: 600;"><%= product.discount %>% OFF</span>
-                                                </div>
+                                        <p class="price">
+                                            <% if (variant.discount > 0) { %>
+                                                <span class="old-price">₹<%= variant.originalPrice.toLocaleString('en-IN') %></span>
                                             <% } %>
-                                        </div>
-                                        <button class="add-to-cart-btn" data-product-id="<%= product._id %>"><i class="fa-solid fa-cart-plus"></i> Add</button>
+                                            ₹<%= variant.calculatedPrice.toLocaleString('en-IN') %>
+                                        </p>
+                                        <button class="add-to-cart-btn" type="button" data-variant-id="<%= variantIdStr %>">
+                                            <i class="fa-solid fa-cart-plus"></i> Add
+                                        </button>
                                     </div>
                                 </div>
                             </div>
                         <% }) %>
                     <% } else { %>
-                        <div style="grid-column: 1 / -1; text-align: center; padding: 80px 20px; background: #fff; border-radius: 12px; border: 1px solid #eee;">
-                            <i class="fa-solid fa-box-open" style="font-size: 48px; color: #ccc; margin-bottom: 15px; display: block;"></i>
-                            <h3 style="font-size: 20px; margin-bottom: 8px; color: #222;">No products found</h3>
-                            <p style="color: #666; font-size: 14px;">Try shifting your target metrics constraint slider higher or sorting by a clear baseline query parameter block choice.</p>
+                        <div class="fallback-notice-text">
+                            <p>No mattresses found matching your selection criteria.</p>
                         </div>
                     <% } %>
                 </div>
 
                 <% if (totalPages > 1) { %>
                     <div class="pagination">
-                        <% let baseParams = `?search=${searchQuery}&category=${categoryFilter}&price=${maxPriceFilter || ''}&page=` %>
-                        
                         <% if (currentPage > 1) { %>
-                            <a href="<%= baseParams %><%= currentPage - 1 %>" class="page-btn" style="text-decoration: none;"><i class="fa-solid fa-chevron-left"></i> Previous</a>
+                            <button class="page-btn change-page-btn" data-page="<%= currentPage - 1 %>">
+                                <i class="fa-solid fa-chevron-left"></i> Previous
+                            </button>
+                        <% } else { %>
+                            <button class="page-btn disabled" disabled><i class="fa-solid fa-chevron-left"></i> Previous</button>
                         <% } %>
 
                         <div class="page-numbers">
-                            <% for(let i = 1; i <= totalPages; i++) { %>
-                                <a href="<%= baseParams %><%= i %>" class="page-num <%= currentPage === i ? 'active' : '' %>" style="text-decoration: none;"><%= i %></a>
+                            <% for (let i = 1; i <= totalPages; i++) { %>
+                                <button class="page-num change-page-btn <%= i === currentPage ? 'active' : '' %>" data-page="<%= i %>">
+                                    <%= i %>
+                                </button>
                             <% } %>
                         </div>
 
                         <% if (currentPage < totalPages) { %>
-                            <a href="<%= baseParams %><%= currentPage + 1 %>" class="page-btn" style="text-decoration: none;">Next <i class="fa-solid fa-chevron-right"></i></a>
+                            <button class="page-btn change-page-btn" data-page="<%= currentPage + 1 %>">
+                                Next <i class="fa-solid fa-chevron-right"></i>
+                            </button>
+                        <% } else { %>
+                            <button class="page-btn disabled" disabled>Next <i class="fa-solid fa-chevron-right"></i></button>
                         <% } %>
                     </div>
                 <% } %>
@@ -169,7 +196,7 @@
                 <div class="footer-column">
                     <h4>Shop</h4>
                     <ul>
-                        <li><a href="/admin/products">World of Mattress</a></li>
+                        <li><a href="/products">World of Mattress</a></li>
                         <li><a href="/deals">Top Deals</a></li>
                         <li><a href="/bestsellers">Best Sellers</a></li>
                     </ul>
@@ -177,8 +204,8 @@
                 <div class="footer-column">
                     <h4>Support</h4>
                     <ul>
-                        <li><a href="/orders/track">Track Your Orders</a></li>
-                        <li><a href="/privacy">Privacy Policy</a></li>
+                        <li><a href="#">Track Your Orders</a></li>
+                        <li><a href="/privacy-policy">Privacy Policy</a></li>
                         <li><a href="/contact">Contact Us</a></li>
                     </ul>
                 </div>
@@ -189,70 +216,6 @@
         </div>
     </footer>
 
-    <div id="toast" class="toast">
-        <i class="fa-solid fa-circle-check"></i>
-        <span id="toast-message">Operation successful</span>
-    </div>
-
-    <input type="hidden" id="globalCsrf" value="<%= csrfToken %>">
-
-    <script>
-        document.addEventListener('DOMContentLoaded', () => {
-            const csrfToken = document.getElementById('globalCsrf').value;
-            const slider = document.getElementById('priceRange');
-            const priceValue = document.getElementById('priceValue');
-            const priceForm = document.getElementById('priceFilterForm');
-
-            function showToast(message) {
-                const toast = document.getElementById('toast');
-                const toastMessage = document.getElementById('toast-message');
-                toastMessage.textContent = message;
-                toast.classList.add('show');
-                setTimeout(() => { toast.classList.remove('show'); }, 3000);
-            }
-
-            if (slider) {
-                let timeout = null;
-                slider.addEventListener('input', function () {
-                    priceValue.textContent = "₹" + parseInt(this.value).toLocaleString('en-IN');
-                    
-                    clearTimeout(timeout);
-                    timeout = setTimeout(() => {
-                        priceForm.submit();
-                    }, 500); 
-                });
-            }
-
-            document.body.addEventListener('click', async (e) => {
-                const cartBtn = e.target.closest('.add-to-cart-btn');
-                const wishlistBtn = e.target.closest('.wishlist-btn');
-                const mobileToggle = e.target.closest('#mobileToggle');
-
-                if (mobileToggle) {
-                    const navMenu = document.getElementById('navMenu');
-                    navMenu.classList.toggle('active');
-                    const icon = mobileToggle.querySelector('i');
-                    icon.classList.toggle('fa-bars');
-                    icon.classList.toggle('fa-xmark');
-                }
-
-                if (cartBtn) {
-                    e.preventDefault();
-                    const itemId = cartBtn.getAttribute('data-product-id');
-                    showToast('Item added to cart successfully!');
-                }
-
-                if (wishlistBtn) {
-                    e.preventDefault();
-                    wishlistBtn.classList.toggle('liked');
-                    const icon = wishlistBtn.querySelector('i');
-                    icon.classList.toggle('fa-regular');
-                    icon.classList.toggle('fa-solid');
-                    showToast(wishlistBtn.classList.contains('liked') ? 'Item added to wishlist!' : 'Item removed from wishlist!');
-                }
-            });
-        });
-    </script>
+    <script src="/js/user/categories.js"></script>
 </body>
-
 </html>

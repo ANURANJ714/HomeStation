@@ -21,9 +21,7 @@
         <aside class="sidebar" id="appSidebar">
             <div class="sidebar-header">
                 <h2 class="brand-title">HomeStation</h2>
-                <button class="close-sidebar" id="closeSidebar">
-                    <i class="fa-solid fa-xmark"></i>
-                </button>
+                <button class="close-sidebar" id="closeSidebar"><i class="fa-solid fa-xmark"></i></button>
             </div>
             <nav class="sidebar-nav">
                 <ul class="nav-list">
@@ -41,7 +39,7 @@
                     <li class="nav-item">
                         <form action="/admin/logout" method="POST" id="adminLogoutForm" class="m-0">
                             <input type="hidden" name="_csrf" value="<%= csrfToken %>">
-                            <button type="submit" class="logout-link logout-btn-submit">
+                            <button type="submit" class="nav-link logout-link logout-btn-submit">
                                 <i class="fa-solid fa-right-from-bracket nav-icon"></i> Logout
                             </button>
                         </form>
@@ -53,9 +51,7 @@
         <div class="main-panel">
             <header class="top-header">
                 <div class="header-left">
-                    <button class="hamburger-menu" id="hamburgerMenu">
-                        <i class="fa-solid fa-bars"></i>
-                    </button>
+                    <button class="hamburger-menu" id="hamburgerMenu"><i class="fa-solid fa-bars"></i></button>
                 </div>
                 <div class="header-right">
                     <div class="datetime-display" id="datetimeDisplay"></div>
@@ -107,7 +103,7 @@
                                 <div class="variants-container" id="variantsContainer">
                                     <% if (variants && variants.length > 0) { %>
                                         <% variants.forEach((variant) => { %>
-                                            <div class="variant-row">
+                                            <div class="variant-row existing-server-variant">
                                                 <div class="variant-col">
                                                     <label>Variant Name *</label>
                                                     <input type="text" class="v-name" value="<%= variant.variantName %>">
@@ -136,11 +132,7 @@
                                                     <label>Height (in)</label>
                                                     <input type="number" class="v-height" value="<%= variant.height || '' %>" min="0" step="0.1">
                                                 </div>
-                                                <div class="variant-col actions-col">
-                                                    <button type="button" class="btn-icon delete remove-variant-btn">
-                                                        <i class="fa-regular fa-trash-can"></i>
-                                                    </button>
-                                                </div>
+                                                <div class="variant-col actions-col empty-spacer-col"></div>
                                             </div>
                                         <% }) %>
                                     <% } %>
