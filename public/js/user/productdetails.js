@@ -2,6 +2,26 @@ document.addEventListener("DOMContentLoaded", () => {
     const csrfToken = document.getElementById("csrfToken")?.value || "";
     const baseProductId = document.getElementById("productBaseId")?.value;
 
+    const searchInput = document.getElementById("searchInput");
+    const searchBtn = document.getElementById("searchBtn");
+
+    function performSearch() {
+        if (!searchInput) return;
+        const query = searchInput.value.trim();
+        if (query) {
+            window.location.href = `/search?q=${encodeURIComponent(query)}`;
+        }
+    }
+
+    if (searchBtn) {
+        searchBtn.addEventListener("click", performSearch);
+    }
+    if (searchInput) {
+        searchInput.addEventListener("keypress", (e) => {
+            if (e.key === "Enter") performSearch();
+        });
+    }
+
     const alertStatus = document.getElementById("serverAlertStatus")?.value;
     const alertTitle = document.getElementById("serverAlertTitle")?.value;
     const alertMessage = document.getElementById("serverAlertMessage")?.value;
