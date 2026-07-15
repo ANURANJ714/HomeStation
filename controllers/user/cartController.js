@@ -4,14 +4,17 @@ import logger from '../../utils/logger.js';
 
 export const addToCartController = async (req, res) => {
     try {
-        const { variantId } = req.body;
+        const { variantId, quantity } = req.body;
 
         if (!variantId) {
             return res.status(400).json({ success: false, message: "Variant ID is required." });
         }
 
+        const targetQuantity = quantity ? parseInt(quantity, 10) : 1;
+
         if (!req.user || !req.isAuthenticated()) {
             req.session.pendingCartVariantId = variantId;
+            req.session.pendingCartQuantity = targetQuantity; 
             req.session.save();
 
             return res.status(401).json({ 
@@ -23,7 +26,7 @@ export const addToCartController = async (req, res) => {
 
         const userId = req.user._id;
 
-        const result = await cartService.handleAddToCartIntent(userId, variantId);
+        const result = await cartService.handleAddToCartIntent(userId, variantId, targetQuantity);
 
         if (!result.success) {
             return res.status(200).json({ 
@@ -33,7 +36,7 @@ export const addToCartController = async (req, res) => {
             });
         }
 
-        logger.info(`User (${req.user.email}) added variant ${variantId} to cart via clean service separation pipeline.`);
+        logger.info(`User (${req.user.email}) added variant ${variantId} (Qty: ${targetQuantity}) to cart via unified pipeline.`);
 
         return res.status(200).json({ 
             success: true, 
@@ -45,7 +48,6 @@ export const addToCartController = async (req, res) => {
         return res.status(500).json({ success: false, message: "Failed to add to cart." });
     }
 };
-
 export const loadCartPage = async (req, res) => {
     try {
         const userId = req.user._id;

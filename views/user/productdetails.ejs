@@ -1,0 +1,290 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>HomeStation</title>
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,600;0,700;1,600&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <link rel="icon" type="image/x-icon" href="https://res.cloudinary.com/dz7fuqwnr/image/upload/v1778395481/WhatsApp_Image_2026-05-10_at_12.12.36_nra5vk.jpg">
+    <link rel="stylesheet" href="/css/user/productdetails.css">
+</head>
+
+<body>
+    <input type="hidden" id="csrfToken" value="<%= typeof csrfToken !== 'undefined' ? csrfToken : '' %>">
+    <input type="hidden" id="productBaseId" value="<%= product._id %>">
+    <input type="hidden" id="serverAlertStatus" value="<%= errorAlert ? errorAlert.type : '' %>">
+    <input type="hidden" id="serverAlertTitle" value="<%= errorAlert ? errorAlert.title : '' %>">
+    <input type="hidden" id="serverAlertMessage" value="<%= errorAlert ? errorAlert.message : '' %>">
+
+    <% if (typeof bannerText !== 'undefined' && bannerText) { %>
+        <div class="promo-bar">
+            <b><%- bannerText %></b>
+        </div>
+    <% } %>
+
+    <header class="header">
+        <div class="container-fluid header-container">
+            <a href="/home" class="logo">HomeStation</a>
+            <nav class="nav">
+                <ul class="nav-list">
+                    <li><a href="/home" class="nav-link">Home</a></li>
+                    <li><a href="/products" class="nav-link">World of Mattress</a></li>
+                    <li><a href="/deals" class="nav-link">Top Deals</a></li>
+                    <li><a href="/bestsellers" class="nav-link">Best Sellers</a></li>
+                    <li><a href="/contact" class="nav-link">Contact Us</a></li>
+                </ul>
+            </nav>
+            <div class="search-container">
+                <input type="text" placeholder="Search for products, brands and more..." id="searchInput">
+                <button id="searchBtn" type="button"><i class="fa-solid fa-magnifying-glass"></i></button>
+            </div>
+            <div class="header-actions">
+                <a href="/user/wishlist" class="icon-link wishlist-link"><i class="fa-regular fa-heart"></i> Wishlist</a>
+                <a href="/user/profile" class="icon-link"><i class="fa-regular fa-user"></i> Profile</a>
+                <a href="/user/cart" class="icon-link"><i class="fa-solid fa-cart-shopping"></i> Cart</a>
+            </div>
+        </div>
+    </header>
+
+    <main class="product-details-main container">
+        <div class="product-split-layout">
+
+            <div class="product-carousel">
+                <div class="main-image-container">
+                    <% const fallbackImg = 'https://placehold.co/600x600?text=No+Image'; %>
+                    <img id="main-product-image" src="<%= (product.images && product.images.length > 0) ? product.images[0] : fallbackImg %>" alt="<%= product.name %>">
+                </div>
+                <div class="carousel-thumbnails">
+                    <% if (product.images && product.images.length > 0) { %>
+                        <% product.images.forEach((img, index) => { %>
+                            <div class="thumbnail <%= index === 0 ? 'active' : '' %> custom-thumb-click" data-src="<%= img %>">
+                                <img src="<%= img %>" alt="Thumbnail <%= index + 1 %>">
+                            </div>
+                        <% }) %>
+                    <% } %>
+                </div>
+            </div>
+
+            <div class="product-info">
+                <h1 class="product-title"><%= product.name %></h1>
+
+                <div class="product-meta">
+                    <div class="stars">
+                        <i class="fa-solid fa-star"></i><i class="fa-solid fa-star"></i><i class="fa-solid fa-star"></i><i class="fa-solid fa-star"></i><i class="fa-regular fa-star-half-stroke"></i>
+                    </div>
+                    <span class="review-count">(128 Reviews)</span>
+                </div>
+
+                <div class="product-price" id="variantPriceDisplayBox">
+                    <span id="renderedCurrentPrice">₹<%= Math.round(variants[0].calculatedPrice).toLocaleString('en-IN') %></span>
+                    <% if (variants[0].discount > 0) { %>
+                        <span class="old-price" id="renderedOriginalPrice">₹<%= Math.round(variants[0].originalPrice).toLocaleString('en-IN') %></span>
+                        <span class="discount-badge" id="renderedDiscountBadge">(<%= variants[0].discount %>% OFF)</span>
+                    <% } else { %>
+                        <span class="old-price hidden" id="renderedOriginalPrice"></span>
+                        <span class="discount-badge hidden" id="renderedDiscountBadge"></span>
+                    <% } %>
+                </div>
+
+                <p class="product-description-short"><%= product.description %></p>
+
+                <div class="size-selector-container">
+                    <div class="size-selector-header">
+                        <span class="selector-title">Size</span>
+                        <button type="button" id="openSizeChartBtn" class="chart-trigger-link">Size Chart</button>
+                    </div>
+                    <div class="size-options">
+                        <% variants.forEach((v, index) => { %>
+                            <input type="radio" id="variant-node-<%= v._id %>" name="mattress-size" value="<%= v._id %>" class="size-radio variant-selector-input" 
+                                   data-price="₹<%= Math.round(v.calculatedPrice).toLocaleString('en-IN') %>"
+                                   data-orig="<%= v.discount > 0 ? '₹' + Math.round(v.originalPrice).toLocaleString('en-IN') : '' %>"
+                                   data-disc="<%= v.discount > 0 ? '(' + v.discount + '% OFF)' : '' %>"
+                                   <%= index === 0 ? 'checked' : '' %>>
+                            <label for="variant-node-<%= v._id %>" class="size-label"><%= v.variantName %></label>
+                        <% }) %>
+                    </div>
+                </div>
+
+                <div class="action-row">
+                    <div class="quantity-selector">
+                        <button type="button" class="quantity-btn minus" id="qtyMinusBtn"><i class="fa-solid fa-minus"></i></button>
+                        <input type="text" id="qty-input" class="quantity-input" value="1" readonly>
+                        <button type="button" class="quantity-btn plus" id="qtyPlusBtn"><i class="fa-solid fa-plus"></i></button>
+                    </div>
+
+                    <button class="add-cart-btn" id="primaryAddToCartBtn" type="button">
+                        <i class="fa-solid fa-cart-plus"></i> Add To Cart
+                    </button>
+
+                    <% const activeWish = typeof userWishlist !== 'undefined' && userWishlist.includes(variants[0]._id.toString()); %>
+                    <button class="wishlist-btn <%= activeWish ? 'liked' : '' %>" id="primaryToggleWishlistBtn" type="button">
+                        <i class="<%= activeWish ? 'fa-solid' : 'fa-regular' %> fa-heart"></i>
+                    </button>
+                </div>
+
+                <div class="product-features">
+                    <div class="feature-item"><i class="fa-solid fa-truck-fast"></i> Free Delivery & Assembly within 3-5 Business Days</div>
+                    <div class="feature-item"><i class="fa-solid fa-shield-cat"></i> <%= product.warranty || 'Standard Warranty Restrictions Apply' %></div>
+                    <div class="feature-item"><i class="fa-solid fa-rotate-left"></i> 15 Days Easy Returns or Exchange</div>
+                </div>
+            </div>
+        </div>
+
+        <div class="specs-reviews-layout">
+            <div class="specifications-section">
+                <h3>Product Specifications</h3>
+                <p class="specs-text"><%= product.specifications %></p>
+            </div>
+
+            <div class="reviews-section">
+                <h3>Customer Reviews</h3>
+                <div class="review-list">
+                    <div class="review-card">
+                        <div class="review-header">
+                            <div class="reviewer-info">
+                                <h4>Rahul Sharma</h4>
+                                <div class="stars dummy-review-stars">
+                                    <i class="fa-solid fa-star"></i><i class="fa-solid fa-star"></i><i class="fa-solid fa-star"></i><i class="fa-solid fa-star"></i><i class="fa-solid fa-star"></i>
+                                </div>
+                            </div>
+                            <span class="review-date">October 12, 2025</span>
+                        </div>
+                        <p class="review-text">Absolutely thrilled with this mattress! It provides amazing support and comfort. Delivery was seamless.</p>
+                    </div>
+                    <div class="review-card">
+                        <div class="review-header">
+                            <div class="reviewer-info">
+                                <h4>Anjali Desai</h4>
+                                <div class="stars dummy-review-stars">
+                                    <i class="fa-solid fa-star"></i><i class="fa-solid fa-star"></i><i class="fa-solid fa-star"></i><i class="fa-solid fa-star"></i><i class="fa-regular fa-star"></i>
+                                </div>
+                            </div>
+                            <span class="review-date">September 28, 2025</span>
+                        </div>
+                        <p class="review-text">Very comfortable. The edges are slightly firmer than I expected but they are softening up nicely.</p>
+                    </div>
+                </div>
+                <button type="button" class="btn-primary see-all-reviews-disabled">See All</button>
+            </div>
+        </div>
+    </main>
+
+    <section class="related-products">
+        <div class="container">
+            <div class="section-header">
+                <h2>You may also like</h2>
+            </div>
+            <div class="products-grid">
+                <% if (typeof related && related.length > 0) { %>
+                    <% related.forEach(rel => { %>
+                        <% const relVariant = rel.displayVariant; %>
+                        <div class="product-card">
+                            <div class="product-image">
+                                <a href="/products/<%= rel._id %>">
+                                    <img src="<%= (rel.images && rel.images.length > 0) ? rel.images[0] : 'https://placehold.co/400' %>" alt="<%= rel.name %>">
+                                </a>
+                                <div class="badge-container">
+                                    <% if (relVariant.discount > 0) { %>
+                                        <span class="badge discount"><%= relVariant.discount %>% OFF</span>
+                                    <% } %>
+                                </div>
+                                <% const relWish = typeof userWishlist !== 'undefined' && userWishlist.includes(relVariant._id.toString()); %>
+                                <button class="card-wishlist-btn inline-related-wishlist-toggle <%= relWish ? 'liked' : '' %>" type="button" data-variant-id="<%= relVariant._id %>">
+                                    <i class="<%= relWish ? 'fa-solid' : 'fa-regular' %> fa-heart"></i>
+                                </button>
+                            </div>
+                            <div class="product-info-card">
+                                <h3><a href="/products/<%= rel._id %>"><%= rel.name %> (<%= relVariant.variantName %>)</a></h3>
+                                <div class="stars"><i class="fa-solid fa-star"></i> 4.8 (95)</div>
+                                <div class="card-footer">
+                                    <p class="price-card">
+                                        <% if (relVariant.discount > 0) { %>
+                                            <span class="old-price">₹<%= Math.round(relVariant.originalPrice).toLocaleString('en-IN') %></span>
+                                        <% } %>
+                                        ₹<%= Math.round(relVariant.calculatedPrice).toLocaleString('en-IN') %>
+                                    </p>
+                                    <button class="add-btn inline-related-cart-addition" type="button" data-variant-id="<%= relVariant._id %>">
+                                        <i class="fa-solid fa-cart-plus"></i> Add
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    <% }) %>
+                <% } %>
+            </div>
+        </div>
+    </section>
+
+    <div id="imageZoomModal" class="image-zoom-modal">
+        <span class="zoom-close" id="closeZoomOverlayTargetBtn">&times;</span>
+        <img id="zoomedImage" src="" alt="Magnified View">
+    </div>
+
+    <div id="sizeChartModal" class="size-chart-backdrop-modal">
+        <div class="size-chart-window-content">
+            <div class="size-chart-header-row">
+                <h3>Size Chart Specifications</h3>
+                <span id="closeSizeChartModalBtn" class="close-chart-x-btn">&times;</span>
+            </div>
+            <table class="size-chart-matrix-table">
+                <thead>
+                    <tr>
+                        <th>Size Option</th>
+                        <th>Dimensions (Inches)</th>
+                        <th>Dimensions (Centimeters)</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <% variants.forEach(v => { %>
+                        <tr>
+                            <td><strong><%= v.variantName %></strong></td>
+                            <td><%= v.length || 0 %>"L x <%= v.width || 0 %>"W x <%= v.height || 0 %>"H</td>
+                            <td>
+                                <%= (v.length * 2.54).toFixed(1) %> x 
+                                <%= (v.width * 2.54).toFixed(1) %> x 
+                                <%= (v.height * 2.54).toFixed(1) %> cm
+                            </td>
+                        </tr>
+                    <% }) %>
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <footer class="footer">
+        <div class="container-fluid footer-container">
+            <div class="footer-left">
+                <a href="/home" class="logo footer-logo">HomeStation</a>
+                <p>Your premier destination for high-quality mattresses and sleep essentials, crafted to bring cloud-like comfort to every night.</p>
+            </div>
+            <div class="footer-links-wrapper">
+                <div class="footer-column">
+                    <h4>Shop</h4>
+                    <ul>
+                        <li><a href="/products">World of Mattress</a></li>
+                        <li><a href="/deals">Top Deals</a></li>
+                        <li><a href="/bestsellers">Best Sellers</a></li>
+                    </ul>
+                </div>
+                <div class="footer-column">
+                    <h4>Support</h4>
+                    <ul>
+                        <li><a href="#">Track Your Orders</a></li>
+                        <li><a href="/privacy-policy">Privacy Policy</a></li>
+                        <li><a href="/contact">Contact Us</a></li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+        <div class="container-fluid copyright">
+            <p>&copy; 2026 HomeStation Store. All rights reserved.</p>
+        </div>
+    </footer>
+
+    <script src="/js/user/productdetails.js"></script>
+</body>
+</html>

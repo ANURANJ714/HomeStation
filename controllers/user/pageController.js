@@ -18,8 +18,11 @@ export const loadHomePage = async (req, res) => {
         }
 
         if (user && req.session.pendingCartVariantId) {
-            await addVariantToCart(user._id, req.session.pendingCartVariantId);
+            const savedQty = req.session.pendingCartQuantity || 1;
+            await cartService.handleAddToCartIntent(user._id, req.session.pendingCartVariantId, savedQty);
+            
             req.session.pendingCartVariantId = null;
+            req.session.pendingCartQuantity = null; 
             cartAddedFlag = true;
             req.session.save(); 
         }

@@ -60,6 +60,27 @@ export const getProductsPageData = async (queryOptions) => {
     };
 };
 
+export const getCatalogPageMetadata = async (categoryId) => {
+    try {
+        const activeCategories = await Category.find({ isDeleted: false }).lean();
+        
+        let pageHeading = "All Mattresses";
+        if (categoryId && categoryId !== 'all') {
+            const activeCategoryDoc = await Category.findOne({ _id: categoryId, isDeleted: false });
+            if (activeCategoryDoc) {
+                pageHeading = activeCategoryDoc.name;
+            }
+        }
+
+        return {
+            categories: activeCategories,
+            pageHeading
+        };
+    } catch (error) {
+        throw new Error(`Service Layer failure handling catalog page metadata: ${error.message}`);
+    }
+};
+
 export const getUniqueActiveBrands = async () => {
     try {
         return await Product.distinct('brand', { isDeleted: false });
@@ -142,5 +163,91 @@ export const getFilteredProductsCatalog = async (filters) => {
 
     } catch (error) {
         throw new Error(`Catalog engine processing failed: ${error.message}`);
+    }
+};
+
+export const getValidatedProductDetails = async (productId) => {
+    try {
+        const product = await Product.findOne({ _id: productId, isDeleted: false }).lean();
+        if (!product) {
+            const error = new Error("Requested product is no longer active.");
+            error.reason = 'UNAVAILABLE';
+            throw error;
+        }
+
+        const category = await Category.findOne({ _id: product.categoryId, isDeleted: false }).lean();
+        if (!category) {
+            const error = new Error("Parent category context dropped.");
+            error.reason = 'UNAVAILABLE';
+            throw error;
+        }
+
+        const rawVariants = await ProductVariant.find({ productId: product._id }).lean();
+        const activeInStockVariants = [];
+        let runningTotalStockValue = 0;
+
+        rawVariants.forEach(v => {
+            runningTotalStockValue += v.stock;
+            if (v.stock > 0) {
+                const calculatedPrice = Math.round(v.originalPrice * (1 - (v.discount || 0) / 100));
+                activeInStockVariants.push({
+                    ...v,
+                    calculatedPrice
+                });
+            }
+        });
+
+        if (runningTotalStockValue <= 0 || activeInStockVariants.length === 0) {
+            const error = new Error("Product variant inventory is out of stock.");
+            error.reason = 'OUT_OF_STOCK';
+            throw error;
+        }
+
+        const analyticalMatches = await Product.aggregate([
+            { $match: { _id: { $ne: product._id }, categoryId: category._id, isDeleted: false } },
+            { $sample: { size: 4 } },
+            {
+                $lookup: {
+                    from: 'productvariants',
+                    localField: '_id',
+                    foreignField: 'productId',
+                    as: 'variants'
+                }
+            },
+            {
+                $addFields: {
+                    inStockVariants: {
+                        $filter: {
+                            input: '$variants',
+                            as: 'v',
+                            cond: { $gt: ['$$v.stock', 0] }
+                        }
+                    }
+                }
+            },
+            { $match: { $expr: { $gt: [{ $size: '$inStockVariants' }, 0] } } }
+        ]);
+
+        const processedSuggestionsDeck = analyticalMatches.map(p => {
+            const primaryOption = p.inStockVariants[0];
+            const calculatedPrice = Math.round(primaryOption.originalPrice * (1 - (primaryOption.discount || 0) / 100));
+            return {
+                ...p,
+                displayVariant: {
+                    ...primaryOption,
+                    calculatedPrice
+                }
+            };
+        });
+
+        return {
+            product,
+            variants: activeInStockVariants,
+            relatedProducts: processedSuggestionsDeck
+        };
+
+    } catch (error) {
+        if (error.reason) throw error;
+        throw new Error(`Data mapping transaction failed on service resolution: ${error.message}`);
     }
 };

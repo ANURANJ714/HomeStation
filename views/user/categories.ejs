@@ -57,8 +57,8 @@
         </div>
     </header>
 
-    <main class="furniture-page">
-        <div class="container-fluid furniture-container">
+    <main class="mattress-page">
+        <div class="container-fluid mattress-container">
             <aside class="sidebar">
                 <div class="filter-group">
                     <h3>Categories</h3>
@@ -116,13 +116,27 @@
                         <% products.forEach(product => { %>
                             <% const variant = product.displayVariant; %>
                             <div class="product-card">
-                                <div class="product-image">
-                                    <img src="<%= product.images && product.images[0] ? product.images[0] : 'https://placehold.co/400' %>" alt="<%= product.name %>">
-                                    <div class="badge-container">
-                                        <% if (variant.discount > 0) { %>
-                                            <span class="badge discount"><%= variant.discount %>% OFF</span>
-                                        <% } %>
+                                
+                                <a href="/products/<%= product._id %>" style="display: block;">
+                                    <div class="product-image">
+                                        <img src="<%= product.images && product.images[0] ? product.images[0] : 'https://placehold.co/400' %>" alt="<%= product.name %>">
+                                        <div class="badge-container">
+                                            <% if (variant.discount > 0) { %>
+                                                <span class="badge discount"><%= variant.discount %>% OFF</span>
+                                            <% } %>
+                                        </div>
                                     </div>
+                                </a>
+
+                                <div class="product-info">
+                                    <h3>
+                                        <a href="/products/<%= product._id %>" style="color: inherit;">
+                                            <%= product.name %> (<%= variant.variantName %>)
+                                        </a>
+                                    </h3>
+                                    
+                                    <div class="stars"><i class="fa-solid fa-star"></i> 4.8 (150)</div>
+                                    
                                     <% 
                                         const variantIdStr = variant._id.toString(); 
                                         const isInWishlist = typeof userWishlist !== 'undefined' && userWishlist.includes(variantIdStr); 
@@ -130,10 +144,7 @@
                                     <button class="wishlist-btn <%= isInWishlist ? 'liked' : '' %>" type="button" data-variant-id="<%= variantIdStr %>">
                                         <i class="<%= isInWishlist ? 'fa-solid' : 'fa-regular' %> fa-heart"></i>
                                     </button>
-                                </div>
-                                <div class="product-info">
-                                    <h3><%= product.name %> (<%= variant.variantName %>)</h3>
-                                    <div class="stars"><i class="fa-solid fa-star"></i> 4.8 (150)</div>
+
                                     <div class="card-footer">
                                         <p class="price">
                                             <% if (variant.discount > 0) { %>

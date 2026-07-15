@@ -37,7 +37,6 @@ img {
     padding: 0 40px;
 }
 
-/* Promo Bar */
 .promo-bar {
     background-color: #ffeb3b;
     color: #333;
@@ -47,7 +46,6 @@ img {
     border-bottom: 1px solid #ddd;
 }
 
-/* Header */
 .header {
     border-bottom: 1px solid #eaeaea;
     background-color: #fff;
@@ -73,7 +71,6 @@ img {
     color: #333;
 }
 
-/* Search Bar */
 .search-container {
     display: flex;
     align-items: center;
@@ -163,7 +160,6 @@ img {
     font-weight: 900;
 }
 
-/* Toast Notification (Centralized) */
 .toast {
     position: fixed;
     top: 50%;
@@ -206,7 +202,6 @@ img {
     transform: translate(-50%, -50%) scale(1);
 }
 
-/* Footer */
 .footer {
     background-color: #222;
     color: #ccc;
@@ -268,21 +263,17 @@ img {
     font-size: 14px;
 }
 
-/* --- Mattress Page Specific Styles --- */
-
-/* --- Clean Product Listing Layout Enhancements --- */
-.furniture-page {
+.mattress-page {
     padding: 40px 0 80px;
     background-color: #fafafa;
 }
 
-.furniture-container {
+.mattress-container {
     display: flex;
     gap: 30px;
     align-items: start;
 }
 
-/* Sidebar Box Layout */
 .sidebar {
     flex: 0 0 280px;
     background-color: #fff;
@@ -362,7 +353,6 @@ img {
     cursor: pointer;
 }
 
-/* Main Content Headings */
 .main-content {
     flex: 1;
 }
@@ -403,7 +393,6 @@ img {
     color: #333;
 }
 
-/* Product Card Standardization Grid */
 .products-grid {
     display: grid;
     grid-template-columns: repeat(3, 1fr);
@@ -446,7 +435,6 @@ img {
     font-size: 16px;
 }
 
-/* Pagination Control Blocks */
 .pagination {
     margin-top: 50px;
     display: flex;
@@ -502,7 +490,6 @@ img {
     border-color: #222;
 }
 
-/* --- Responsive Media Viewport Breaks --- */
 @media (max-width: 1200px) {
     .products-grid {
         grid-template-columns: repeat(2, 1fr);
@@ -510,7 +497,7 @@ img {
 }
 
 @media (max-width: 992px) {
-    .furniture-container {
+    .mattress-container {
         flex-direction: column;
     }
     .sidebar {

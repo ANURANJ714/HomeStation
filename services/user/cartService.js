@@ -25,8 +25,10 @@ export const addVariantToCart = async (userId, productVariantId) => {
     }
 };
 
-export const handleAddToCartIntent = async (userId, variantId) => {
+export const handleAddToCartIntent = async (userId, variantId, quantity = 1) => {
     try {
+        const parsedQuantity = Math.max(1, parseInt(quantity, 10) || 1);
+
         const variant = await ProductVariant.findById(variantId).populate({
             path: 'productId',
             populate: { path: 'categoryId' }
@@ -36,24 +38,34 @@ export const handleAddToCartIntent = async (userId, variantId) => {
             return { success: false, reason: 'PRODUCT_REMOVED', message: "Product has been removed." };
         }
 
-        if (variant.stock <= 0) {
-            return { success: false, reason: 'OUT_OF_STOCK', message: "Product is out of stock." };
-        }
-
         if (variant.productId.categoryId && variant.productId.categoryId.isDeleted === true) {
             return { success: false, reason: 'PRODUCT_REMOVED', message: "Product has been removed." };
+        }
+
+        if (variant.stock <= 0) {
+            return { success: false, reason: 'OUT_OF_STOCK', message: "Product is out of stock." };
         }
 
         let cartItem = await Cart.findOne({ userId, productVariantId: variantId });
 
         if (cartItem) {
-            cartItem.quantity += 1;
+            if (cartItem.quantity + parsedQuantity > variant.stock) {
+                return { 
+                    success: false, 
+                    reason: 'OUT_OF_STOCK', 
+                    message: `Cannot add requested quantity. Only ${variant.stock} units are available, and you have ${cartItem.quantity} already in your cart.` 
+                };
+            }
+            cartItem.quantity += parsedQuantity;
             await cartItem.save();
         } else {
+            if (parsedQuantity > variant.stock) {
+                return { success: false, reason: 'OUT_OF_STOCK', message: `Only ${variant.stock} units available in stock.` };
+            }
             cartItem = new Cart({
                 userId,
                 productVariantId: variantId,
-                quantity: 1
+                quantity: parsedQuantity
             });
             await cartItem.save();
         }
