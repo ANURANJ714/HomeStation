@@ -1,0 +1,293 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>HomeStation - ADMIN</title>
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght=0,600;0,700;1,600&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <link rel="icon" type="image/x-icon"
+        href="https://res.cloudinary.com/dz7fuqwnr/image/upload/v1778395481/WhatsApp_Image_2026-05-10_at_12.12.36_nra5vk.jpg">
+    <link rel="stylesheet" href="/css/admin/enquiry.css">
+</head>
+
+<body>
+    <input type="hidden" id="csrfToken" value="<%= typeof csrfToken !== 'undefined' ? csrfToken : '' %>">
+    <input type="hidden" id="activeSortStatusCache" value="<%= currentStatusFilter %>">
+
+    <div class="dashboard-layout">
+        <aside class="sidebar">
+            <div class="sidebar-header">
+                <h2 class="brand-title">HomeStation</h2>
+                <button class="close-sidebar" id="closeSidebar"><i class="fa-solid fa-xmark"></i></button>
+            </div>
+            <nav class="sidebar-nav">
+                <ul class="nav-list">
+                    <li class="nav-item"><a href="/admin/dashboard" class="nav-link"><i class="fa-solid fa-chart-pie nav-icon"></i> Dashboard</a></li>
+                    <li class="nav-item"><a href="/admin/products" class="nav-link"><i class="fa-solid fa-box nav-icon"></i> Products</a></li>
+                    <li class="nav-item"><a href="/admin/categories" class="nav-link"><i class="fa-solid fa-tags nav-icon"></i> Categories</a></li>
+                    <li class="nav-item"><a href="/admin/orders" class="nav-link"><i class="fa-solid fa-cart-shopping nav-icon"></i> Orders</a></li>
+                    <li class="nav-item"><a href="/admin/users" class="nav-link"><i class="fa-solid fa-users nav-icon"></i> User Management</a></li>
+                    <li class="nav-item"><a href="/admin/sales-report" class="nav-link"><i class="fa-solid fa-file-invoice-dollar nav-icon"></i> Sales Report</a></li>
+                    <li class="nav-item"><a href="/admin/coupons" class="nav-link"><i class="fa-solid fa-ticket nav-icon"></i> Manage Coupons</a></li>
+                    <li class="nav-item"><a href="/admin/offers" class="nav-link"><i class="fa-solid fa-gift nav-icon"></i> Offers</a></li>
+                    <li class="nav-item"><a href="/admin/enquiries" class="nav-link active"><i class="fa-solid fa-envelope nav-icon"></i> Enquiry</a></li>
+                    
+                </ul>
+                <ul class="nav-list logout-section">
+                    <li class="nav-item"><a href="#" class="nav-link logout-link"><i class="fa-solid fa-right-from-bracket nav-icon"></i> Logout</a></li>
+                </ul>
+            </nav>
+        </aside>
+
+        <div class="main-panel">
+            <header class="top-header">
+                <div class="header-left">
+                    <button class="hamburger-menu" id="hamburgerMenu"><i class="fa-solid fa-bars"></i></button>
+                </div>
+                <div class="header-right">
+                    <div class="datetime-display" id="datetimeDisplay"></div>
+                    <div class="admin-badge"><i class="fa-solid fa-user-shield"></i> Admin</div>
+                </div>
+            </header>
+
+            <main class="content-wrapper">
+                <div class="page-header-row">
+                    <h1 class="page-title">Manage Enquiries</h1>
+                    <div class="header-actions">
+                        <button type="button" class="btn text-danger open-modal-trigger-btn" data-target="deleteSubjectModal">
+                            <i class="fa-solid fa-trash"></i> Delete Subject
+                        </button>
+                        <button type="button" class="btn btn-primary open-modal-trigger-btn" data-target="addSubjectModal">
+                            <i class="fa-solid fa-plus"></i> Add Subject
+                        </button>
+                    </div>
+                </div>
+
+                <div class="filters-bar">
+                    <div class="search-box">
+                        <input type="text" id="ticketSearch" placeholder="Search ticket number..." value="<%= searchQuery %>">
+                        <button class="search-toggle-btn <%= searchQuery ? 'search-toggle-clear' : '' %>" id="searchToggleBtn" type="button">
+                            <i class="fa-solid <%= searchQuery ? 'fa-xmark' : 'fa-magnifying-glass' %>" id="searchToggleIcon"></i>
+                        </button>
+                    </div>
+                    <div class="filter-dropdowns">
+                        <label for="statusFilter">Filter by status:</label>
+                        <select id="statusFilter" class="filter-select">
+                            <option value="" <%= currentStatusFilter === '' ? 'selected' : '' %>>All Status</option>
+                            <option value="ticket_raised" <%= currentStatusFilter === 'ticket_raised' ? 'selected' : '' %>>Ticket Raised</option>
+                            <option value="pending" <%= currentStatusFilter === 'pending' ? 'selected' : '' %>>Pending</option>
+                            <option value="resolved" <%= currentStatusFilter === 'resolved' ? 'selected' : '' %>>Resolved</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="table-container">
+                    <table class="data-table">
+                        <thead>
+                            <tr>
+                                <th>Ticket No</th>
+                                <th>Date</th>
+                                <th>Name</th>
+                                <th>Email</th>
+                                <th>Status</th>
+                                <th class="actions-header">Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <% if (enquiries && enquiries.length > 0) { %>
+                                <% enquiries.forEach(enq => { %>
+                                    <tr>
+                                        <td class="fw-500">#<%= enq.ticketId %></td>
+                                        <td><%= new Date(enq.createdAt).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' }) %></td>
+                                        <td class="fw-500"><%= enq.name %></td>
+                                        <td><%= enq.email %></td>
+                                        <td>
+                                            <% if (enq.ticketStatus === 'Ticket Raised') { %>
+                                                <span class="badge badge-info">Ticket Raised</span>
+                                            <% } else if (enq.ticketStatus === 'Pending') { %>
+                                                <span class="badge badge-warning">Pending</span>
+                                            <% } else { %>
+                                                <span class="badge badge-success">Resolved</span>
+                                            <% } %>
+                                        </td>
+                                        <td class="actions-td">
+                                            <button class="btn btn-primary btn-sm open-view-msg-btn" type="button" 
+                                                    data-id="<%= enq._id %>"
+                                                    data-ticket="<%= enq.ticketId %>"
+                                                    data-date="<%= new Date(enq.createdAt).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' }) %>"
+                                                    data-name="<%= enq.name %>"
+                                                    data-email="<%= enq.email %>"
+                                                    data-status="<%= enq.ticketStatus %>"
+                                                    data-subject="<%= enq.subjectId ? enq.subjectId.name : 'Other' %>"
+                                                    data-msg="<%= enq.message %>"
+                                                    data-updated="<%= new Date(enq.updatedAt).toLocaleString('en-IN', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit', hour12: true }) %>">
+                                                View Message
+                                            </button>
+                                        </td>
+                                    </tr>
+                                <% }) %>
+                            <% } else { %>
+                                <tr>
+                                    <td colspan="6" class="fallback-notice-text">No support tickets found matching requirements.</td>
+                                </tr>
+                            <% } %>
+                        </tbody>
+                    </table>
+                </div>
+                
+                <% if (totalPages > 1) { %>
+                    <div class="pagination-container">
+                        <span class="pagination-info">Showing <%= startIndex %>-<%= endIndex %> of <%= totalItems %></span>
+                        <div class="pagination-controls">
+                            <button class="page-btn change-page-node-btn <%= currentPage === 1 ? 'disabled' : '' %>" data-page="<%= currentPage - 1 %>" <%= currentPage === 1 ? 'disabled' : '' %>><i class="fa-solid fa-chevron-left"></i></button>
+                            <% for (let i = 1; i <= totalPages; i++) { %>
+                                <button class="page-btn change-page-node-btn <%= i === currentPage ? 'active' : '' %>" data-page="<%= i %>"><%= i %></button>
+                            <% } %>
+                            <button class="page-btn change-page-node-btn <%= currentPage === totalPages ? 'disabled' : '' %>" data-page="<%= currentPage + 1 %>" <%= currentPage === totalPages ? 'disabled' : '' %>><i class="fa-solid fa-chevron-right"></i></button>
+                        </div>
+                    </div>
+                <% } %>
+            </main>
+        </div>
+    </div>
+
+    <div class="modal-overlay" id="viewMessageModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>Enquiry Details</h2>
+                <button type="button" class="close-modal-btn close-modal-trigger-btn" data-target="viewMessageModal"><i class="fa-solid fa-xmark"></i></button>
+            </div>
+            <div class="modal-body">
+                <form id="updateTicketStatusForm" novalidate>
+                    <div class="enquiry-details-grid">
+                        <div class="detail-group">
+                            <label>Ticket No</label>
+                            <p class="fw-500" id="modalTicketId"></p>
+                        </div>
+                        <div class="detail-group">
+                            <label>Enquiry Date</label>
+                            <p id="modalCreatedDate"></p>
+                        </div>
+                        <div class="detail-group">
+                            <label>Name</label>
+                            <p id="modalVisitorName"></p>
+                        </div>
+                        <div class="detail-group">
+                            <label>Email</label>
+                            <p id="modalVisitorEmail"></p>
+                        </div>
+                        <div class="detail-group">
+                            <label>Current Status</label>
+                            <p id="modalCurrentStatusBadgeBox"></p>
+                        </div>
+                        <div class="detail-group">
+                            <label>Updated On</label>
+                            <p id="modalUpdatedDate"></p>
+                        </div>
+                        <div class="detail-group">
+                            <label>Subject</label>
+                            <p id="modalSubjectText"></p>
+                        </div>
+                    </div>
+                    
+                    <div class="message-section">
+                        <label>Message</label>
+                        <div class="message-box" id="modalMessageContentText"></div>
+                    </div>
+
+                    <div class="status-update-section">
+                        <label class="section-label">Update Status</label>
+                        <div class="radio-group">
+                            <label class="radio-label">
+                                <input type="radio" name="enquiryStatus" value="Ticket Raised" id="radioStatusRaised">
+                                <span class="radio-custom"></span> Ticket Raised
+                            </label>
+                            <label class="radio-label">
+                                <input type="radio" name="enquiryStatus" value="Pending" id="radioStatusPending">
+                                <span class="radio-custom"></span> Pending
+                            </label>
+                            <label class="radio-label">
+                                <input type="radio" name="enquiryStatus" value="Resolved" id="radioStatusResolved">
+                                <span class="radio-custom"></span> Resolved
+                            </label>
+                        </div>
+                    </div>
+                    
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary close-modal-trigger-btn" data-target="viewMessageModal">Cancel</button>
+                        <button type="submit" class="btn btn-primary">Update</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <div class="modal-overlay" id="addSubjectModal">
+        <div class="modal-content" style="max-width: 450px;">
+            <div class="modal-header">
+                <h2>Add Subject</h2>
+                <button type="button" class="close-modal-btn close-modal-trigger-btn" data-target="addSubjectModal"><i class="fa-solid fa-xmark"></i></button>
+            </div>
+            <div class="modal-body">
+                <form id="addSubjectForm" novalidate>
+                    <div class="form-group">
+                        <label class="modal-input-field-label">Subject Name</label>
+                        <input type="text" id="newSubjectName" placeholder="Enter new subject name" class="modal-text-input-field">
+                    </div>
+                    <div class="form-group">
+                        <label class="modal-input-field-label">Need Authentication</label>
+                        <div class="modal-radio-flex-row">
+                            <label class="modal-flex-radio-label">
+                                <input type="radio" name="newSubjectNeedAuth" value="true"> Yes
+                            </label>
+                            <label class="modal-flex-radio-label">
+                                <input type="radio" name="newSubjectNeedAuth" value="false" checked> No
+                            </label>
+                        </div>
+                    </div>
+                    
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary close-modal-trigger-btn" data-target="addSubjectModal">Cancel</button>
+                        <button type="submit" class="btn btn-primary">Save</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <div class="modal-overlay" id="deleteSubjectModal">
+        <div class="modal-content" style="max-width: 450px;">
+            <div class="modal-header">
+                <h2>Delete Subject</h2>
+                <button type="button" class="close-modal-btn close-modal-trigger-btn" data-target="deleteSubjectModal"><i class="fa-solid fa-xmark"></i></button>
+            </div>
+            <div class="modal-body">
+                <form id="deleteSubjectForm" novalidate>
+                    <div class="form-group">
+                        <label class="modal-input-field-label">Select Subject</label>
+                        <select id="targetSubjectDeleteId" class="modal-select-input-field">
+                            <option value="">-- Select Subject --</option>
+                            <% if (typeof subjects !== 'undefined' && subjects.length > 0) { %>
+                                <% subjects.forEach(sub => { %>
+                                    <option value="<%= sub._id %>"><%= sub.name %></option>
+                                <% }) %>
+                            <% } %>
+                        </select>
+                    </div>
+                    
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary close-modal-trigger-btn" data-target="deleteSubjectModal">Cancel</button>
+                        <button type="submit" class="btn btn-danger">Delete</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <script src="/js/admin/enquiry.js"></script>
+</body>
+</html>
