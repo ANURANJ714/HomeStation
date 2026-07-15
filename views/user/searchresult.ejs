@@ -1,0 +1,178 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>HomeStation</title>
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,600;0,700;1,600&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <link rel="icon" type="image/x-icon" href="https://res.cloudinary.com/dz7fuqwnr/image/upload/v1778395481/WhatsApp_Image_2026-05-10_at_12.12.36_nra5vk.jpg">
+    <link rel="stylesheet" href="/css/user/searchresult.css">
+</head>
+
+<body>
+    <input type="hidden" id="csrfToken" value="<%= typeof csrfToken !== 'undefined' ? csrfToken : '' %>">
+    <input type="hidden" id="activeSearchQueryCache" value="<%= searchQuery %>">
+
+    <% if (typeof bannerText !== 'undefined' && bannerText) { %>
+        <div class="promo-bar">
+            <b><%- bannerText %></b>
+        </div>
+    <% } %>
+
+    <header class="header">
+        <div class="container-fluid header-container">
+            <a href="/home" class="logo">HomeStation</a>
+            <nav class="nav">
+                <ul class="nav-list">
+                    <li><a href="/home" class="nav-link">Home</a></li>
+                    <li><a href="/products" class="nav-link">World of Mattress</a></li>
+                    <li><a href="/deals" class="nav-link">Top Deals</a></li>
+                    <li><a href="/bestsellers" class="nav-link">Best Sellers</a></li>
+                    <li><a href="/contact" class="nav-link">Contact Us</a></li>
+                </ul>
+            </nav>
+            <div class="search-container">
+                <input type="text" placeholder="Search for products, brands and more..." id="searchInput" value="<%= searchQuery %>">
+                <button id="searchBtn" type="button"><i class="fa-solid fa-magnifying-glass"></i></button>
+            </div>
+            <div class="header-actions">
+                <a href="/user/wishlist" class="icon-link wishlist-link"><i class="fa-regular fa-heart"></i> Wishlist</a>
+                <a href="/user/profile" class="icon-link"><i class="fa-regular fa-user"></i> Profile</a>
+                <a href="/user/cart" class="icon-link"><i class="fa-solid fa-cart-shopping"></i> Cart</a>
+            </div>
+        </div>
+    </header>
+
+    <main class="search-page">
+        <div class="container">
+            <div class="page-header">
+                <div class="header-titles">
+                    <h2>Search results</h2>
+                    <% if (searchQuery) { %>
+                        <p>Showing <%= totalItems %> results for "<span id="searchQueryText"><%= searchQuery %></span>"</p>
+                    <% } else { %>
+                        <p>Discover our range of sleep solutions.</p>
+                    <% } %>
+                </div>
+                
+                <div class="header-filters">
+                    <label for="priceSort">Sort by Price:</label>
+                    <select id="priceSort" class="sort-select">
+                        <option value="all" <%= currentSort === 'all' ? 'selected' : '' %>>All Price Range</option>
+                        <option value="highToLow" <%= currentSort === 'highToLow' ? 'selected' : '' %>>High to Low</option>
+                        <option value="lowToHigh" <%= currentSort === 'lowToHigh' ? 'selected' : '' %>>Low to High</option>
+                    </select>
+                </div>
+            </div>
+
+            <div class="products-grid" id="searchResultsGrid">
+                <% if (typeof products !== 'undefined' && products.length > 0) { %>
+                    <% products.forEach(product => { %>
+                        <% const variant = product.displayVariant; %>
+                        <div class="product-card">
+                            <div class="product-image">
+                                <a href="/products/<%= product._id %>">
+                                    <img src="<%= product.images && product.images[0] ? product.images[0] : 'https://placehold.co/400' %>" alt="<%= product.name %>">
+                                </a>
+                                <div class="badge-container">
+                                    <% if (variant.discount > 0) { %>
+                                        <span class="badge discount"><%= variant.discount %>% OFF</span>
+                                    <% } %>
+                                </div>
+                                <% 
+                                    const variantIdStr = variant._id.toString();
+                                    const likedClass = (typeof userWishlist !== 'undefined' && userWishlist.includes(variantIdStr)) ? 'liked' : '';
+                                %>
+                                <button class="wishlist-btn <%= likedClass %>" type="button" data-variant-id="<%= variantIdStr %>">
+                                    <i class="<%= likedClass ? 'fa-solid' : 'fa-regular' %> fa-heart"></i>
+                                </button>
+                            </div>
+                            <div class="product-info">
+                                <h3><a href="/products/<%= product._id %>"><%= product.name %> (<%= variant.variantName %>)</a></h3>
+                                <div class="stars"><i class="fa-solid fa-star"></i> 4.8 (150)</div>
+                                <div class="card-footer">
+                                    <p class="price">
+                                        <% if (variant.discount > 0) { %>
+                                            <span class="old-price">₹<%= variant.originalPrice.toLocaleString('en-IN') %></span>
+                                        <% } %>
+                                        ₹<%= variant.calculatedPrice.toLocaleString('en-IN') %>
+                                    </p>
+                                    <button class="add-to-cart-btn" type="button" data-variant-id="<%= variantIdStr %>">
+                                        <i class="fa-solid fa-cart-plus"></i> Add
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    <% }) %>
+                <% } else { %>
+                    <div class="fallback-notice-text">
+                        <p>No matches found. Try modifying your search query keys.</p>
+                    </div>
+                <% } %>
+            </div>
+
+            <% if (totalPages > 1) { %>
+                <div class="pagination">
+                    <% if (currentPage > 1) { %>
+                        <button type="button" class="page-link navigate-page-btn" data-page="<%= currentPage - 1 %>">
+                            <i class="fa-solid fa-chevron-left"></i> Previous
+                        </button>
+                    <% } else { %>
+                        <span class="page-link disabled"><i class="fa-solid fa-chevron-left"></i> Previous</span>
+                    <% } %>
+
+                    <% for (let i = 1; i <= totalPages; i++) { %>
+                        <button type="button" class="page-link navigate-page-btn <%= i === currentPage ? 'active' : '' %>" data-page="<%= i %>">
+                            <%= i %>
+                        </button>
+                    <% } %>
+
+                    <% if (currentPage < totalPages) { %>
+                        <button type="button" class="page-link navigate-page-btn" data-page="<%= currentPage + 1 %>">
+                            Next <i class="fa-solid fa-chevron-right"></i>
+                        </button>
+                    <% } else { %>
+                        <span class="page-link disabled">Next <i class="fa-solid fa-chevron-right"></i></span>
+                    <% } %>
+                </div>
+            <% } %>
+        </div>
+    </main>
+
+    <footer class="footer">
+        <div class="container-fluid footer-container">
+            <div class="footer-left">
+                <a href="/home" class="logo footer-logo">HomeStation</a>
+                <p>Your premier destination for high-quality mattresses and sleep essentials, crafted to bring cloud-like comfort to every night.</p>
+            </div>
+            <div class="footer-links-wrapper">
+                <div class="footer-column">
+                    <h4>Shop</h4>
+                    <ul>
+                        <li><a href="/products">World of Mattress</a></li>
+                        <li><a href="/deals">Top Deals</a></li>
+                        <li><a href="/bestsellers">Best Sellers</a></li>
+                    </ul>
+                </div>
+                <div class="footer-column">
+                    <h4>Support</h4>
+                    <ul>
+                        <li><a href="#">Track Your Orders</a></li>
+                        <li><a href="/privacy-policy">Privacy Policy</a></li>
+                        <li><a href="/contact">Contact Us</a></li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+        <div class="container-fluid copyright">
+            <p>&copy; 2026 HomeStation Store. All rights reserved.</p>
+        </div>
+    </footer>
+
+    <script src="/js/user/searchresult.js"></script>
+</body>
+</html>

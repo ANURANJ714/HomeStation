@@ -251,3 +251,80 @@ export const getValidatedProductDetails = async (productId) => {
         throw new Error(`Data mapping transaction failed on service resolution: ${error.message}`);
     }
 };
+
+export const searchActiveProductsCatalog = async (searchFilters) => {
+    try {
+        const { query, sort, page, limit } = searchFilters;
+        
+        if (!query) {
+            return { products: [], totalItems: 0, totalPages: 0 };
+        }
+
+        const activeCategories = await Category.find({ isDeleted: false }).select('_id');
+        const activeCategoryIds = activeCategories.map(c => c._id.toString());
+
+        const cleanedQuery = query.trim();
+        const searchTokens = cleanedQuery.split(/\s+/).filter(Boolean);
+
+        const tokenRegexConditions = searchTokens.map(token => ({
+            $or: [
+                { name: { $regex: token, $options: 'i' } },
+                { brand: { $regex: token, $options: 'i' } }
+            ]
+        }));
+
+        const productMatchQuery = {
+            isDeleted: false,
+            categoryId: { $in: activeCategoryIds },
+            $and: tokenRegexConditions
+        };
+
+        const productsList = await Product.find(productMatchQuery).lean();
+        const outputCatalog = [];
+
+        for (const product of productsList) {
+            const variants = await ProductVariant.find({ productId: product._id }).sort({ originalPrice: 1 }).lean();
+            
+            let totalStockAccumulator = 0;
+            let firstAvailableVariant = null;
+
+            variants.forEach(variant => {
+                totalStockAccumulator += variant.stock;
+                if (variant.stock > 0 && !firstAvailableVariant) {
+                    const finalCalculatedPrice = Math.round(variant.originalPrice * (1 - (variant.discount || 0) / 100));
+                    firstAvailableVariant = { 
+                        ...variant, 
+                        calculatedPrice: finalCalculatedPrice 
+                    };
+                }
+            });
+
+            if (totalStockAccumulator > 0 && firstAvailableVariant) {
+                outputCatalog.push({
+                    ...product,
+                    displayVariant: firstAvailableVariant
+                });
+            }
+        }
+
+        if (sort === 'lowToHigh') {
+            outputCatalog.sort((a, b) => a.displayVariant.calculatedPrice - b.displayVariant.calculatedPrice);
+        } else if (sort === 'highToLow') {
+            outputCatalog.sort((b, a) => b.displayVariant.calculatedPrice - a.displayVariant.calculatedPrice);
+        }
+
+        const totalItems = outputCatalog.length;
+        const totalPages = Math.ceil(totalItems / limit);
+        const startIndexOffset = (page - 1) * limit;
+        const paginatedItemsSlice = outputCatalog.slice(startIndexOffset, startIndexOffset + limit);
+
+        return {
+            products: paginatedItemsSlice,
+            totalItems,
+            totalPages
+        };
+
+    } catch (error) {
+        throw new Error(`Data search processing layer failure subroutine execution: ${error.message}`);
+    }
+};

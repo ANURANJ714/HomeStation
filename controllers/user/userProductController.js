@@ -116,3 +116,44 @@ export const loadProductDetailViewPage = async (req, res) => {
         return res.status(500).json({ success: false, message: "An unexpected internal server error occurred." });
     }
 };
+
+export const executeCatalogSearchPage = async (req, res) => {
+    try {
+        const user = req.user || null;
+        
+        const searchQuery = req.query.q ? String(req.query.q).trim() : '';
+        const currentSort = req.query.sort ? String(req.query.sort).trim() : 'all';
+        const page = Math.max(1, parseInt(req.query.page, 10) || 1);
+        const limit = 8;
+
+        const [searchResults, bannerText, userWishlist] = await Promise.all([
+            productService.searchActiveProductsCatalog({
+                query: searchQuery,
+                sort: currentSort,
+                page,
+                limit
+            }),
+            getActivePromoBanner(),
+            wishlistService.getUserWishlistArray(user ? user._id : null)
+        ]);
+
+        logger.info(`User [${user ? user.email : 'Guest'}] queried active tokens: "${searchQuery}" - Returned ${searchResults.totalItems} entries.`);
+
+        return res.render('user/searchresult', {
+            user,
+            products: searchResults.products,
+            totalItems: searchResults.totalItems,
+            totalPages: searchResults.totalPages,
+            currentPage: page,
+            searchQuery,
+            currentSort,
+            bannerText,
+            userWishlist,
+            csrfToken: req.csrfToken()
+        });
+
+    } catch (error) {
+        logger.error(`Critical parsing exception caught in executeCatalogSearchPage: ${error.message}\nStack: ${error.stack}`);
+        return res.status(500).json({ success: false, message: "An explicit exception failure occurred handling search profiles." });
+    }
+};
