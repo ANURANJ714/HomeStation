@@ -101,7 +101,7 @@
                             <div class="form-group">
                                 <label for="name">Name</label>
                                 <input type="text" id="name" placeholder="Your full name" 
-                                       value="<%= isAuthenticated ? user.name : '' %>" 
+                                       value="<%= isAuthenticated ? user.fullName : '' %>" 
                                        <%= isAuthenticated ? 'readonly' : '' %> class="<%= isAuthenticated ? 'locked-input' : '' %>">
                             </div>
 

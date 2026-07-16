@@ -80,3 +80,28 @@ export const loadContactPage = async (req, res) => {
         });
     }
 };
+
+export const submitContactInquiryForm = async (req, res) => {
+    try {
+        const { name, email, subjectId, message } = req.body;
+
+        const result = await pageService.createEnquiryTicket({
+            name,
+            email,
+            subjectId,
+            message
+        });
+
+        if (!result.success) {
+            logger.warn(`User enquiry ticket submission rejected: ${result.message}`);
+            return res.status(result.status || 200).json({ success: false, message: result.message });
+        }
+
+        logger.info(`Inquiry ticket created cleanly by [${email ? email.trim().toLowerCase() : 'Unknown'}] using subject ID -> ${subjectId}`);
+        return res.status(200).json({ success: true, message: result.message });
+
+    } catch (error) {
+        logger.error(`Critical transaction failure tracked inside submitContactInquiryForm controller: ${error.message}\nStack: ${error.stack}`);
+        return res.status(500).json({ success: false, message: "An unexpected database mapping exception failure occurred." });
+    }
+};

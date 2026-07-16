@@ -38,7 +38,14 @@
                     
                 </ul>
                 <ul class="nav-list logout-section">
-                    <li class="nav-item"><a href="#" class="nav-link logout-link"><i class="fa-solid fa-right-from-bracket nav-icon"></i> Logout</a></li>
+                    <li class="nav-item">
+                        <form action="/admin/logout" method="POST" id="adminLogoutForm" class="m-0">
+                            <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+                            <button type="submit" class="nav-link logout-link logout-btn-submit">
+                                <i class="fa-solid fa-right-from-bracket nav-icon"></i> Logout
+                            </button>
+                        </form>
+                    </li>
                 </ul>
             </nav>
         </aside>
@@ -101,7 +108,7 @@
                             <% if (enquiries && enquiries.length > 0) { %>
                                 <% enquiries.forEach(enq => { %>
                                     <tr>
-                                        <td class="fw-500">#<%= enq.ticketId %></td>
+                                        <td class="fw-500"><%= enq.ticketId %></td>
                                         <td><%= new Date(enq.createdAt).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' }) %></td>
                                         <td class="fw-500"><%= enq.name %></td>
                                         <td><%= enq.email %></td>
