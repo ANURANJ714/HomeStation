@@ -1,0 +1,173 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>HomeStation</title>
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght=0,600;0,700;1,600&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="icon" type="image/x-icon" href="https://res.cloudinary.com/dz7fuqwnr/image/upload/v1778395481/WhatsApp_Image_2026-05-10_at_12.12.36_nra5vk.jpg">
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <link rel="stylesheet" href="/css/user/home.css">
+    <link rel="stylesheet" href="/css/user/topdeals.css">
+</head>
+
+<body>
+    <input type="hidden" id="csrfToken" value="<%= typeof csrfToken !== 'undefined' ? csrfToken : '' %>">
+
+    <% if (typeof bannerText !== 'undefined' && bannerText) { %>
+        <div class="promo-bar">
+            <b><%- bannerText %></b>
+        </div>
+    <% } %>
+
+    <header class="header">
+        <div class="container-fluid header-container">
+            <a href="/home" class="logo">HomeStation</a>
+            <nav class="nav">
+                <ul class="nav-list">
+                    <li><a href="/home" class="nav-link">Home</a></li>
+                    <li><a href="/products" class="nav-link">World of Mattress</a></li>
+                    <li><a href="/deals" class="nav-link active">Top Deals</a></li>
+                    <li><a href="/bestsellers" class="nav-link">Best Sellers</a></li>
+                    <li><a href="/contact" class="nav-link">Contact Us</a></li>
+                </ul>
+            </nav>
+            <div class="search-container">
+                <input type="text" placeholder="Search for products, brands and more..." id="searchInput">
+                <button id="searchBtn" type="button"><i class="fa-solid fa-magnifying-glass"></i></button>
+            </div>
+            <div class="header-actions">
+                <a href="/user/wishlist" class="icon-link wishlist-link"><i class="fa-regular fa-heart"></i> Wishlist</a>
+                <a href="/user/profile" class="icon-link"><i class="fa-regular fa-user"></i> Profile</a>
+                <a href="/user/cart" class="icon-link"><i class="fa-solid fa-cart-shopping"></i> Cart</a>
+            </div>
+        </div>
+    </header>
+
+    <main class="bestseller-page">
+        <div class="container bestseller-container">
+            <section class="main-content">
+                <div class="page-header">
+                    <h2>Top Deals</h2>
+                    <div class="header-filters">
+                        <label for="priceFilter">Filter by Price:</label>
+                        <select id="priceFilter" class="filter-dropdown">
+                            <option value="all" <%= currentPriceSort === 'all' ? 'selected' : '' %>>All Price Range</option>
+                            <option value="low-to-high" <%= currentPriceSort === 'low-to-high' ? 'selected' : '' %>>Low to High</option>
+                            <option value="high-to-low" <%= currentPriceSort === 'high-to-low' ? 'selected' : '' %>>High to Low</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="products-grid">
+                    <% if (typeof variants !== 'undefined' && variants.length > 0) { %>
+                        <% variants.forEach(v => { %>
+                            <div class="product-card">
+                                <div class="product-image">
+                                    <a href="/products/<%= v.productId._id %>">
+                                        <img src="<%= (v.productId.images && v.productId.images.length > 0) ? v.productId.images[0] : 'https://placehold.co/400' %>" alt="<%= v.productId.name %>">
+                                    </a>
+                                    <span class="badge discount">-<%= v.discount %>%</span>
+                                    <% 
+                                        const variantIdStr = v._id.toString();
+                                        const isLiked = typeof userWishlist !== 'undefined' && userWishlist.includes(variantIdStr);
+                                    %>
+                                    <button class="wishlist-btn <%= isLiked ? 'liked' : '' %>" type="button" data-variant-id="<%= variantIdStr %>">
+                                        <i class="<%= isLiked ? 'fa-solid' : 'fa-regular' %> fa-heart"></i>
+                                    </button>
+                                </div>
+                                <div class="product-info">
+                                    <h3><a href="/products/<%= v.productId._id %>"><%= v.productId.name %> (<%= v.variantName %>)</a></h3>
+                                    <div class="stars"><i class="fa-solid fa-star"></i> 4.8 (190)</div>
+                                    <div class="card-footer">
+                                        <div class="price-wrapper">
+                                            <span class="old-price">₹<%= v.originalPrice.toLocaleString('en-IN') %></span>
+                                            <p class="price">₹<%= v.calculatedPrice.toLocaleString('en-IN') %></p>
+                                        </div>
+                                        <button class="add-to-cart-btn" type="button" data-variant-id="<%= variantIdStr %>">
+                                            <i class="fa-solid fa-cart-plus"></i> Add
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        <% }) %>
+                    <% } else { %>
+                        <div class="no-deals-fallback-notice">
+                            <p>No active promotional discount deals are running currently. Please check back later!</p>
+                        </div>
+                    <% } %>
+                </div>
+
+                <% if (totalPages > 1) { %>
+                    <div class="pagination">
+                        <% if (currentPage > 1) { %>
+                            <button class="page-btn change-deals-page-btn" type="button" data-page="<%= currentPage - 1 %>">
+                                <i class="fa-solid fa-chevron-left"></i> Previous
+                            </button>
+                        <% } else { %>
+                            <button class="page-btn disabled" type="button" disabled><i class="fa-solid fa-chevron-left"></i> Previous</button>
+                        <% } %>
+
+                        <div class="page-numbers">
+                            <% for (let i = 1; i <= totalPages; i++) { %>
+                                <button class="page-num change-deals-page-btn <%= i === currentPage ? 'active' : '' %>" type="button" data-page="<%= i %>">
+                                    <%= i %>
+                                </button>
+                            <% } %>
+                        </div>
+
+                        <% if (currentPage < totalPages) { %>
+                            <button class="page-btn change-deals-page-btn" type="button" data-page="<%= currentPage + 1 %>">
+                                Next <i class="fa-solid fa-chevron-right"></i>
+                            </button>
+                        <% } else { %>
+                            <button class="page-btn disabled" type="button" disabled>Next <i class="fa-solid fa-chevron-right"></i></button>
+                        <% } %>
+                    </div>
+                <% } %>
+            </section>
+        </div>
+    </main>
+
+    <footer class="footer">
+        <div class="container-fluid footer-container">
+            <div class="footer-left">
+                <a href="/home" class="logo footer-logo">HomeStation</a>
+                <p>Your premier destination for high-quality mattresses and sleep essentials, crafted to bring cloud-like comfort to every night.</p>
+            </div>
+            <div class="footer-links-wrapper">
+                <div class="footer-column">
+                    <h4>Shop</h4>
+                    <ul>
+                        <li><a href="/products">World of Mattress</a></li>
+                        <li><a href="/deals">Top Deals</a></li>
+                        <li><a href="/bestsellers">Best Sellers</a></li>
+                    </ul>
+                </div>
+                <div class="footer-column">
+                    <h4>Support</h4>
+                    <ul>
+                        <li><a href="#">Track Your Orders</a></li>
+                        <li><a href="/privacy-policy">Privacy Policy</a></li>
+                        <li><a href="/contact">Contact Us</a></li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+        <div class="container-fluid copyright">
+            <p>&copy; 2026 HomeStation Store. All rights reserved.</p>
+        </div>
+    </footer>
+
+    <div id="toast" class="toast">
+        <i class="fa-solid fa-circle-check"></i>
+        <span id="toast-message"></span>
+    </div>
+
+    <script src="/js/user/topdeals.js"></script>
+</body>
+
+</html>

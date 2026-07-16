@@ -1,0 +1,166 @@
+.bestseller-page {
+    padding: 60px 0;
+    background-color: #fdfdfd;
+}
+
+.bestseller-container {
+    display: block;
+}
+
+.page-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 40px;
+    padding-bottom: 20px;
+    border-bottom: 1px solid #eee;
+}
+
+.page-header h2 {
+    font-family: 'Playfair Display', serif;
+    font-size: 36px;
+    color: #111;
+}
+
+.header-filters {
+    display: flex;
+    align-items: center;
+    gap: 15px;
+}
+
+.header-filters label {
+    font-weight: 600;
+    color: #555;
+    font-size: 15px;
+}
+
+.filter-dropdown {
+    padding: 8px 15px;
+    font-size: 15px;
+    font-weight: 500;
+    border: 1px solid #ddd;
+    border-radius: 6px;
+    background-color: #fff;
+    color: #333;
+    cursor: pointer;
+    outline: none;
+    transition: all 0.3s ease;
+    min-width: 200px;
+}
+
+.filter-dropdown:focus {
+    border-color: #222;
+    box-shadow: 0 0 5px rgba(0, 0, 0, 0.1);
+}
+
+.main-content {
+    width: 100%;
+}
+
+.price-wrapper {
+    display: flex;
+    flex-direction: column;
+}
+
+.badge.discount {
+    position: absolute; 
+    top: 15px;
+    left: 15px;
+    z-index: 20;        
+    background-color: #d32f2f;
+    color: #fff;
+    padding: 5px 12px;
+    font-weight: 700;
+    border-radius: 4px;
+}
+
+.pagination {
+    margin-top: 50px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 20px;
+}
+
+.page-btn {
+    background-color: #fff;
+    border: 1px solid #ddd;
+    padding: 10px 20px;
+    border-radius: 6px;
+    font-weight: 600;
+    color: #333;
+    cursor: pointer;
+    transition: all 0.2s;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.page-btn:hover {
+    background-color: #f5f5f5;
+    border-color: #ccc;
+}
+
+.page-numbers {
+    display: flex;
+    gap: 10px;
+}
+
+.page-num {
+    width: 40px;
+    height: 40px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border: 1px solid #ddd;
+    background-color: #fff;
+    border-radius: 6px;
+    font-weight: 600;
+    color: #333;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.page-num:hover,
+.page-num.active {
+    background-color: #222;
+    color: #fff;
+    border-color: #222;
+}
+
+.no-deals-fallback-notice {
+    grid-column: 1 / -1;
+    text-align: center;
+    padding: 100px 20px;
+    color: #666;
+    font-size: 16px;
+    font-weight: 500;
+}
+
+@media (max-width: 992px) {
+    .page-header {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 15px;
+    }
+}
+
+@media (max-width: 768px) {
+    .page-header {
+        flex-direction: column;
+        align-items: stretch;
+        text-align: center;
+        gap: 15px;
+    }
+
+    .header-filters {
+        flex-direction: column;
+        align-items: center;
+        width: 100%;
+    }
+
+    .filter-dropdown {
+        width: 100%;
+        max-width: 300px;
+    }
+}

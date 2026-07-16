@@ -157,3 +157,67 @@ export const executeCatalogSearchPage = async (req, res) => {
         return res.status(500).json({ success: false, message: "An explicit exception failure occurred handling search profiles." });
     }
 };
+
+export const loadTopDealsPage = async (req, res) => {
+    try {
+        const user = req.user || null;
+        const priceSort = req.query.priceSort ? String(req.query.priceSort).trim() : 'all';
+        const page = Math.max(1, parseInt(req.query.page, 10) || 1);
+        const limit = 8;
+
+        const [dealsData, bannerText, userWishlist] = await Promise.all([
+            productService.getTopDealsCatalog({ priceSort, page, limit }),
+            getActivePromoBanner(),
+            wishlistService.getUserWishlistArray(user ? user._id : null)
+        ]);
+
+        logger.info(`Top Deals view aggregated for [${user ? user.email : 'Guest'}] - Applied Price Sort Filter: [${priceSort}]`);
+
+        return res.render('user/topdeals', {
+            user,
+            variants: dealsData.variants,
+            totalItems: dealsData.totalItems,
+            totalPages: dealsData.totalPages,
+            currentPage: dealsData.currentPage,
+            currentPriceSort: priceSort,
+            bannerText,
+            userWishlist,
+            csrfToken: req.csrfToken()
+        });
+    } catch (error) {
+        logger.error(`Critical error caught inside loadTopDealsPage controller template pipeline: ${error.message}`);
+        return res.status(500).json({ success: false, message: "An error occurred compiling top discount records." });
+    }
+};
+
+export const loadBestsellersPage = async (req, res) => {
+    try {
+        const user = req.user || null;
+        const priceSort = req.query.priceSort ? String(req.query.priceSort).trim() : 'all';
+        const page = Math.max(1, parseInt(req.query.page, 10) || 1);
+        const limit = 8;
+
+        const [catalogData, bannerText, userWishlist] = await Promise.all([
+            productService.getBestsellersCatalog({ priceSort, page, limit }),
+            getActivePromoBanner(),
+            wishlistService.getUserWishlistArray(user ? user._id : null)
+        ]);
+
+        logger.info(`Bestsellers screen profile initialized by [${user ? user.email : 'Guest'}] - Filter applied: ${priceSort}`);
+
+        return res.render('user/bestseller', {
+            user,
+            variants: catalogData.variants,
+            totalItems: catalogData.totalItems,
+            totalPages: catalogData.totalPages,
+            currentPage: catalogData.currentPage,
+            currentPriceSort: priceSort,
+            bannerText,
+            userWishlist,
+            csrfToken: req.csrfToken()
+        });
+    } catch (error) {
+        logger.error(`Critical parsing error caught within loadBestsellersPage controller path: ${error.message}`);
+        return res.status(500).json({ success: false, message: "An unexpected layout processing error occurred loading best sellers." });
+    }
+};

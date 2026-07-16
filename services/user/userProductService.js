@@ -328,3 +328,116 @@ export const searchActiveProductsCatalog = async (searchFilters) => {
         throw new Error(`Data search processing layer failure subroutine execution: ${error.message}`);
     }
 };
+
+export const getTopDealsCatalog = async (filters) => {
+    try {
+        const { priceSort, page, limit } = filters;
+
+        const activeCategories = await Category.find({ isDeleted: false }).select('_id');
+        const activeCategoryIds = activeCategories.map(c => c._id.toString());
+
+        const variants = await ProductVariant.find({ discount: { $gt: 0 } })
+            .populate({
+                path: 'productId',
+                match: { isDeleted: false, categoryId: { $in: activeCategoryIds } }
+            })
+            .lean();
+
+        const filteredDeals = variants.filter(v => v.productId !== null && v.productId !== undefined);
+
+        filteredDeals.sort((a, b) => b.discount - a.discount);
+
+        const productDealsMap = {};
+
+        filteredDeals.forEach(v => {
+            const prodIdStr = v.productId._id.toString();
+
+            if (!productDealsMap[prodIdStr]) {
+                const calculatedPrice = Math.round(v.originalPrice * (1 - (v.discount / 100)));
+                const discountValue = Math.round(v.originalPrice - calculatedPrice);
+
+                productDealsMap[prodIdStr] = {
+                    ...v,
+                    calculatedPrice,
+                    discountValue
+                };
+            }
+        });
+
+        let uniqueProductDeals = Object.values(productDealsMap);
+
+        uniqueProductDeals.sort((a, b) => b.discount - a.discount);
+
+        if (priceSort === 'low-to-high') {
+            uniqueProductDeals.sort((a, b) => a.calculatedPrice - b.calculatedPrice);
+        } else if (priceSort === 'high-to-low') {
+            uniqueProductDeals.sort((a, b) => b.calculatedPrice - a.calculatedPrice);
+        }
+
+        const totalItems = uniqueProductDeals.length;
+        const totalPages = Math.ceil(totalItems / limit);
+        const skipOffset = (page - 1) * limit;
+        const paginatedSlice = uniqueProductDeals.slice(skipOffset, skipOffset + limit);
+
+        return {
+            variants: paginatedSlice, 
+            totalItems,
+            totalPages,
+            currentPage: page
+        };
+    } catch (error) {
+        throw new Error(`Data extraction failure caught inside getTopDealsCatalog service layer: ${error.message}`);
+    }
+};
+
+export const getBestsellersCatalog = async (filters) => {
+    try {
+        const { priceSort, page, limit } = filters;
+
+        const activeCategories = await Category.find({ isDeleted: false }).select('_id');
+        const activeCategoryIds = activeCategories.map(c => c._id.toString());
+
+        const productsList = await Product.find({ 
+            isDeleted: false, 
+            categoryId: { $in: activeCategoryIds } 
+        }).lean();
+
+        const bestsellerItems = [];
+
+        for (const product of productsList) {
+            const firstVariant = await ProductVariant.findOne({ productId: product._id })
+                .sort({ createdAt: 1 }) 
+                .lean();
+
+            if (firstVariant) {
+                const calculatedPrice = Math.round(firstVariant.originalPrice * (1 - ((firstVariant.discount || 0) / 100)));
+                
+                bestsellerItems.push({
+                    ...firstVariant,
+                    calculatedPrice,
+                    productId: product 
+                });
+            }
+        }
+
+        if (priceSort === 'low-to-high') {
+            bestsellerItems.sort((a, b) => a.calculatedPrice - b.calculatedPrice);
+        } else if (priceSort === 'high-to-low') {
+            bestsellerItems.sort((a, b) => b.calculatedPrice - a.calculatedPrice);
+        }
+
+        const totalItems = bestsellerItems.length;
+        const totalPages = Math.ceil(totalItems / limit);
+        const skipOffset = (page - 1) * limit;
+        const paginatedSlice = bestsellerItems.slice(skipOffset, skipOffset + limit);
+
+        return {
+            variants: paginatedSlice,
+            totalItems,
+            totalPages,
+            currentPage: page
+        };
+    } catch (error) {
+        throw new Error(`Data layer breakdown caught running getBestsellersCatalog: ${error.message}`);
+    }
+};

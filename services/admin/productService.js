@@ -415,3 +415,4 @@ export const updateExistingProduct = async (productIdStr, productData, newImages
         throw error;
     }
 };
+
