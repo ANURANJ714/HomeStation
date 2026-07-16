@@ -96,3 +96,29 @@ export const deleteEnquirySubject = async (subjectId) => {
         throw new Error(`Service Layer failure handling soft-deletion workflow: ${error.message}`);
     }
 };
+
+export const updateEnquiryTicketStatus = async (ticketId, status) => {
+    try {
+        const allowedStatuses = ['Ticket Raised', 'Pending', 'Resolved'];
+        if (!status || !allowedStatuses.includes(status)) {
+            return { success: false, status: 400, message: "Invalid status parameters supplied." };
+        }
+
+        const ticket = await EnquiryMessage.findById(ticketId);
+        if (!ticket) {
+            return { success: false, status: 404, message: "The requested enquiry ticket could not be found." };
+        }
+
+        ticket.ticketStatus = status;
+        await ticket.save();
+
+        return { 
+            success: true, 
+            status: 200, 
+            message: `Ticket #${ticket.ticketId} status has been updated to "${status}" successfully!` 
+        };
+
+    } catch (error) {
+        throw new Error(`Database modifier transaction failed inside Enquiry Service Layer: ${error.message}`);
+    }
+};

@@ -88,3 +88,28 @@ export const removeEnquirySubject = async (req, res) => {
         return res.status(500).json({ success: false, message: "Internal server processing error removing subject reference mapping." });
     }
 };
+
+export const updateTicketStatus = async (req, res) => {
+    try {
+        const { id } = req.params;
+        const { enquiryStatus } = req.body;
+
+        if (!id) {
+            return res.status(400).json({ success: false, message: "Ticket tracking identity reference parameter is required." });
+        }
+
+        const result = await enquiryService.updateEnquiryTicketStatus(id, enquiryStatus);
+
+        if (!result.success) {
+            logger.warn(`Admin status update rejected for ticket ID ${id}: ${result.message}`);
+            return res.status(result.status || 200).json({ success: false, message: result.message });
+        }
+
+        logger.info(`Admin successfully shifted status profile for ticket ID ${id} to -> "${enquiryStatus}"`);
+        return res.status(200).json({ success: true, message: result.message });
+
+    } catch (error) {
+        logger.error(`Critical transaction failure tracked inside updateTicketStatus controller: ${error.message}\nStack: ${error.stack}`);
+        return res.status(500).json({ success: false, message: "An unexpected processing error occurred updating ticket properties." });
+    }
+};

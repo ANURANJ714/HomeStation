@@ -93,41 +93,34 @@ document.addEventListener("DOMContentLoaded", () => {
   });
 
   document.querySelectorAll(".open-view-msg-btn").forEach((btn) => {
-    btn.addEventListener("click", function () {
-      document.getElementById("modalTicketId").textContent =
-      this.getAttribute("data-ticket");
-      document.getElementById("modalCreatedDate").textContent =
-        this.getAttribute("data-date");
-      document.getElementById("modalVisitorName").textContent =
-        this.getAttribute("data-name");
-      document.getElementById("modalVisitorEmail").textContent =
-        this.getAttribute("data-email");
-      document.getElementById("modalUpdatedDate").textContent =
-        this.getAttribute("data-updated");
-      document.getElementById("modalSubjectText").textContent =
-        this.getAttribute("data-subject");
-      document.getElementById("modalMessageContentText").textContent =
-        this.getAttribute("data-msg");
+        btn.addEventListener("click", function () {
+            document.getElementById("updateTicketStatusForm").setAttribute("data-active-ticket-id", this.getAttribute("data-id"));
 
-      const status = this.getAttribute("data-status");
-      const badgeBox = document.getElementById("modalCurrentStatusBadgeBox");
+            document.getElementById("modalTicketId").textContent = "#" + this.getAttribute("data-ticket");
+            document.getElementById("modalCreatedDate").textContent = this.getAttribute("data-date");
+            document.getElementById("modalVisitorName").textContent = this.getAttribute("data-name");
+            document.getElementById("modalVisitorEmail").textContent = this.getAttribute("data-email");
+            document.getElementById("modalUpdatedDate").textContent = this.getAttribute("data-updated");
+            document.getElementById("modalSubjectText").textContent = this.getAttribute("data-subject");
+            document.getElementById("modalMessageContentText").textContent = this.getAttribute("data-msg");
 
-      if (status === "Ticket Raised") {
-        badgeBox.innerHTML =
-          '<span class="badge badge-info">Ticket Raised</span>';
-        document.getElementById("radioStatusRaised").checked = true;
-      } else if (status === "Pending") {
-        badgeBox.innerHTML = '<span class="badge badge-warning">Pending</span>';
-        document.getElementById("radioStatusPending").checked = true;
-      } else {
-        badgeBox.innerHTML =
-          '<span class="badge badge-success">Resolved</span>';
-        document.getElementById("radioStatusResolved").checked = true;
-      }
+            const status = this.getAttribute("data-status");
+            const badgeBox = document.getElementById("modalCurrentStatusBadgeBox");
 
-      document.getElementById("viewMessageModal").style.display = "flex";
+            if (status === "Ticket Raised") {
+                badgeBox.innerHTML = '<span class="badge badge-info">Ticket Raised</span>';
+                document.getElementById("radioStatusRaised").checked = true;
+            } else if (status === "Pending") {
+                badgeBox.innerHTML = '<span class="badge badge-warning">Pending</span>';
+                document.getElementById("radioStatusPending").checked = true;
+            } else {
+                badgeBox.innerHTML = '<span class="badge badge-success">Resolved</span>';
+                document.getElementById("radioStatusResolved").checked = true;
+            }
+
+            document.getElementById("viewMessageModal").style.display = "flex";
+        });
     });
-  });
 
   const addSubjectForm = document.getElementById("addSubjectForm");
   if (addSubjectForm) {
@@ -325,4 +318,67 @@ document.addEventListener("DOMContentLoaded", () => {
           }
       });
   }
+
+  const updateTicketStatusForm = document.getElementById("updateTicketStatusForm");
+    if (updateTicketStatusForm) {
+        updateTicketStatusForm.addEventListener("submit", async function(e) {
+            e.preventDefault(); 
+
+            const activeTicketId = this.getAttribute("data-active-ticket-id");
+            const checkedRadio = document.querySelector('input[name="enquiryStatus"]:checked');
+            const selectedStatusValue = checkedRadio ? checkedRadio.value : null;
+
+            if (!activeTicketId || !selectedStatusValue) {
+                return Swal.fire({
+                    icon: "error",
+                    title: "Processing Error",
+                    text: "Missing target identification tokens or invalid status selection values.",
+                    confirmButtonColor: "#222",
+                    heightAuto: false
+                });
+            }
+
+            try {
+                const response = await fetch(`/admin/enquiries/tickets/${activeTicketId}/status`, {
+                    method: "PATCH",
+                    headers: {
+                        "Content-Type": "application/json",
+                        "csrf-token": csrfToken 
+                    },
+                    body: JSON.stringify({ enquiryStatus: selectedStatusValue })
+                });
+
+                const data = await response.json();
+
+                if (data.success) {
+                    Swal.fire({
+                        icon: "success",
+                        title: "Status Updated!",
+                        text: data.message,
+                        timer: 1500,
+                        showConfirmButton: false,
+                        heightAuto: false
+                    }).then(() => {
+                        window.location.reload(); 
+                    });
+                } else {
+                    Swal.fire({
+                        icon: "error",
+                        title: "Operation Failed",
+                        text: data.message || "Could not complete status mutation task.",
+                        confirmButtonColor: "#222",
+                        heightAuto: false
+                    });
+                }
+            } catch (error) {
+                Swal.fire({
+                    icon: "error",
+                    title: "Network Error",
+                    text: "Could not establish an active server transaction endpoint communication tunnel.",
+                    confirmButtonColor: "#222",
+                    heightAuto: false
+                });
+            }
+        });
+    }
 });
