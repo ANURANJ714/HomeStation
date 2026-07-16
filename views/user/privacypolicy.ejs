@@ -1,0 +1,148 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Privacy Policy - HomeStation</title>
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght=0,600;0,700;1,600&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="icon" type="image/x-icon" href="https://res.cloudinary.com/dz7fuqwnr/image/upload/v1778395481/WhatsApp_Image_2026-05-10_at_12.12.36_nra5vk.jpg">
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <link rel="stylesheet" href="/css/user/privacypolicy.css">
+</head>
+
+<body>
+    <input type="hidden" id="csrfToken" value="<%= typeof csrfToken !== 'undefined' ? csrfToken : '' %>">
+
+    <% if (typeof bannerText !== 'undefined' && bannerText) { %>
+        <div class="promo-bar">
+            <b><%- bannerText %></b>
+        </div>
+    <% } %>
+
+    <header class="header">
+        <div class="container-fluid header-container">
+            <a href="/home" class="logo">HomeStation</a>
+            <nav class="nav">
+                <ul class="nav-list">
+                    <li><a href="/home" class="nav-link">Home</a></li>
+                    <li><a href="/products" class="nav-link">World of Mattress</a></li>
+                    <li><a href="/deals" class="nav-link">Top Deals</a></li>
+                    <li><a href="/bestsellers" class="nav-link">Best Sellers</a></li>
+                    <li><a href="/contact" class="nav-link">Contact Us</a></li>
+                </ul>
+            </nav>
+            <div class="search-container">
+                <input type="text" placeholder="Search for products, brands and more..." id="searchInput">
+                <button id="searchBtn" type="button"><i class="fa-solid fa-magnifying-glass"></i></button>
+            </div>
+            <div class="header-actions">
+                <a href="/user/wishlist" class="icon-link wishlist-link"><i class="fa-regular fa-heart"></i> Wishlist</a>
+                <a href="/user/profile" class="icon-link"><i class="fa-regular fa-user"></i> Profile</a>
+                <a href="/user/cart" class="icon-link"><i class="fa-solid fa-cart-shopping"></i> Cart</a>
+            </div>
+        </div>
+    </header>
+
+    <main class="policy-page">
+        <div class="container policy-content-container">
+            <h1 class="page-title">Legal & Policies</h1>
+            
+            <section class="policy-section" id="privacy-policy">
+                <h2>Privacy Policy</h2>
+                <p>Welcome to HomeStation. We respect your privacy and are committed to protecting your personal data. This privacy policy will inform you as to how we look after your personal data when you visit our website and tell you about your privacy rights and how the law protects you.</p>
+                
+                <h3>1. The Data We Collect About You</h3>
+                <p>Personal data, or personal information, means any information about an individual from which that person can be identified. We may collect, use, store and transfer different kinds of personal data about you which we have grouped together as follows:</p>
+                <ul>
+                    <li><strong>Identity Data</strong> includes first name, last name, username or similar identifier.</li>
+                    <li><strong>Contact Data</strong> includes billing address, delivery address, email address and telephone numbers.</li>
+                    <li><strong>Financial Data</strong> includes payment card details securely processed by our payment gateways.</li>
+                    <li><strong>Transaction Data</strong> includes details about payments to and from you and other details of products you have purchased from us.</li>
+                </ul>
+
+                <h3>2. How We Use Your Data</h3>
+                <p>We will only use your personal data when the law allows us to. Most commonly, we will use your personal data in the following circumstances:</p>
+                <ul>
+                    <li>Where we need to perform the contract we are about to enter into or have entered into with you (e.g., fulfilling your order).</li>
+                    <li>Where it is necessary for our legitimate interests and your interests do not override those interests.</li>
+                    <li>Where we need to comply with a legal obligation.</li>
+                </ul>
+            </section>
+
+            <section class="policy-section" id="refund-policy">
+                <h2>Refund & Return Policy</h2>
+                <p>At HomeStation, we want you to be completely satisfied with your purchase. If you are not entirely happy with your item, we're here to help.</p>
+
+                <h3>1. Returns</h3>
+                <p>You have 15 calendar days to return an item from the date you received it. To be eligible for a return, your item must be:</p>
+                <ul>
+                    <li>Unused and in the same condition that you received it.</li>
+                    <li>In the original packaging.</li>
+                    <li>Accompanied by the receipt or proof of purchase.</li>
+                </ul>
+
+                <h3>2. Refunds</h3>
+                <p>Once we receive your item, we will inspect it and notify you that we have received your returned item. We will immediately notify you on the status of your refund after inspecting the item. If your return is approved, we will initiate a refund to your credit card (or original method of payment).</p>
+                <p>You will receive the credit within a certain amount of days, depending on your card issuer's policies.</p>
+
+                <h3>3. Non-returnable Items</h3>
+                <p>Certain items are non-returnable, including but not limited to:</p>
+                <ul>
+                    <li>Customized or special-size mattresses.</li>
+                    <li>Mattresses without their original protective seal or packaging (for hygiene reasons).</li>
+                    <li>Clearance or floor models marked as "Final Sale".</li>
+                </ul>
+            </section>
+
+            <section class="policy-section" id="terms-conditions">
+                <h2>Terms and Conditions</h2>
+                <p>These terms and conditions outline the rules and regulations for the use of HomeStation's Website.</p>
+
+                <h3>1. Acceptance of Terms</h3>
+                <p>By accessing this website we assume you accept these terms and conditions. Do not continue to use HomeStation if you do not agree to take all of the terms and conditions stated on this page.</p>
+
+                <h3>2. License</h3>
+                <p>Unless otherwise stated, HomeStation and/or its licensors own the intellectual property rights for all material on HomeStation. All intellectual property rights are reserved. You may access this from HomeStation for your own personal use subjected to restrictions set in these terms and conditions.</p>
+
+                <h3>3. Product Accuracy</h3>
+                <p>While we strive to ensure that product descriptions, images, and pricing are as accurate as possible, errors may occur. We reserve the right to correct any errors, inaccuracies, or omissions, and to change or update information or cancel orders if any information on the site is inaccurate at any time without prior notice.</p>
+            </section>
+        </div>
+    </main>
+
+    <footer class="footer">
+        <div class="container-fluid footer-container">
+            <div class="footer-left">
+                <a href="/home" class="logo footer-logo">HomeStation</a>
+                <p>Your premier destination for high-quality mattresses and sleep essentials, crafted to bring cloud-like comfort to every night.</p>
+            </div>
+            <div class="footer-links-wrapper">
+                <div class="footer-column">
+                    <h4>Shop</h4>
+                    <ul>
+                        <li><a href="/products">World of Mattress</a></li>
+                        <li><a href="/deals">Top Deals</a></li>
+                        <li><a href="/bestsellers">Best Sellers</a></li>
+                    </ul>
+                </div>
+                <div class="footer-column">
+                    <h4>Support</h4>
+                    <ul>
+                        <li><a href="#">Track Your Orders</a></li>
+                        <li><a href="/privacy-policy">Privacy Policy</a></li>
+                        <li><a href="/contact">Contact Us</a></li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+        <div class="container-fluid copyright">
+            <p>&copy; 2026 HomeStation Store. All rights reserved.</p>
+        </div>
+    </footer>
+
+    <script src="/js/user/privacypolicy.js"></script>
+</body>
+</html>

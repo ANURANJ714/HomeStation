@@ -1,5 +1,5 @@
 import * as pageService from '../../services/user/pageService.js';
-import {getActivePromoBanner} from '../../services/user/bannerService.js';
+import { getActivePromoBanner } from '../../services/user/bannerService.js';
 import { toggleVariantInWishlist, getUserWishlistArray } from '../../services/user/wishlistService.js';
 import { addVariantToCart } from '../../services/user/cartService.js';
 import logger from '../../utils/logger.js';
@@ -103,5 +103,28 @@ export const submitContactInquiryForm = async (req, res) => {
     } catch (error) {
         logger.error(`Critical transaction failure tracked inside submitContactInquiryForm controller: ${error.message}\nStack: ${error.stack}`);
         return res.status(500).json({ success: false, message: "An unexpected database mapping exception failure occurred." });
+    }
+};
+
+export const loadPrivacyPolicyPage = async (req, res) => {
+    try {
+        const user = req.user || null;
+        
+        const bannerText = await getActivePromoBanner();
+
+        logger.info(`Privacy policy document view rendered for user profile: [${user ? user.email : 'Guest visitor'}]`);
+
+        return res.render('user/privacypolicy', {
+            user,
+            bannerText,
+            csrfToken: req.csrfToken()
+        });
+
+    } catch (error) {
+        logger.error(`Parsing failure caught inside loadPrivacyPolicyPage controller context: ${error.message}\nStack: ${error.stack}`);
+        return res.status(500).json({ 
+            success: false, 
+            message: "An internal parsing error occurred loading legal policy documents." 
+        });
     }
 };
