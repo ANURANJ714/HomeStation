@@ -1,6 +1,8 @@
 import Product from '../../models/Products.js'; 
 import ProductVariant from '../../models/ProductVariant.js';
 import Category from '../../models/Category.js';
+import EnquirySubject from '../../models/EnquirySubject.js';
+
 
 export const getHomePageData = async () => {
     try {
@@ -91,5 +93,19 @@ export const getHomePageData = async () => {
 
     } catch (error) {
         throw new Error(`Database error while fetching home page data: ${error.message}`);
+    }
+};
+
+export const getFilteredContactSubjects = async (isAuthenticated) => {
+    try {
+        const queryFilter = { isDeleted: false };
+        
+        if (!isAuthenticated) {
+            queryFilter.needAuth = false;
+        }
+
+        return await EnquirySubject.find(queryFilter).sort({ name: 1 }).lean();
+    } catch (error) {
+        throw new Error(`Service Layer breakdown pulling contact subjects context: ${error.message}`);
     }
 };

@@ -51,3 +51,32 @@ export const loadHomePage = async (req, res) => {
         res.status(500).json({success: false, message: "Server error occurred!"});
     }
 };
+
+export const loadContactPage = async (req, res) => {
+    try {
+        const user = req.user || null;
+        const isAuthenticated = !!(req.user && req.isAuthenticated && req.isAuthenticated());
+
+        const [subjectsList, bannerText] = await Promise.all([
+            pageService.getFilteredContactSubjects(isAuthenticated),
+            getActivePromoBanner()
+        ]);
+
+        logger.info(`Contact Us interface profile loaded. Context -> [Authenticated: ${isAuthenticated}]`);
+
+        return res.render('user/contact', {
+            user,
+            subjects: subjectsList,
+            isAuthenticated,
+            bannerText, 
+            csrfToken: req.csrfToken()
+        });
+
+    } catch (error) {
+        logger.error(`Critical parsing breakdown inside loadContactPage controller: ${error.message}\nStack: ${error.stack}`);
+        return res.status(500).json({ 
+            success: false, 
+            message: "An unexpected processing error occurred loading the support catalog form." 
+        });
+    }
+};
