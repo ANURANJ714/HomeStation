@@ -280,4 +280,53 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         });
     }
+
+  const adminLogoutForm = document.getElementById("adminLogoutForm");
+  if (adminLogoutForm) {
+      adminLogoutForm.addEventListener("submit", async function (e) {
+          e.preventDefault(); 
+
+          const primaryToken = document.getElementById("globalCsrfTokenField")?.value || "";
+
+          try {
+              const response = await fetch("/admin/logout", {
+                  method: "POST",
+                  headers: {
+                      "Content-Type": "application/json",
+                      "csrf-token": primaryToken 
+                  }
+              });
+
+              if (response.redirected) {
+                  window.location.href = response.url;
+                  return;
+              }
+
+              const data = await response.json();
+
+              if (data.success || response.ok) {
+                  Swal.fire({
+                      icon: "success",
+                      title: "Logged Out",
+                      text: data.message || "Redirecting to login window...",
+                      timer: 1500,
+                      showConfirmButton: false,
+                      heightAuto: false
+                  }).then(() => {
+                      window.location.href = "/admin/login";
+                  });
+              } else {
+                  Swal.fire({
+                      icon: "error",
+                      title: "Logout Failed",
+                      text: data.message || "An error occurred.",
+                      confirmButtonColor: "#222",
+                      heightAuto: false
+                  });
+              }
+          } catch (error) {
+              window.location.href = "/admin/login";
+          }
+      });
+  }
 });

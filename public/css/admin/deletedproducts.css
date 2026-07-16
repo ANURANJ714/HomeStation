@@ -114,6 +114,17 @@
     gap: 6px;
 }
 
+.logout-link{
+    background: none; 
+    border: none; 
+    cursor: pointer; 
+    width: 100%; 
+    text-align: left; 
+    padding: 12px 15px; 
+    display: flex; 
+    align-items: center;
+}
+
 .btn-restore:hover {
     background-color: #c8e6c9;
     color: #1b5e20;

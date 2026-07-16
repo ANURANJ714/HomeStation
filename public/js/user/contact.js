@@ -32,7 +32,7 @@ document.addEventListener("DOMContentLoaded", () => {
                 return Swal.fire({
                     icon: "error",
                     title: "Missing Information",
-                    text: "Please fully populate all fields and select a valid inquiry subject from our option listing.",
+                    text: "Fields cannot be empty",
                     confirmButtonColor: "#222",
                     heightAuto: false
                 });

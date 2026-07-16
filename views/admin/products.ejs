@@ -16,6 +16,7 @@
 </head>
 
 <body>
+    <input type="hidden" id="globalCsrfTokenField" value="<%= typeof csrfToken !== 'undefined' ? csrfToken : '' %>">
     <div class="dashboard-layout">
 
         <div class="sidebar-overlay" id="sidebarOverlay"></div>

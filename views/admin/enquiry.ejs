@@ -146,7 +146,6 @@
                     </table>
                 </div>
                 
-                <% if (totalPages > 1) { %>
                     <div class="pagination-container">
                         <span class="pagination-info">Showing <%= startIndex %>-<%= endIndex %> of <%= totalItems %></span>
                         <div class="pagination-controls">
@@ -157,7 +156,6 @@
                             <button class="page-btn change-page-node-btn <%= currentPage === totalPages ? 'disabled' : '' %>" data-page="<%= currentPage + 1 %>" <%= currentPage === totalPages ? 'disabled' : '' %>><i class="fa-solid fa-chevron-right"></i></button>
                         </div>
                     </div>
-                <% } %>
             </main>
         </div>
     </div>
@@ -234,7 +232,7 @@
     </div>
 
     <div class="modal-overlay" id="addSubjectModal">
-        <div class="modal-content" style="max-width: 450px;">
+        <div class="modal-content">
             <div class="modal-header">
                 <h2>Add Subject</h2>
                 <button type="button" class="close-modal-btn close-modal-trigger-btn" data-target="addSubjectModal"><i class="fa-solid fa-xmark"></i></button>
@@ -267,7 +265,7 @@
     </div>
 
     <div class="modal-overlay" id="deleteSubjectModal">
-        <div class="modal-content" style="max-width: 450px;">
+        <div class="modal-content">
             <div class="modal-header">
                 <h2>Delete Subject</h2>
                 <button type="button" class="close-modal-btn close-modal-trigger-btn" data-target="deleteSubjectModal"><i class="fa-solid fa-xmark"></i></button>
