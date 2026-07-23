@@ -314,6 +314,80 @@
   gap: 10px;
 }
 
+.cropper-modal-overlay {
+    display: none;
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    z-index: 9999;
+    background: rgba(0, 0, 0, 0.75);
+    align-items: center;
+    justify-content: center;
+    padding: 20px;
+}
+
+.cropper-modal-container {
+    background: #ffffff;
+    width: 100%;
+    max-width: 600px;
+    border-radius: 8px;
+    padding: 20px;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+}
+
+.cropper-modal-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 15px;
+    border-bottom: 1px solid #eeeeee;
+    padding-bottom: 10px;
+}
+
+.cropper-modal-header h3 {
+    margin: 0;
+    font-size: 18px;
+    font-family: 'Roboto', sans-serif;
+    color: #111111;
+}
+
+.cropper-close-btn {
+    background: none;
+    border: none;
+    font-size: 20px;
+    cursor: pointer;
+    color: #666666;
+    transition: color 0.2s ease;
+}
+
+.cropper-close-btn:hover {
+    color: #000000;
+}
+
+.cropper-canvas-wrapper {
+    max-height: 400px;
+    overflow: hidden;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    background: #000000;
+    border-radius: 6px;
+}
+
+.cropper-canvas-wrapper img {
+    max-width: 100%;
+    display: block;
+}
+
+.cropper-modal-footer {
+    display: flex;
+    justify-content: flex-end;
+    gap: 10px;
+    margin-top: 20px;
+}
+
 @media (max-width: 992px) {
   .hamburger-menu {
     display: block;

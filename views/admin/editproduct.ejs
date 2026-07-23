@@ -10,6 +10,9 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link rel="icon" type="image/x-icon" href="https://res.cloudinary.com/dz7fuqwnr/image/upload/v1778395481/WhatsApp_Image_2026-05-10_at_12.12.36_nra5vk.jpg">
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.5.13/cropper.min.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.5.13/cropper.min.js"></script>
+
     <link rel="stylesheet" href="/css/admin/products.css">
     <link rel="stylesheet" href="/css/admin/editproduct.css">
 </head>
@@ -122,15 +125,15 @@
                                                     <input type="number" class="v-stock" value="<%= variant.stock %>" min="0">
                                                 </div>
                                                 <div class="variant-col size-col">
-                                                    <label>Length (in)</label>
+                                                    <label>Length (in) *</label>
                                                     <input type="number" class="v-length" value="<%= variant.length || '' %>" min="0" step="0.1">
                                                 </div>
                                                 <div class="variant-col size-col">
-                                                    <label>Width (in)</label>
+                                                    <label>Width (in) *</label>
                                                     <input type="number" class="v-width" value="<%= variant.width || '' %>" min="0" step="0.1">
                                                 </div>
                                                 <div class="variant-col size-col">
-                                                    <label>Height (in)</label>
+                                                    <label>Height (in) *</label>
                                                     <input type="number" class="v-height" value="<%= variant.height || '' %>" min="0" step="0.1">
                                                 </div>
                                                 <div class="variant-col actions-col empty-spacer-col"></div>
@@ -166,16 +169,16 @@
                             </div>
 
                             <div class="form-group full-width">
-                                <label>Update Images (Upload up to 3. Leave empty to keep existing images)</label>
+                                <label>Product Images (All 3 mandatory <span class="required-asterisk">*</span>)</label>
                                 <div class="image-upload-row">
                                     <% for(let i=0; i<3; i++) { %>
                                         <% const hasImage = product.images && product.images[i]; %>
-                                        <div class="upload-box <%= hasImage ? 'has-image' : '' %>">
-                                            <input type="file" name="images" class="image-input" accept="image/*" title="Image <%= i+1 %>">
-                                            <img src="<%= hasImage ? product.images[i] : '' %>" class="preview-img <%= hasImage ? 'show-block' : 'hidden' %>" alt="Preview">
+                                        <div class="upload-box <%= hasImage ? 'has-image' : '' %>" data-index="<%= i %>">
+                                            <input type="file" class="image-input" accept="image/*" title="Image <%= i+1 %>" data-index="<%= i %>">
+                                            <img src="<%= hasImage ? product.images[i] : '' %>" class="preview-img <%= hasImage ? 'show-block' : 'hidden' %>" alt="Preview" data-existing-url="<%= hasImage ? product.images[i] : '' %>">
                                             <div class="upload-placeholder <%= hasImage ? 'hidden' : 'show-flex' %>">
                                                 <i class="fa-solid fa-cloud-arrow-up"></i>
-                                                <span><%= i===0 ? 'Main Image' : 'Side Image ' + i %></span>
+                                                <span><%= i===0 ? 'Main Image *' : 'Side Image ' + i + ' *' %></span>
                                             </div>
                                         </div>
                                     <% } %>
@@ -193,6 +196,23 @@
             </main>
         </div>
     </div>
+
+    <div id="cropperModal" class="cropper-modal-overlay">
+        <div class="cropper-modal-container">
+            <div class="cropper-modal-header">
+                <h3>Crop Image</h3>
+                <button type="button" id="closeCropperBtn" class="cropper-close-btn"><i class="fa-solid fa-xmark"></i></button>
+            </div>
+            <div class="cropper-canvas-wrapper">
+                <img id="cropperTargetImage" src="" alt="Crop target">
+            </div>
+            <div class="cropper-modal-footer">
+                <button type="button" class="btn btn-secondary" id="cancelCropBtn">Cancel</button>
+                <button type="button" class="btn btn-primary" id="applyCropBtn">Crop & Save</button>
+            </div>
+        </div>
+    </div>
+
     <input type="hidden" id="csrfToken" value="<%= csrfToken %>">
 
     <script src="/js/admin/editproduct.js"></script>

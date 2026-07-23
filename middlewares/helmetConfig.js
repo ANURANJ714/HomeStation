@@ -10,14 +10,15 @@ const helmetMiddleware = helmet({
 
             scriptSrc: [
                 "'self'",
-                "https://cdn.jsdelivr.net"
+                "https://cdn.jsdelivr.net",
+                "https://cdnjs.cloudflare.com"
             ],
 
             styleSrc: [
                 "'self'",
                 "'unsafe-inline'", 
                 "https://fonts.googleapis.com",
-                "https://cdnjs.cloudflare.com"
+                "https://cdnjs.cloudflare.com",
             ],
 
             fontSrc: [

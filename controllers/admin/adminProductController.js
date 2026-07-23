@@ -200,11 +200,9 @@ export const updateProduct = async (req, res) => {
         const { product_id } = req.params;
         const adminEmail = req.user ? req.user.email : 'Unknown Admin';
 
-        const newImages = (req.files && req.files.length > 0) 
-            ? req.files.map((file) => file.path) 
-            : null;
+        const newFiles = (req.files && req.files.length > 0) ? req.files : [];
 
-        const result = await productService.updateExistingProduct(product_id, req.body, newImages, req.body.variants);
+        const result = await productService.updateExistingProduct(product_id, req.body, newFiles, req.body.variants);
 
         if (!result.isUpdated) {
             if (result.isNotFound) {

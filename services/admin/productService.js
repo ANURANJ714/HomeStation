@@ -361,7 +361,7 @@ export const getProductDetailsForEdit = async (productIdStr) => {
     }
 };
 
-export const updateExistingProduct = async (productIdStr, productData, newImages, variantDataStr) => {
+export const updateExistingProduct = async (productIdStr, productData, newFiles, variantDataStr) => {
     try {
         const product = await Product.findOne({ productId: productIdStr });
 
@@ -377,9 +377,44 @@ export const updateExistingProduct = async (productIdStr, productData, newImages
         product.warranty = productData.warranty;
         product.specifications = productData.specifications;
 
-        if (newImages && newImages.length > 0) {
-            product.images = newImages;
+        let existingImages = [];
+        if (productData.existingImages) {
+            try {
+                existingImages = typeof productData.existingImages === 'string' 
+                    ? JSON.parse(productData.existingImages) 
+                    : productData.existingImages;
+            } catch (e) {
+                existingImages = product.images || [];
+            }
+        } else {
+            existingImages = product.images || [];
         }
+
+        const finalImages = [...existingImages];
+
+        let updatedSlotIndices = [];
+        if (productData.updatedSlotIndices) {
+            try {
+                updatedSlotIndices = typeof productData.updatedSlotIndices === 'string'
+                    ? JSON.parse(productData.updatedSlotIndices)
+                    : productData.updatedSlotIndices;
+            } catch (e) {
+                updatedSlotIndices = [];
+            }
+        }
+
+        if (newFiles && newFiles.length > 0) {
+            newFiles.forEach((file, fileIdx) => {
+                const targetSlotIndex = updatedSlotIndices[fileIdx];
+                if (targetSlotIndex !== undefined && targetSlotIndex !== null) {
+                    finalImages[targetSlotIndex] = file.path; // Replace ONLY the updated slot
+                } else if (file.path) {
+                    finalImages.push(file.path);
+                }
+            });
+        }
+
+        product.images = finalImages.filter(img => typeof img === 'string' && img.trim() !== '');
 
         await product.save();
 
