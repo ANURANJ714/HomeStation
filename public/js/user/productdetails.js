@@ -124,16 +124,31 @@ document.addEventListener("DOMContentLoaded", () => {
     const qtyMinusBtn = document.getElementById("qtyMinusBtn");
     const qtyPlusBtn = document.getElementById("qtyPlusBtn");
 
+    const MAX_QUANTITY = 5;
+
     if (qtyMinusBtn && qtyInput) {
         qtyMinusBtn.addEventListener("click", () => {
             let val = parseInt(qtyInput.value, 10) || 1;
-            if (val > 1) qtyInput.value = val - 1;
+            if (val > 1) {
+                qtyInput.value = val - 1;
+            }
         });
     }
+
     if (qtyPlusBtn && qtyInput) {
         qtyPlusBtn.addEventListener("click", () => {
             let val = parseInt(qtyInput.value, 10) || 1;
-            qtyInput.value = val + 1;
+            if (val < MAX_QUANTITY) {
+                qtyInput.value = val + 1;
+            } else {
+                Swal.fire({
+                    icon: "warning",
+                    title: "Limit Reached",
+                    text: "Maximum quantity limit is 5 items per order.",
+                    confirmButtonColor: "#222",
+                    heightAuto: false
+                });
+            }
         });
     }
 

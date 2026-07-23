@@ -17,6 +17,9 @@
 <body>
     <input type="hidden" id="csrfToken" value="<%= typeof csrfToken !== 'undefined' ? csrfToken : '' %>">
     <input type="hidden" id="currentCategoryFilter" value="<%= currentCategory %>">
+    <input type="hidden" id="serverAlertStatus" value="<%= typeof errorAlert !== 'undefined' && errorAlert ? errorAlert.type : '' %>">
+    <input type="hidden" id="serverAlertTitle" value="<%= typeof errorAlert !== 'undefined' && errorAlert ? errorAlert.title : '' %>">
+    <input type="hidden" id="serverAlertMessage" value="<%= typeof errorAlert !== 'undefined' && errorAlert ? errorAlert.message : '' %>">
 
     <% if (typeof bannerText !== 'undefined' && bannerText) { %>
         <div class="promo-bar">

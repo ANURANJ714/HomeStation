@@ -26,7 +26,7 @@ const adminSession = session({
     saveUninitialized: false,
     store: MongoStore.create({ mongoUrl: process.env.MONGODB_URI }),
     cookie: { 
-        maxAge: 1000 * 60 * 60 * 24,
+        maxAge: 1000 * 60 * 60 * 24 * 7,
         httpOnly: true,
         secure: isProduction,
         sameSite: 'lax',

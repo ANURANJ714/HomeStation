@@ -169,15 +169,9 @@ export const getFilteredProductsCatalog = async (filters) => {
 export const getValidatedProductDetails = async (productId) => {
     try {
         const product = await Product.findOne({ _id: productId, isDeleted: false }).lean();
-        if (!product) {
-            const error = new Error("Requested product is no longer active.");
-            error.reason = 'UNAVAILABLE';
-            throw error;
-        }
-
         const category = await Category.findOne({ _id: product.categoryId, isDeleted: false }).lean();
-        if (!category) {
-            const error = new Error("Parent category context dropped.");
+        if (!product || !category) {
+            const error = new Error("Requested product is no longer available.");
             error.reason = 'UNAVAILABLE';
             throw error;
         }
@@ -198,7 +192,7 @@ export const getValidatedProductDetails = async (productId) => {
         });
 
         if (runningTotalStockValue <= 0 || activeInStockVariants.length === 0) {
-            const error = new Error("Product variant inventory is out of stock.");
+            const error = new Error("This product is currently out of stock.");
             error.reason = 'OUT_OF_STOCK';
             throw error;
         }

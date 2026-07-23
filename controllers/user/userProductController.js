@@ -8,6 +8,11 @@ export const loadProductsCatalogPage = async (req, res) => {
     try {
         const user = req.user || null;
         
+        const serverAlert = req.session.serverAlert || null;
+        if (req.session.serverAlert) {
+            delete req.session.serverAlert; 
+        }
+
         const currentCategory = req.query.category ? String(req.query.category).trim() : 'all';
         const currentSort = req.query.sort ? String(req.query.sort).trim() : 'all';
         const searchQuery = req.query.q ? String(req.query.q).trim() : '';
@@ -51,6 +56,7 @@ export const loadProductsCatalogPage = async (req, res) => {
             searchQuery,
             bannerText,
             userWishlist,
+            errorAlert: serverAlert,
             csrfToken: req.csrfToken()
         });
 
@@ -96,20 +102,15 @@ export const loadProductDetailViewPage = async (req, res) => {
         if (error.reason === 'UNAVAILABLE' || error.reason === 'OUT_OF_STOCK') {
             logger.warn(`Product profile delivery rejected on constraint checkpoints: ${error.message}`);
             
-            return res.render('user/productdetails', {
-                user: req.user || null,
-                product: null,
-                variants: [],
-                related: [],
-                bannerText: null,
-                userWishlist: [],
-                csrfToken: req.csrfToken(),
-                errorAlert: {
+            if (req.session) {
+                req.session.serverAlert = {
                     type: 'warning',
-                    title: 'Resource Unavailable',
+                    title: 'Product Unvailable',
                     message: error.message
-                }
-            });
+                };
+            }
+
+            return res.redirect('/products');
         }
 
         logger.error(`Critical parsing breakdown inside Product profile mapping subroutine: ${error.message}`);

@@ -1,6 +1,20 @@
 document.addEventListener("DOMContentLoaded", () => {
     const csrfToken = document.getElementById("csrfToken")?.value || "";
 
+    const alertStatus = document.getElementById("serverAlertStatus")?.value;
+    const alertTitle = document.getElementById("serverAlertTitle")?.value;
+    const alertMessage = document.getElementById("serverAlertMessage")?.value;
+
+    if (alertStatus && alertMessage) {
+        Swal.fire({
+            icon: alertStatus,
+            title: alertTitle || "Notice",
+            text: alertMessage,
+            confirmButtonColor: "#222",
+            heightAuto: false
+        });
+    }
+
     function triggerFilterState(targetPage = 1) {
         const activeCategory = document.getElementById("currentCategoryFilter")?.value || "all";
         const selectedSort = document.getElementById("priceSort").value;

@@ -52,6 +52,7 @@ export const loadHomePage = async (req, res) => {
     }
 };
 
+
 export const loadContactPage = async (req, res) => {
     try {
         const user = req.user || null;
