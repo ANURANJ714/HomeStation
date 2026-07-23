@@ -409,6 +409,25 @@ img {
   background-color: #fff5f5;
 }
 
+.wishlist-empty{
+  color: #666; 
+  grid-column: 1 / -1;
+}
+
+.clickable-wishlist-card {
+    cursor: pointer;
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.clickable-wishlist-card:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 6px 16px rgba(0, 0, 0, 0.1);
+}
+
+.clickable-wishlist-card .item-actions {
+    cursor: default; 
+}
+
 .pagination {
   display: flex;
   justify-content: center;

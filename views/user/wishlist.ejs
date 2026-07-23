@@ -96,7 +96,7 @@
                             const product = item.productId;
                             const currentPrice = Math.round(item.originalPrice * (1 - (item.discount || 0) / 100));
                         %>
-                        <div class="wishlist-item" data-variant-id="<%= item._id %>">
+                        <div class="wishlist-item clickable-wishlist-card" data-variant-id="<%= item._id %>" data-product-id="<%= product._id %>">
                             <div class="item-img-container">
                                 <img src="<%= product.images && product.images[0] ? product.images[0] : 'https://placehold.co/300' %>" alt="<%= product.name %>">
                             </div>
@@ -119,7 +119,7 @@
                         </div>
                         <% }); %>
                     <% } else { %>
-                        <p style="color: #666; grid-column: 1 / -1;">Your wishlist is currently empty. Start adding some products!</p>
+                        <p class="wishlist-empty">Your wishlist is currently empty. Start adding some products!</p>
                     <% } %>
                 </div>
 

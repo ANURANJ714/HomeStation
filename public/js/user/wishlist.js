@@ -34,6 +34,21 @@ document.addEventListener("DOMContentLoaded", () => {
         });
     }
 
+    document.querySelectorAll(".clickable-wishlist-card").forEach(card => {
+        card.addEventListener("click", function (e) {
+            const actionBtn = e.target.closest(".add-to-cart-btn, .trigger-delete-btn, .item-actions");
+            
+            if (actionBtn) {
+                return;
+            }
+
+            const productId = this.getAttribute("data-product-id");
+            if (productId) {
+                window.location.href = `/products/${productId}`;
+            }
+        });
+    });
+
     const deleteModal = document.getElementById("deleteModal");
     let currentDeleteId = null;
 
