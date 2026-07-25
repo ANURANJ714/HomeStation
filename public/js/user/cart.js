@@ -16,6 +16,18 @@ document.addEventListener("DOMContentLoaded", () => {
     });
   }
 
+  document.querySelectorAll(".clickable-cart-card").forEach(card => {
+    card.addEventListener("click", function(e) {
+      const excludedTarget = e.target.closest(".trigger-delete-btn, .quantity-selector, .item-actions");
+      if (excludedTarget) return;
+
+      const productId = this.getAttribute("data-product-id");
+      if (productId) {
+        window.location.href = `/products/${productId}`;
+      }
+    });
+  });
+
   document.addEventListener("click", (e) => {
     const removeBtn = e.target.closest(".trigger-delete-btn");
     if (removeBtn) {
@@ -43,8 +55,22 @@ document.addEventListener("DOMContentLoaded", () => {
 
     e.preventDefault();
     const cartItemId = qtyBtn.getAttribute("data-cart-id");
-    const action = qtyBtn.classList.contains("plus") ? "increase" : "decrease";
+    const isPlus = qtyBtn.classList.contains("plus");
     const qtyInput = qtyBtn.parentElement.querySelector("input");
+    const currentVal = parseInt(qtyInput.value, 10) || 1;
+
+    if (isPlus && currentVal >= 5) {
+      Swal.fire({
+        icon: "warning",
+        title: "Limit Reached",
+        text: "Maximum quantity limit is 5 items per product.",
+        confirmButtonColor: "#222",
+        heightAuto: false,
+      });
+      return;
+    }
+
+    const action = isPlus ? "increase" : "decrease";
     const containerItemCard = qtyBtn.closest(".cart-item");
 
     try {

@@ -1,22 +1,23 @@
 import { csrfSync } from 'csrf-sync';
 
-const { csrfSynchronisedProtection, generateToken } = csrfSync({
+export const { csrfSynchronisedProtection, generateToken } = csrfSync({
     getTokenFromRequest: (req) => {
-        if (req.headers['csrf-token']) {
-            return req.headers['csrf-token'];
-        }
-        
-        if (req.body && req.body._csrf) {
-            return req.body._csrf;
-        }
-
-        return ''; 
+        return (
+            req.headers['x-csrf-token'] ||
+            req.headers['csrf-token'] ||
+            (req.body && req.body._csrf) ||
+            ''
+        );
     }
 });
 
-export const csrfProtection = csrfSynchronisedProtection;
-
 export const injectCsrfToken = (req, res, next) => {
-    res.locals.csrfToken = generateToken(req);
+    const token = generateToken(req);
+    res.locals.csrfToken = token;
+
+    req.csrfToken = () => token;
+
     next();
 };
+
+export const csrfProtection = csrfSynchronisedProtection;

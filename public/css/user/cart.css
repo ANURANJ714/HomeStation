@@ -699,6 +699,31 @@ ul {
     transform: translateY(-1px);
 }
 
+.clickable-cart-card {
+    cursor: pointer;
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.clickable-cart-card:hover {
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+}
+
+.clickable-cart-card .item-actions,
+.clickable-cart-card .btn-remove {
+    cursor: default;
+}
+
+.checkout-link-block {
+    display: block;
+    text-align: center;
+}
+
+.checkout-disabled-btn {
+    opacity: 0.5;
+    cursor: not-allowed;
+    width: 100%;
+}
+
 @media (max-width: 850px) {
     .cart-content {
         grid-template-columns: 1fr;

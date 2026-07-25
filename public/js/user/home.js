@@ -51,10 +51,24 @@ document.addEventListener("DOMContentLoaded", () => {
   if (closeSidebarBtn) closeSidebarBtn.addEventListener("click", closeMobileDrawer);
   if (sidebarOverlay) sidebarOverlay.addEventListener("click", closeMobileDrawer);
 
+  document.addEventListener("click", (e) => {
+    const card = e.target.closest(".clickable-product-card");
+    if (!card) return;
+
+    const actionBtn = e.target.closest(".add-to-cart-btn, .wishlist-btn");
+    if (actionBtn) return;
+
+    const productId = card.getAttribute("data-product-id");
+    if (productId) {
+      window.location.href = `/products/${productId}`;
+    }
+  });
+
   document.addEventListener("click", async (e) => {
     const addToCartBtn = e.target.closest(".add-to-cart-btn");
     if (addToCartBtn) {
       e.preventDefault();
+      e.stopPropagation();
       const variantId = addToCartBtn.getAttribute("data-variant-id");
 
       if (!variantId) {
@@ -67,7 +81,8 @@ document.addEventListener("DOMContentLoaded", () => {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
-            "CSRF-Token": csrfToken,
+            "x-csrf-token": csrfToken,
+            "CSRF-Token": csrfToken
           },
           body: JSON.stringify({ variantId: variantId }),
         });
@@ -112,6 +127,7 @@ document.addEventListener("DOMContentLoaded", () => {
     const wishlistBtn = e.target.closest(".wishlist-btn");
     if (wishlistBtn) {
       e.preventDefault();
+      e.stopPropagation();
       const variantId = wishlistBtn.getAttribute("data-variant-id");
       const icon = wishlistBtn.querySelector("i");
 
@@ -122,7 +138,8 @@ document.addEventListener("DOMContentLoaded", () => {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
-            "CSRF-Token": csrfToken,
+            "x-csrf-token": csrfToken,
+            "CSRF-Token": csrfToken
           },
           body: JSON.stringify({ variantId: variantId }),
         });
