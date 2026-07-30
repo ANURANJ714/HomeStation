@@ -21,6 +21,19 @@ document.addEventListener("DOMContentLoaded", () => {
     });
   });
 
+  document.addEventListener("click", (e) => {
+    const card = e.target.closest(".clickable-product-card");
+    if (!card) return;
+
+    const actionBtn = e.target.closest(".wishlist-btn, .add-to-cart-btn");
+    if (actionBtn) return;
+
+    const productId = card.getAttribute("data-product-id");
+    if (productId) {
+      window.location.href = `/products/${productId}`;
+    }
+  });
+
   document.querySelectorAll(".wishlist-btn").forEach((btn) => {
     btn.addEventListener("click", async function (e) {
       e.preventDefault();

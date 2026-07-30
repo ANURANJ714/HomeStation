@@ -490,6 +490,21 @@ img {
     border-color: #222;
 }
 
+.clickable-product-card {
+    cursor: pointer;
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.clickable-product-card:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 6px 16px rgba(0, 0, 0, 0.1);
+}
+
+.clickable-product-card .wishlist-btn,
+.clickable-product-card .add-to-cart-btn {
+    cursor: pointer;
+}
+
 @media (max-width: 1200px) {
     .products-grid {
         grid-template-columns: repeat(2, 1fr);

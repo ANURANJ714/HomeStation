@@ -22,6 +22,19 @@ document.addEventListener("DOMContentLoaded", () => {
         });
     }
 
+    document.addEventListener("click", (e) => {
+        const card = e.target.closest(".clickable-product-card");
+        if (!card) return;
+
+        const actionBtn = e.target.closest(".inline-related-wishlist-toggle, .inline-related-cart-addition");
+        if (actionBtn) return;
+
+        const productId = card.getAttribute("data-product-id");
+        if (productId) {
+            window.location.href = `/products/${productId}`;
+        }
+    });
+
     const alertStatus = document.getElementById("serverAlertStatus")?.value;
     const alertTitle = document.getElementById("serverAlertTitle")?.value;
     const alertMessage = document.getElementById("serverAlertMessage")?.value;
@@ -166,7 +179,11 @@ document.addEventListener("DOMContentLoaded", () => {
             try {
                 const response = await fetch(targetUrl, {
                     method: "POST",
-                    headers: { "Content-Type": "application/json", "CSRF-Token": csrfToken },
+                    headers: { 
+                        "Content-Type": "application/json", 
+                        "CSRF-Token": csrfToken,
+                        "x-csrf-token": csrfToken 
+                    },
                     body: JSON.stringify({ variantId })
                 });
                 if (response.status === 401 || response.status === 403) {
@@ -199,7 +216,11 @@ document.addEventListener("DOMContentLoaded", () => {
             try {
                 const response = await fetch("/cart/add", {
                     method: "POST",
-                    headers: { "Content-Type": "application/json", "CSRF-Token": csrfToken },
+                    headers: { 
+                        "Content-Type": "application/json", 
+                        "CSRF-Token": csrfToken,
+                        "x-csrf-token": csrfToken 
+                    },
                     body: JSON.stringify({ variantId, quantity }) 
                 });
                 if (response.status === 401 || response.status === 403) {
@@ -221,11 +242,17 @@ document.addEventListener("DOMContentLoaded", () => {
     document.addEventListener("click", async (e) => {
         const relCartBtn = e.target.closest(".inline-related-cart-addition");
         if (relCartBtn) {
+            e.preventDefault();
+            e.stopPropagation();
             const variantId = relCartBtn.getAttribute("data-variant-id");
             try {
                 const res = await fetch("/cart/add", {
                     method: "POST",
-                    headers: { "Content-Type": "application/json", "CSRF-Token": csrfToken },
+                    headers: { 
+                        "Content-Type": "application/json", 
+                        "CSRF-Token": csrfToken,
+                        "x-csrf-token": csrfToken 
+                    },
                     body: JSON.stringify({ variantId, quantity: 1 })
                 });
                 if (res.status === 401 || res.status === 403) { window.location.href = "/user/login"; return; }
@@ -237,6 +264,8 @@ document.addEventListener("DOMContentLoaded", () => {
 
         const relWishBtn = e.target.closest(".inline-related-wishlist-toggle");
         if (relWishBtn) {
+            e.preventDefault();
+            e.stopPropagation();
             const variantId = relWishBtn.getAttribute("data-variant-id");
             const icon = relWishBtn.querySelector("i");
             const isLiked = relWishBtn.classList.contains("liked");
@@ -245,7 +274,11 @@ document.addEventListener("DOMContentLoaded", () => {
             try {
                 const res = await fetch(path, {
                     method: "POST",
-                    headers: { "Content-Type": "application/json", "CSRF-Token": csrfToken },
+                    headers: { 
+                        "Content-Type": "application/json", 
+                        "CSRF-Token": csrfToken,
+                        "x-csrf-token": csrfToken 
+                    },
                     body: JSON.stringify({ variantId })
                 });
                 if (res.status === 401 || res.status === 403) { window.location.href = "/user/login"; return; }

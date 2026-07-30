@@ -15,10 +15,23 @@ document.addEventListener("DOMContentLoaded", () => {
         });
     }
 
+    document.addEventListener("click", (e) => {
+        const card = e.target.closest(".clickable-product-card");
+        if (!card) return;
+
+        const actionBtn = e.target.closest(".wishlist-btn, .add-to-cart-btn");
+        if (actionBtn) return;
+
+        const productId = card.getAttribute("data-product-id");
+        if (productId) {
+            window.location.href = `/products/${productId}`;
+        }
+    });
+
     function triggerFilterState(targetPage = 1) {
         const activeCategory = document.getElementById("currentCategoryFilter")?.value || "all";
-        const selectedSort = document.getElementById("priceSort").value;
-        const searchQuery = document.getElementById("searchInput").value.trim();
+        const selectedSort = document.getElementById("priceSort") ? document.getElementById("priceSort").value : "all";
+        const searchQuery = document.getElementById("searchInput") ? document.getElementById("searchInput").value.trim() : "";
         
         const checkedBrands = [];
         document.querySelectorAll(".brand-checkbox:checked").forEach(checkbox => {
@@ -55,6 +68,7 @@ document.addEventListener("DOMContentLoaded", () => {
     document.querySelectorAll(".wishlist-btn").forEach(btn => {
         btn.addEventListener("click", async function(e) {
             e.preventDefault();
+            e.stopPropagation(); 
             const variantId = this.getAttribute("data-variant-id");
             const icon = this.querySelector("i");
             const isLiked = this.classList.contains("liked");
@@ -66,7 +80,8 @@ document.addEventListener("DOMContentLoaded", () => {
                     method: "POST",
                     headers: {
                         "Content-Type": "application/json",
-                        "CSRF-Token": csrfToken
+                        "CSRF-Token": csrfToken,
+                        "x-csrf-token": csrfToken
                     },
                     body: JSON.stringify({ variantId })
                 });
@@ -98,6 +113,7 @@ document.addEventListener("DOMContentLoaded", () => {
     document.querySelectorAll(".add-to-cart-btn").forEach(btn => {
         btn.addEventListener("click", async function(e) {
             e.preventDefault();
+            e.stopPropagation();
             const variantId = this.getAttribute("data-variant-id");
 
             try {
@@ -105,7 +121,8 @@ document.addEventListener("DOMContentLoaded", () => {
                     method: "POST",
                     headers: {
                         "Content-Type": "application/json",
-                        "CSRF-Token": csrfToken
+                        "CSRF-Token": csrfToken,
+                        "x-csrf-token": csrfToken
                     },
                     body: JSON.stringify({ variantId })
                 });

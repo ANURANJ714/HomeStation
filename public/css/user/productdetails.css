@@ -907,6 +907,21 @@ img {
     font-size: 14px;
 }
 
+.clickable-product-card {
+    cursor: pointer;
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.clickable-product-card:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 6px 16px rgba(0, 0, 0, 0.1);
+}
+
+.clickable-product-card .inline-related-wishlist-toggle,
+.clickable-product-card .inline-related-cart-addition {
+    cursor: pointer;
+}
+
 @media (max-width: 1200px) {
     .related-products .products-grid {
         grid-template-columns: repeat(3, 1fr);
