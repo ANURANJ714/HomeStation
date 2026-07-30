@@ -48,6 +48,7 @@ export const addToCartController = async (req, res) => {
         return res.status(500).json({ success: false, message: "Failed to add to cart." });
     }
 };
+
 export const loadCartPage = async (req, res) => {
     try {
         const userId = req.user._id;

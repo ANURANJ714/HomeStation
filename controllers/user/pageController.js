@@ -1,7 +1,7 @@
 import * as pageService from '../../services/user/pageService.js';
 import { getActivePromoBanner } from '../../services/user/bannerService.js';
 import { toggleVariantInWishlist, getUserWishlistArray } from '../../services/user/wishlistService.js';
-import { addVariantToCart } from '../../services/user/cartService.js';
+import * as cartService from '../../services/user/cartService.js';
 import logger from '../../utils/logger.js';
 
 export const loadHomePage = async (req, res) => {

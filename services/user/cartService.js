@@ -99,12 +99,14 @@ export const getCartItems = async (userId) => {
         let totalQuantity = 0;
         let flags = { outOfStockRemoved: false, productRemoved: false, categoryRemoved: false };
         const validCartItems = [];
+        const invalidCartItemIds = [];
 
         for (const item of cartItems) {
             const variant = item.productVariantId;
             
             if (!variant || !variant.productId) {
                 flags.productRemoved = true;
+                invalidCartItemIds.push(item._id);
                 continue; 
             }
 
@@ -113,16 +115,19 @@ export const getCartItems = async (userId) => {
 
             if (variant.stock <= 0) {
                 flags.outOfStockRemoved = true;
+                invalidCartItemIds.push(item._id);
                 continue; 
             }
 
             if (product.isDeleted === true) {
                 flags.productRemoved = true;
+                invalidCartItemIds.push(item._id);
                 continue; 
             }
 
             if (category && category.isDeleted === true) {
                 flags.categoryRemoved = true;
+                invalidCartItemIds.push(item._id);
                 continue; 
             }
 
@@ -130,6 +135,10 @@ export const getCartItems = async (userId) => {
             subtotal += currentPrice * item.quantity;
             totalQuantity += item.quantity;
             validCartItems.push(item);
+        }
+
+        if (invalidCartItemIds.length > 0) {
+            await Cart.deleteMany({ _id: { $in: invalidCartItemIds } });
         }
 
         return { 

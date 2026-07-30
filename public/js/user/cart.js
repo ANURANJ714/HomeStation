@@ -5,7 +5,9 @@ document.addEventListener("DOMContentLoaded", () => {
   const confirmDeleteBtn = document.getElementById("confirmDelete");
   let currentDeleteCartId = null;
 
-  const cartAlertMessage = document.getElementById("cartAlertMessage")?.value;
+  const alertInput = document.getElementById("cartAlertMessage");
+  const cartAlertMessage = alertInput?.value;
+
   if (cartAlertMessage && cartAlertMessage.trim() !== "") {
     Swal.fire({
       icon: "info",
@@ -14,6 +16,7 @@ document.addEventListener("DOMContentLoaded", () => {
       confirmButtonColor: "#222",
       heightAuto: false,
     });
+    if (alertInput) alertInput.value = "";
   }
 
   document.querySelectorAll(".clickable-cart-card").forEach(card => {

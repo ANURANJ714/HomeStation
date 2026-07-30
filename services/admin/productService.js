@@ -101,6 +101,7 @@ export const getAdminProductsPageData = async (page, limit, searchQuery, statusF
             dbQuery._id = { $in: filteredIds };
         }
 
+
         const totalProducts = await Product.countDocuments(dbQuery);
         const totalPages = Math.max(1, Math.ceil(totalProducts / limit));
         const safePage = Math.min(page, Math.max(1, totalPages));
