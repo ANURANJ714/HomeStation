@@ -2,9 +2,9 @@ import Product from '../../models/Products.js';
 import ProductVariant from '../../models/ProductVariant.js';
 import Category from '../../models/Category.js';
 
-export const getActiveCategories = async () => {
-    return await Category.find({ isDeleted: false }).sort({ name: 1 }).lean();
-};
+// export const getActiveCategories = async () => {
+//     return await Category.find({ isDeleted: false }).sort({ name: 1 }).lean();
+// };
 
 export const getProductsPageData = async (queryOptions) => {
     const { searchQuery, categoryFilter, maxPriceFilter, safeSkip, limit } = queryOptions;
@@ -169,8 +169,14 @@ export const getFilteredProductsCatalog = async (filters) => {
 export const getValidatedProductDetails = async (productId) => {
     try {
         const product = await Product.findOne({ _id: productId, isDeleted: false }).lean();
+        if (!product) {
+            const error = new Error("Requested product is no longer available.");
+            error.reason = 'UNAVAILABLE';
+            throw error;
+        }
+
         const category = await Category.findOne({ _id: product.categoryId, isDeleted: false }).lean();
-        if (!product || !category) {
+        if (!category) {
             const error = new Error("Requested product is no longer available.");
             error.reason = 'UNAVAILABLE';
             throw error;
