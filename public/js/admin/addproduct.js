@@ -1,5 +1,5 @@
 document.addEventListener('DOMContentLoaded', () => {
-    const csrfToken = document.getElementById('csrfToken').value;
+    const csrfToken = document.getElementById('csrfToken')?.value || '';
 
     function updateDateTime() {
         const display = document.getElementById('datetimeDisplay');
@@ -118,40 +118,92 @@ document.addEventListener('DOMContentLoaded', () => {
         variantsContainer.appendChild(createVariantRow());
     }
 
-    window.previewImage = function(input) {
-        const box = input.closest('.upload-box');
-        const img = box.querySelector('.preview-img');
-        const placeholder = box.querySelector('.upload-placeholder');
-        
-        if (input.files && input.files[0]) {
-            const objectUrl = URL.createObjectURL(input.files[0]);
-            img.src = objectUrl;
-            
-            img.classList.remove('hidden');
-            img.classList.add('show-block');
-            placeholder.classList.remove('show-flex');
-            placeholder.classList.add('hidden');
-            box.classList.add('has-image');
-        } else {
-            img.src = '';
-            img.classList.remove('show-block');
-            img.classList.add('hidden');
-            placeholder.classList.remove('hidden');
-            placeholder.classList.add('show-flex');
-            box.classList.remove('has-image');
+    const croppedFilesMap = {}; 
+    let cropperInstance = null;
+    let activeBoxIndex = null;
+
+    const cropperModal = document.getElementById('cropperModal');
+    const cropperTargetImage = document.getElementById('cropperTargetImage');
+    const applyCropBtn = document.getElementById('applyCropBtn');
+    const cancelCropBtn = document.getElementById('cancelCropBtn');
+    const closeCropperBtn = document.getElementById('closeCropperBtn');
+
+    function closeCropper() {
+        if (cropperInstance) {
+            cropperInstance.destroy();
+            cropperInstance = null;
         }
-    };
+        if (cropperModal) {
+            cropperModal.style.display = 'none';
+        }
+        activeBoxIndex = null;
+    }
+
+    if (cancelCropBtn) cancelCropBtn.addEventListener('click', closeCropper);
+    if (closeCropperBtn) closeCropperBtn.addEventListener('click', closeCropper);
 
     document.querySelectorAll('.image-input').forEach(input => {
-        input.addEventListener('change', function() {
-            window.previewImage(this);
+        input.addEventListener('change', function () {
+            const index = parseInt(this.getAttribute('data-index'), 10);
+            if (this.files && this.files[0]) {
+                const file = this.files[0];
+                activeBoxIndex = index;
+
+                const reader = new FileReader();
+                reader.onload = (e) => {
+                    cropperTargetImage.src = e.target.result;
+                    cropperModal.style.display = 'flex';
+
+                    if (cropperInstance) cropperInstance.destroy();
+                    cropperInstance = new Cropper(cropperTargetImage, {
+                        aspectRatio: 1,
+                        viewMode: 1,
+                        background: false
+                    });
+                };
+                reader.readAsDataURL(file);
+            }
         });
     });
+
+    if (applyCropBtn) {
+        applyCropBtn.addEventListener('click', () => {
+            if (!cropperInstance || activeBoxIndex === null) return;
+
+            const canvas = cropperInstance.getCroppedCanvas({ width: 800, height: 800 });
+            canvas.toBlob((blob) => {
+                if (!blob) return;
+
+                const file = new File([blob], `product-image-${activeBoxIndex + 1}.jpg`, { type: 'image/jpeg' });
+                croppedFilesMap[activeBoxIndex] = file;
+
+                const box = document.querySelector(`.upload-box[data-index="${activeBoxIndex}"]`);
+                const img = box.querySelector('.preview-img');
+                const placeholder = box.querySelector('.upload-placeholder');
+
+                img.src = URL.createObjectURL(blob);
+                img.classList.remove('hidden');
+                img.classList.add('show-block');
+                placeholder.classList.remove('show-flex');
+                placeholder.classList.add('hidden');
+                box.classList.add('has-image');
+
+                closeCropper();
+            }, 'image/jpeg', 0.9);
+        });
+    }
+
+    function clearAllErrors() {
+        document.querySelectorAll('.error-msg').forEach(el => {
+            el.innerText = '';
+        });
+    }
 
     const addProductForm = document.getElementById('addProductForm');
     if (addProductForm) {
         addProductForm.addEventListener('submit', async function (e) {
             e.preventDefault();
+            clearAllErrors();
 
             const form = this;
             const submitBtn = document.getElementById('saveProductBtn');
@@ -165,35 +217,152 @@ document.addEventListener('DOMContentLoaded', () => {
             const pWarr = document.getElementById('productWarranty').value.trim();
             const pSpecs = document.getElementById('productSpecs').value.trim();
 
-            if (!pName || !pCat || !pDesc || !pBrand || !pMat || !pWarr || !pSpecs) {
+            const variantRows = document.querySelectorAll('.variant-row');
+            const croppedCount = Object.keys(croppedFilesMap).length;
+
+            let areAllVariantsEmpty = true;
+            variantRows.forEach((row) => {
+                const vName = row.querySelector('.v-name').value.trim();
+                const vPrice = row.querySelector('.v-price').value.trim();
+                const vStock = row.querySelector('.v-stock').value.trim();
+                if (vName !== '' || vPrice !== '' || vStock !== '') {
+                    areAllVariantsEmpty = false;
+                }
+            });
+
+            if (
+                pName === '' &&
+                pCat === '' &&
+                pDesc === '' &&
+                pBrand === '' &&
+                pMat === '' &&
+                pWarr === '' &&
+                pSpecs === '' &&
+                areAllVariantsEmpty &&
+                croppedCount === 0
+            ) {
+                document.getElementById('productNameError').innerText = 'Product name is required.';
+                document.getElementById('productCategoryError').innerText = 'Please select a category.';
+                document.getElementById('productDescriptionError').innerText = 'Product description is required.';
+                document.getElementById('productBrandError').innerText = 'Brand name is required.';
+                document.getElementById('productMaterialError').innerText = 'Material type is required.';
+                document.getElementById('productWarrantyError').innerText = 'Warranty detail is required.';
+                document.getElementById('productSpecsError').innerText = 'Product specifications are required.';
+                document.getElementById('variantsContainerError').innerText = 'Variant details are required.';
+                document.getElementById('imagesError').innerText = 'All 3 images must be uploaded and cropped.';
+
                 return Swal.fire({
                     icon: 'warning',
-                    title: 'Fields Required',
-                    text: 'Please fill out all the mandatory fields before saving.',
+                    title: 'All Fields Required',
+                    text: 'Please fill out all mandatory fields and upload required product images before saving.',
                     heightAuto: false,
                     confirmButtonColor: '#1a1a1a'
                 });
             }
 
-            const formData = new FormData(form);
-            const variantRows = document.querySelectorAll('.variant-row');
-            const variants = [];
-            let isVariantsValid = true;
+            const errorMessages = [];
 
-            variantRows.forEach(row => {
+            if (pName === '') {
+                const msg = 'Product name is required.';
+                document.getElementById('productNameError').innerText = msg;
+                errorMessages.push(msg);
+            }
+
+            if (pCat === '') {
+                const msg = 'Please select a category.';
+                document.getElementById('productCategoryError').innerText = msg;
+                errorMessages.push(msg);
+            }
+
+            if (pDesc === '') {
+                const msg = 'Product description is required.';
+                document.getElementById('productDescriptionError').innerText = msg;
+                errorMessages.push(msg);
+            }
+
+            if (pBrand === '') {
+                const msg = 'Brand name is required.';
+                document.getElementById('productBrandError').innerText = msg;
+                errorMessages.push(msg);
+            }
+
+            if (pMat === '') {
+                const msg = 'Material type is required.';
+                document.getElementById('productMaterialError').innerText = msg;
+                errorMessages.push(msg);
+            }
+
+            if (pWarr === '') {
+                const msg = 'Warranty detail is required.';
+                document.getElementById('productWarrantyError').innerText = msg;
+                errorMessages.push(msg);
+            }
+
+            if (pSpecs === '') {
+                const msg = 'Product specifications are required.';
+                document.getElementById('productSpecsError').innerText = msg;
+                errorMessages.push(msg);
+            }
+
+            const variants = [];
+            let variantErrorFound = false;
+
+            if (variantRows.length === 0) {
+                const msg = 'At least one variant must be added.';
+                document.getElementById('variantsContainerError').innerText = msg;
+                errorMessages.push(msg);
+            }
+
+            variantRows.forEach((row, index) => {
+                const variantNumber = index + 1;
                 const vName = row.querySelector('.v-name').value.trim();
                 const vPriceText = row.querySelector('.v-price').value.trim();
+                const vDiscountText = row.querySelector('.v-discount').value.trim();
                 const vStockText = row.querySelector('.v-stock').value.trim();
+                const vLengthText = row.querySelector('.v-length').value.trim();
+                const vWidthText = row.querySelector('.v-width').value.trim();
+                const vHeightText = row.querySelector('.v-height').value.trim();
 
                 const vPrice = parseFloat(vPriceText);
-                const vDiscount = parseFloat(row.querySelector('.v-discount').value) || 0;
-                const vStock = parseInt(vStockText);
-                const vLength = parseFloat(row.querySelector('.v-length').value) || null;
-                const vWidth = parseFloat(row.querySelector('.v-width').value) || null;
-                const vHeight = parseFloat(row.querySelector('.v-height').value) || null;
+                const vDiscount = parseFloat(vDiscountText) || 0;
+                const vStock = parseInt(vStockText, 10);
+                const vLength = vLengthText !== '' ? parseFloat(vLengthText) : null;
+                const vWidth = vWidthText !== '' ? parseFloat(vWidthText) : null;
+                const vHeight = vHeightText !== '' ? parseFloat(vHeightText) : null;
 
-                if (!vName || vPriceText === '' || vStockText === '' || isNaN(vPrice) || isNaN(vStock) || vPrice < 0 || vStock < 0) {
-                    isVariantsValid = false;
+                if (vName === '' || vPriceText === '' || vStockText === '') {
+                    variantErrorFound = true;
+                    errorMessages.push(`Variant #${variantNumber} is missing required fields (Name, Price, or Stock).`);
+                }
+
+                if (vPriceText !== '' && (isNaN(vPrice) || vPrice < 0)) {
+                    variantErrorFound = true;
+                    errorMessages.push(`Variant #${variantNumber} price cannot be negative or invalid.`);
+                }
+
+                if (vStockText !== '' && (isNaN(vStock) || vStock < 0)) {
+                    variantErrorFound = true;
+                    errorMessages.push(`Variant #${variantNumber} stock cannot be negative or invalid.`);
+                }
+
+                if (vDiscountText !== '' && (isNaN(vDiscount) || vDiscount < 0 || vDiscount > 100)) {
+                    variantErrorFound = true;
+                    errorMessages.push(`Variant #${variantNumber} discount must be between 0% and 100%.`);
+                }
+
+                if (vLength !== null && (isNaN(vLength) || vLength < 0)) {
+                    variantErrorFound = true;
+                    errorMessages.push(`Variant #${variantNumber} length cannot be negative.`);
+                }
+
+                if (vWidth !== null && (isNaN(vWidth) || vWidth < 0)) {
+                    variantErrorFound = true;
+                    errorMessages.push(`Variant #${variantNumber} width cannot be negative.`);
+                }
+
+                if (vHeight !== null && (isNaN(vHeight) || vHeight < 0)) {
+                    variantErrorFound = true;
+                    errorMessages.push(`Variant #${variantNumber} height cannot be negative.`);
                 }
 
                 variants.push({
@@ -207,30 +376,40 @@ document.addEventListener('DOMContentLoaded', () => {
                 });
             });
 
-            if (!isVariantsValid) {
+            if (variantErrorFound) {
+                document.getElementById('variantsContainerError').innerText = 'Please fix invalid or negative values in variant fields.';
+            }
+
+            if (croppedCount < 3) {
+                const msg = 'All 3 images (Main Image, Side Image 1, and Side Image 2) must be selected and cropped.';
+                document.getElementById('imagesError').innerText = msg;
+                errorMessages.push(msg);
+            }
+
+            if (errorMessages.length > 0) {
+                const formattedMessageList = errorMessages.slice(0, 4).map(msg => `• ${msg}`).join('<br>');
                 return Swal.fire({
                     icon: 'warning',
-                    title: 'Invalid Variants',
-                    text: 'All variants must contain a Name, non-negative Price, and Stock allocation values.',
+                    title: 'Validation Errors',
+                    html: `<div style="text-align: center; font-size: 17px; line-height: 1.6;">${formattedMessageList}</div>`,
                     heightAuto: false,
                     confirmButtonColor: '#1a1a1a'
                 });
             }
 
-            const imageInputs = document.querySelectorAll('.image-input');
-            let mainImageUploaded = imageInputs[0] && imageInputs[0].files.length > 0;
-
-            if (!mainImageUploaded) {
-                return Swal.fire({
-                    icon: 'warning',
-                    title: 'Image Required',
-                    text: 'Please upload at least the Main Image for the product.',
-                    heightAuto: false,
-                    confirmButtonColor: '#1a1a1a'
-                });
-            }
-
+            const formData = new FormData();
+            formData.append('name', pName);
+            formData.append('categoryId', pCat);
+            formData.append('description', pDesc);
+            formData.append('brand', pBrand);
+            formData.append('material', pMat);
+            formData.append('warranty', pWarr);
+            formData.append('specifications', pSpecs);
             formData.append('variants', JSON.stringify(variants));
+
+            Object.keys(croppedFilesMap).forEach((idx) => {
+                formData.append('images', croppedFilesMap[idx]);
+            });
 
             submitBtn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Saving...';
             submitBtn.disabled = true;
@@ -239,7 +418,8 @@ document.addEventListener('DOMContentLoaded', () => {
                 const response = await fetch('/admin/products', {
                     method: 'POST',
                     headers: {
-                        'CSRF-Token': csrfToken
+                        'CSRF-Token': csrfToken,
+                        'x-csrf-token': csrfToken
                     },
                     body: formData
                 });
@@ -282,53 +462,53 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         });
     }
-    
-  const adminLogoutForm = document.getElementById("adminLogoutForm");
-  if (adminLogoutForm) {
-      adminLogoutForm.addEventListener("submit", async function (e) {
-          e.preventDefault(); 
 
-          const primaryToken = document.getElementById("globalCsrfTokenField")?.value || "";
+    const adminLogoutForm = document.getElementById("adminLogoutForm");
+    if (adminLogoutForm) {
+        adminLogoutForm.addEventListener("submit", async function (e) {
+            e.preventDefault(); 
 
-          try {
-              const response = await fetch("/admin/logout", {
-                  method: "POST",
-                  headers: {
-                      "Content-Type": "application/json",
-                      "csrf-token": primaryToken 
-                  }
-              });
+            const primaryToken = document.getElementById("globalCsrfTokenField")?.value || "";
 
-              if (response.redirected) {
-                  window.location.href = response.url;
-                  return;
-              }
+            try {
+                const response = await fetch("/admin/logout", {
+                    method: "POST",
+                    headers: {
+                        "Content-Type": "application/json",
+                        "csrf-token": primaryToken 
+                    }
+                });
 
-              const data = await response.json();
+                if (response.redirected) {
+                    window.location.href = response.url;
+                    return;
+                }
 
-              if (data.success || response.ok) {
-                  Swal.fire({
-                      icon: "success",
-                      title: "Logged Out",
-                      text: data.message || "Redirecting to login window...",
-                      timer: 1500,
-                      showConfirmButton: false,
-                      heightAuto: false
-                  }).then(() => {
-                      window.location.href = "/admin/login";
-                  });
-              } else {
-                  Swal.fire({
-                      icon: "error",
-                      title: "Logout Failed",
-                      text: data.message || "An error occurred.",
-                      confirmButtonColor: "#222",
-                      heightAuto: false
-                  });
-              }
-          } catch (error) {
-              window.location.href = "/admin/login";
-          }
-      });
-  }
+                const data = await response.json();
+
+                if (data.success || response.ok) {
+                    Swal.fire({
+                        icon: "success",
+                        title: "Logged Out",
+                        text: data.message || "Redirecting to login window...",
+                        timer: 1500,
+                        showConfirmButton: false,
+                        heightAuto: false
+                    }).then(() => {
+                        window.location.href = "/admin/login";
+                    });
+                } else {
+                    Swal.fire({
+                        icon: "error",
+                        title: "Logout Failed",
+                        text: data.message || "An error occurred.",
+                        confirmButtonColor: "#222",
+                        heightAuto: false
+                    });
+                }
+            } catch (error) {
+                window.location.href = "/admin/login";
+            }
+        });
+    }
 });

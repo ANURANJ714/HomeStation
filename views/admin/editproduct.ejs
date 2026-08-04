@@ -12,7 +12,6 @@
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.5.13/cropper.min.css">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.5.13/cropper.min.js"></script>
-
     <link rel="stylesheet" href="/css/admin/products.css">
     <link rel="stylesheet" href="/css/admin/editproduct.css">
 </head>
@@ -79,12 +78,13 @@
                         <div class="form-grid">
 
                             <div class="form-group full-width">
-                                <label>Product Name</label>
-                                <input type="text" id="productName" name="name" value="<%= product.name %>">
+                                <label>Product Name <span class="required-asterisk">*</span></label>
+                                <input type="text" id="productName" name="name" value="<%= product.name %>" placeholder="Enter product name">
+                                <small class="error-msg" id="productNameError"></small>
                             </div>
 
                             <div class="form-group full-width">
-                                <label>Category</label>
+                                <label>Category <span class="required-asterisk">*</span></label>
                                 <select id="productCategory" name="categoryId">
                                     <option value="">Select Category</option>
                                     <% if (typeof categories !== 'undefined' && categories.length > 0) { %>
@@ -95,11 +95,12 @@
                                         <% }) %>
                                     <% } %>
                                 </select>
+                                <small class="error-msg" id="productCategoryError"></small>
                             </div>
 
                             <div class="form-group full-width" id="variantsSection">
                                 <div class="variants-header-row">
-                                    <h3 class="variants-heading">Product Variants</h3>
+                                    <h3 class="variants-heading">Product Variants <span class="required-asterisk">*</span></h3>
                                     <button type="button" class="btn btn-secondary btn-sm" id="addVariantBtn">
                                         <i class="fa-solid fa-plus"></i> Add Another Variant
                                     </button>
@@ -109,11 +110,11 @@
                                         <% variants.forEach((variant) => { %>
                                             <div class="variant-row existing-server-variant">
                                                 <div class="variant-col">
-                                                    <label>Variant Name</label>
+                                                    <label>Variant Name *</label>
                                                     <input type="text" class="v-name" value="<%= variant.variantName %>">
                                                 </div>
                                                 <div class="variant-col">
-                                                    <label>Original Price (₹)</label>
+                                                    <label>Original Price (₹) *</label>
                                                     <input type="number" class="v-price" value="<%= variant.originalPrice %>" min="0" step="0.01">
                                                 </div>
                                                 <div class="variant-col">
@@ -121,7 +122,7 @@
                                                     <input type="number" class="v-discount" value="<%= variant.discount || 0 %>" min="0" max="100">
                                                 </div>
                                                 <div class="variant-col">
-                                                    <label>Stock</label>
+                                                    <label>Stock *</label>
                                                     <input type="number" class="v-stock" value="<%= variant.stock %>" min="0">
                                                 </div>
                                                 <div class="variant-col size-col">
@@ -141,35 +142,41 @@
                                         <% }) %>
                                     <% } %>
                                 </div>
+                                <small class="error-msg" id="variantsContainerError"></small>
                             </div>
 
                             <div class="form-group full-width mt-20">
-                                <label>Description</label>
+                                <label>Description <span class="required-asterisk">*</span></label>
                                 <textarea id="productDescription" name="description" rows="4"><%= product.description %></textarea>
+                                <small class="error-msg" id="productDescriptionError"></small>
                             </div>
 
                             <div class="form-group">
-                                <label>Brand</label>
+                                <label>Brand <span class="required-asterisk">*</span></label>
                                 <input type="text" id="productBrand" name="brand" value="<%= product.brand || '' %>" placeholder="Enter brand name">
+                                <small class="error-msg" id="productBrandError"></small>
                             </div>
                             
                             <div class="form-group">
-                                <label>Material</label>
+                                <label>Material <span class="required-asterisk">*</span></label>
                                 <input type="text" id="productMaterial" name="material" value="<%= product.material || '' %>" placeholder="Enter material type">
+                                <small class="error-msg" id="productMaterialError"></small>
                             </div>
 
                             <div class="form-group full-width">
-                                <label>Warranty</label>
+                                <label>Warranty <span class="required-asterisk">*</span></label>
                                 <input type="text" id="productWarranty" name="warranty" value="<%= product.warranty || '' %>" placeholder="e.g., 1 Year Manufacturing Warranty">
+                                <small class="error-msg" id="productWarrantyError"></small>
                             </div>
 
                             <div class="form-group full-width">
-                                <label>Specifications</label>
+                                <label>Specifications <span class="required-asterisk">*</span></label>
                                 <textarea id="productSpecs" name="specifications" rows="3"><%= product.specifications %></textarea>
+                                <small class="error-msg" id="productSpecsError"></small>
                             </div>
 
                             <div class="form-group full-width">
-                                <label>Product Images (All 3 mandatory)</label>
+                                <label>Product Images (All 3 mandatory <span class="required-asterisk">*</span>)</label>
                                 <div class="image-upload-row">
                                     <% for(let i=0; i<3; i++) { %>
                                         <% const hasImage = product.images && product.images[i]; %>
@@ -183,6 +190,7 @@
                                         </div>
                                     <% } %>
                                 </div>
+                                <small class="error-msg" id="imagesError"></small>
                             </div>
 
                         </div>

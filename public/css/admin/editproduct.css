@@ -388,6 +388,15 @@
     margin-top: 20px;
 }
 
+.error-msg {
+    display: block;
+    color: #e53935;
+    font-size: 13px;
+    font-weight: 500;
+    margin-top: 5px;
+    line-height: 1.3;
+}
+
 @media (max-width: 992px) {
   .hamburger-menu {
     display: block;

@@ -10,6 +10,8 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link rel="icon" type="image/x-icon" href="https://res.cloudinary.com/dz7fuqwnr/image/upload/v1778395481/WhatsApp_Image_2026-05-10_at_12.12.36_nra5vk.jpg">
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.5.13/cropper.min.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.5.13/cropper.min.js"></script>
     <link rel="stylesheet" href="/css/admin/products.css">
     <link rel="stylesheet" href="/css/admin/addproduct.css">
 </head>
@@ -126,6 +128,7 @@
                             <div class="form-group full-width">
                                 <label>Product Name <span class="required-asterisk">*</span></label>
                                 <input type="text" id="productName" name="name" placeholder="Enter product name">
+                                <small class="error-msg" id="productNameError"></small>
                             </div>
 
                             <div class="form-group full-width">
@@ -140,6 +143,7 @@
                                         <% }) %>
                                     <% } %>
                                 </select>
+                                <small class="error-msg" id="productCategoryError"></small>
                             </div>
 
                             <div class="form-group full-width" id="variantsSection">
@@ -150,61 +154,68 @@
                                     </button>
                                 </div>
                                 <div class="variants-container" id="variantsContainer"></div>
+                                <small class="error-msg" id="variantsContainerError"></small>
                             </div>
 
                             <div class="form-group full-width mt-20">
                                 <label>Description <span class="required-asterisk">*</span></label>
                                 <textarea id="productDescription" name="description" rows="4" placeholder="Enter product description"></textarea>
+                                <small class="error-msg" id="productDescriptionError"></small>
                             </div>
 
                             <div class="form-group">
                                 <label>Brand <span class="required-asterisk">*</span></label>
                                 <input type="text" id="productBrand" name="brand" placeholder="Enter brand name">
+                                <small class="error-msg" id="productBrandError"></small>
                             </div>
 
                             <div class="form-group">
                                 <label>Material <span class="required-asterisk">*</span></label>
                                 <input type="text" id="productMaterial" name="material" placeholder="Enter material type">
+                                <small class="error-msg" id="productMaterialError"></small>
                             </div>
 
                             <div class="form-group full-width">
                                 <label>Warranty <span class="required-asterisk">*</span></label>
                                 <input type="text" id="productWarranty" name="warranty" placeholder="e.g., 1 Year Manufacturing Warranty">
+                                <small class="error-msg" id="productWarrantyError"></small>
                             </div>
 
                             <div class="form-group full-width">
                                 <label>Specifications <span class="required-asterisk">*</span></label>
                                 <textarea id="productSpecs" name="specifications" rows="3" placeholder="Enter product specifications"></textarea>
+                                <small class="error-msg" id="productSpecsError"></small>
                             </div>
 
                             <div class="form-group full-width">
-                                <label>Product Images (Upload up to 3) <span class="required-asterisk">*</span></label>
+                                <label>Product Images (All 3 required <span class="required-asterisk">*</span>)</label>
                                 <div class="image-upload-row">
-                                    <div class="upload-box">
-                                        <input type="file" name="images" class="image-input" accept="image/*" title="Main Image">
+                                    <div class="upload-box" data-index="0">
+                                        <input type="file" class="image-input" accept="image/*" title="Main Image" data-index="0">
                                         <img class="preview-img hidden" src="" alt="Main Preview">
                                         <div class="upload-placeholder show-flex">
                                             <i class="fa-solid fa-cloud-arrow-up"></i>
                                             <span>Main Image *</span>
                                         </div>
                                     </div>
-                                    <div class="upload-box">
-                                        <input type="file" name="images" class="image-input" accept="image/*" title="Side Image 1">
+                                    <div class="upload-box" data-index="1">
+                                        <input type="file" class="image-input" accept="image/*" title="Side Image 1" data-index="1">
                                         <img class="preview-img hidden" src="" alt="Side 1 Preview">
                                         <div class="upload-placeholder show-flex">
                                             <i class="fa-solid fa-cloud-arrow-up"></i>
-                                            <span>Side Image 1</span>
+                                            <span>Side Image 1 *</span>
                                         </div>
                                     </div>
-                                    <div class="upload-box">
-                                        <input type="file" name="images" class="image-input" accept="image/*" title="Side Image 2">
+                                    <div class="upload-box" data-index="2">
+                                        <input type="file" class="image-input" accept="image/*" title="Side Image 2" data-index="2">
                                         <img class="preview-img hidden" src="" alt="Side 2 Preview">
                                         <div class="upload-placeholder show-flex">
                                             <i class="fa-solid fa-cloud-arrow-up"></i>
-                                            <span>Side Image 2</span>
+                                            <span>Side Image 2 *</span>
                                         </div>
                                     </div>
                                 </div>
+                                <small class="error-msg" id="imagesError"></small>
                             </div>
 
                         </div>
@@ -216,6 +227,22 @@
                     </form>
                 </div>
             </main>
+        </div>
+    </div>
+
+    <div id="cropperModal" class="cropper-modal-overlay">
+        <div class="cropper-modal-container">
+            <div class="cropper-modal-header">
+                <h3>Crop Image</h3>
+                <button type="button" id="closeCropperBtn" class="cropper-close-btn"><i class="fa-solid fa-xmark"></i></button>
+            </div>
+            <div class="cropper-canvas-wrapper">
+                <img id="cropperTargetImage" src="" alt="Crop target">
+            </div>
+            <div class="cropper-modal-footer">
+                <button type="button" class="btn btn-secondary" id="cancelCropBtn">Cancel</button>
+                <button type="button" class="btn btn-primary" id="applyCropBtn">Crop & Save</button>
+            </div>
         </div>
     </div>
 
