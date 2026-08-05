@@ -41,7 +41,8 @@ export const toggleVariantInWishlist = async (userId, productVariantId) => {
                 variants: [productVariantId]
             });
             await wishlist.save();
-            return { action: 'added' };
+            const count = wishlist.variants.length;
+            return { action: 'added', count: count };
         }
 
         const variantIndex = wishlist.variants.indexOf(productVariantId);
@@ -49,13 +50,15 @@ export const toggleVariantInWishlist = async (userId, productVariantId) => {
         if (variantIndex > -1) {
             wishlist.variants.splice(variantIndex, 1);
             await wishlist.save();
-            return { action: 'removed' };
+            const count = wishlist? wishlist.variants.length : 0;
+            return { action: 'removed', count: count };
         } else {
             await validateVariantStatus(productVariantId);
             
             wishlist.variants.push(productVariantId);
             await wishlist.save();
-            return { action: 'added' };
+            const count = wishlist? wishlist.variants.length : 0;
+            return { action: 'added', count: count };
         }
     } catch (error) {
         if (error.reason) throw error; 
@@ -131,7 +134,11 @@ export const removeVariantFromWishlist = async (userId, productVariantId) => {
             { userId },
             { $pull: { variants: productVariantId } }
         );
-        return result.modifiedCount > 0;
+        
+        const wishlist = await Wishlist.findOne({ userId });
+        const count = wishlist ? wishlist.variants.length : 0;
+        
+        return { success: result.modifiedCount > 0, count: count };
     } catch (error) {
         throw new Error(`Database error while deleting item from wishlist: ${error.message}`);
     }

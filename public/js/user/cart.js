@@ -180,10 +180,14 @@ document.addEventListener("DOMContentLoaded", () => {
             }, 300);
           }
 
+          const alertContent = data.countMessage 
+            ? `${data.message}<br>${data.countMessage}` 
+            : (data.message || "Item removed from cart.");
+
           Swal.fire({
             icon: "success",
             title: "Removed!",
-            text: data.message || "Item removed from cart.",
+            html: alertContent, 
             timer: 1500,
             showConfirmButton: false,
             heightAuto: false,

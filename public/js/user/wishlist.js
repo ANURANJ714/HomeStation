@@ -77,6 +77,7 @@ document.addEventListener("DOMContentLoaded", () => {
                     headers: {
                         "Content-Type": "application/json",
                         "CSRF-Token": csrfToken,
+                        "x-csrf-token": csrfToken
                     },
                     body: JSON.stringify({ variantId })
                 });
@@ -100,10 +101,13 @@ document.addEventListener("DOMContentLoaded", () => {
                         }, 300);
                     }
 
+                    const countMsg = data.countMessage || (data.count !== undefined ? `Total items in Cart: ${data.count}` : '');
+                    const alertContent = countMsg ? `${data.message || 'Item added to cart.'}<br>${countMsg}` : (data.message || 'Item added to cart.');
+
                     Swal.fire({
                         icon: "success",
                         title: "Added to Cart!",
-                        text: data.message || "Item successfully moved to your shopping cart.",
+                        html: alertContent,
                         timer: 1500,
                         showConfirmButton: false,
                         heightAuto: false
@@ -146,6 +150,7 @@ document.addEventListener("DOMContentLoaded", () => {
                     headers: {
                         "Content-Type": "application/json",
                         "CSRF-Token": csrfToken,
+                        "x-csrf-token": csrfToken
                     },
                     body: JSON.stringify({ variantId: currentDeleteId })
                 });
@@ -165,10 +170,13 @@ document.addEventListener("DOMContentLoaded", () => {
                         }, 300);
                     }
 
+                    const countMsg = data.countMessage || (data.count !== undefined ? `Total items in Wishlist: ${data.count}` : '');
+                    const alertContent = countMsg ? `${data.message || 'Item removed from your wishlist.'}<br>${countMsg}` : (data.message || 'Item removed from your wishlist.');
+
                     Swal.fire({
                         icon: "success",
                         title: "Removed!",
-                        text: data.message || "Item removed from your wishlist successfully.",
+                        html: alertContent,
                         timer: 1500,
                         showConfirmButton: false,
                         heightAuto: false

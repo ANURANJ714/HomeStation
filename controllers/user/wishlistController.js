@@ -21,18 +21,20 @@ export const toggleWishlistItem = async (req, res) => {
         }
 
         const userId = req.user._id;
-        const result = await wishlistService.toggleVariantInWishlist(userId, variantId);
+        const {action, count} = await wishlistService.toggleVariantInWishlist(userId, variantId);
 
         return res.status(200).json({ 
             success: true, 
-            action: result.action,
-            message: result.action === 'added' ? "Item added to your wishlist!" : "Item removed from your wishlist." 
+            action: action,
+            count : count,
+            message: action === 'added' ? "Item added to your wishlist!" : "Item removed from your wishlist!",
+            countMessage : `Total items in Wishlist : ${count}`
         });
 
     } catch (error) {
         if (error.reason) {
             logger.warn(`Wishlist addition rejected on checkpoint: ${error.message}`);
-            return res.status(200).json({ success: false, reason: error.reason, message: error.message });
+            return res.status(400).json({ success: false, reason: error.reason, message: error.message });
         }
         
         logger.error(`Wishlist Toggle Error: ${error.message}`);
@@ -75,13 +77,15 @@ export const deleteWishlistItem = async (req, res) => {
             return res.status(400).json({ success: false, message: "Variant ID is required." });
         }
 
-        await wishlistService.removeVariantFromWishlist(userId, variantId);
+        const { count } = await wishlistService.removeVariantFromWishlist(userId, variantId);
 
         logger.info(`User (${req.user.email}) deleted variant ${variantId} from their wishlist page template.`);
 
         return res.status(200).json({
             success: true,
-            message: "Item removed from your wishlist successfully."
+            count: count,
+            message: "Item removed from your wishlist successfully.",
+            countMessage: `Total items in Wishlist : ${count}`
         });
 
     } catch (error) {

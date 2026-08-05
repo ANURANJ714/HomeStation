@@ -1,36 +1,5 @@
 document.addEventListener("DOMContentLoaded", () => {
   const csrfToken = document.getElementById("csrfToken")?.value || "";
-  const cartJustAdded = document.getElementById("cartJustAdded")?.value === "true";
-  const wishlistJustAdded = document.getElementById("wishlistJustAdded")?.value === "true";
-  const urlParams = new URLSearchParams(window.location.search);
-
-  if (urlParams.get("wishlistAdded") === "true" || wishlistJustAdded) {
-    Swal.fire({
-      icon: "success",
-      title: "Added!",
-      text: "Item added to your wishlist successfully.",
-      timer: 2000,
-      showConfirmButton: false,
-      heightAuto: false,
-    });
-    if (urlParams.get("wishlistAdded")) {
-      window.history.replaceState(null, "", window.location.pathname);
-    }
-  }
-
-  if (urlParams.get("cartAdded") === "true" || cartJustAdded) {
-    Swal.fire({
-      icon: "success",
-      title: "Added to Cart!",
-      text: "Item added to your cart successfully.",
-      timer: 2000,
-      showConfirmButton: false,
-      heightAuto: false,
-    });
-    if (urlParams.get("cartAdded")) {
-      window.history.replaceState(null, "", window.location.pathname);
-    }
-  }
 
   const hamburgerBtn = document.getElementById("hamburgerBtn");
   const closeSidebarBtn = document.getElementById("closeSidebar");
@@ -48,8 +17,10 @@ document.addEventListener("DOMContentLoaded", () => {
   }
 
   if (hamburgerBtn) hamburgerBtn.addEventListener("click", openMobileDrawer);
-  if (closeSidebarBtn) closeSidebarBtn.addEventListener("click", closeMobileDrawer);
-  if (sidebarOverlay) sidebarOverlay.addEventListener("click", closeMobileDrawer);
+  if (closeSidebarBtn)
+    closeSidebarBtn.addEventListener("click", closeMobileDrawer);
+  if (sidebarOverlay)
+    sidebarOverlay.addEventListener("click", closeMobileDrawer);
 
   document.addEventListener("click", (e) => {
     const card = e.target.closest(".clickable-product-card");
@@ -82,23 +53,27 @@ document.addEventListener("DOMContentLoaded", () => {
           headers: {
             "Content-Type": "application/json",
             "x-csrf-token": csrfToken,
-            "CSRF-Token": csrfToken
+            "CSRF-Token": csrfToken,
           },
           body: JSON.stringify({ variantId: variantId }),
         });
 
         if (response.status === 401 || response.status === 403) {
-          window.location.href = "/user/login"; 
+          window.location.href = "/user/login";
           return;
         }
 
         const data = await response.json();
 
         if (data.success) {
+          const alertContent = data.countMessage
+            ? `${data.message}<br>${data.countMessage}`
+            : data.message;
+
           Swal.fire({
             icon: "success",
             title: "Added to Cart!",
-            text: data.message,
+            html: alertContent,
             timer: 1500,
             showConfirmButton: false,
             heightAuto: false,
@@ -139,26 +114,30 @@ document.addEventListener("DOMContentLoaded", () => {
           headers: {
             "Content-Type": "application/json",
             "x-csrf-token": csrfToken,
-            "CSRF-Token": csrfToken
+            "CSRF-Token": csrfToken,
           },
           body: JSON.stringify({ variantId: variantId }),
         });
 
         if (response.status === 401 || response.status === 403) {
-          window.location.href = "/user/login"; 
+          window.location.href = "/user/login";
           return;
         }
 
         const data = await response.json();
 
         if (data.success) {
+          const alertContent = data.countMessage
+            ? `${data.message}<br>${data.countMessage}`
+            : data.message;
+
           if (data.action === "added") {
             wishlistBtn.classList.add("liked");
             if (icon) icon.className = "fa-solid fa-heart";
             Swal.fire({
               icon: "success",
               title: "Added!",
-              text: data.message,
+              html: alertContent,
               timer: 1500,
               showConfirmButton: false,
               heightAuto: false,
@@ -167,9 +146,9 @@ document.addEventListener("DOMContentLoaded", () => {
             wishlistBtn.classList.remove("liked");
             if (icon) icon.className = "fa-regular fa-heart";
             Swal.fire({
-              icon: "info",
-              title: "Removed",
-              text: data.message,
+              icon: "success",
+              title: "Removed!",
+              html: alertContent,
               timer: 1500,
               showConfirmButton: false,
               heightAuto: false,

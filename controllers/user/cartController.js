@@ -40,7 +40,9 @@ export const addToCartController = async (req, res) => {
 
         return res.status(200).json({ 
             success: true, 
-            message: "Item added to cart successfully!" 
+            message: "Item added to cart successfully!",
+            count: result.totalCartCount,
+            countMessage: `Total items in Cart: ${result.totalCartCount}`
         });
 
     } catch (error) {
@@ -124,7 +126,7 @@ export const removeCartItemController = async (req, res) => {
             return res.status(400).json({ success: false, message: "Cart item identifier is required." });
         }
 
-        const isDeleted = await cartService.deleteCartItemCompletely(userId, cartItemId);
+        const { isDeleted, totalCartCount } = await cartService.deleteCartItemCompletely(userId, cartItemId);
 
         if (!isDeleted) {
             return res.status(404).json({ success: false, message: "Target cart element was not found." });
@@ -137,6 +139,8 @@ export const removeCartItemController = async (req, res) => {
         return res.status(200).json({
             success: true,
             message: "Item removed from your cart successfully.",
+            count: totalCartCount,
+            countMessage: `Total items in Cart: ${totalCartCount}`,
             subtotal: currentTotals.subtotal,
             totalQuantity: currentTotals.totalQuantity
         });

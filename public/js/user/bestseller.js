@@ -41,38 +41,41 @@ document.addEventListener("DOMContentLoaded", () => {
 
       const variantId = this.getAttribute("data-variant-id");
       const icon = this.querySelector("i");
-      const isLiked = this.classList.contains("liked");
-      const targetUrl = isLiked ? "/wishlist/remove" : "/wishlist/add";
 
       try {
-        const response = await fetch(targetUrl, {
+        const response = await fetch("/wishlist/add", {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
             "x-csrf-token": csrfToken,
+            "CSRF-Token": csrfToken,
           },
           body: JSON.stringify({ variantId }),
         });
 
-        if (response.status === 401) {
+        if (response.status === 401 || response.status === 403) {
           window.location.href = "/user/login";
           return;
         }
 
         const data = await response.json();
         if (data.success) {
-          this.classList.toggle("liked");
-          if (icon)
-            icon.className = isLiked
-              ? "fa-regular fa-heart"
-              : "fa-solid fa-heart";
+          if (data.action === "added") {
+            this.classList.add("liked");
+            if (icon) icon.className = "fa-solid fa-heart";
+          } else {
+            this.classList.remove("liked");
+            if (icon) icon.className = "fa-regular fa-heart";
+          }
+
+          const alertContent = data.countMessage
+            ? `${data.message}<br>${data.countMessage}`
+            : data.message;
 
           Swal.fire({
             icon: "success",
-            title: "Wishlist Updated",
-            text: isLiked
-              ? "Item removed from wishlist!"
-              : "Item added to wishlist!",
+            title: data.action === "added" ? "Added!" : "Removed!",
+            html: alertContent,
             timer: 1500,
             showConfirmButton: false,
             heightAuto: false,
@@ -112,21 +115,26 @@ document.addEventListener("DOMContentLoaded", () => {
           headers: {
             "Content-Type": "application/json",
             "x-csrf-token": csrfToken,
+            "CSRF-Token": csrfToken,
           },
           body: JSON.stringify({ variantId, quantity: 1 }),
         });
 
-        if (response.status === 401) {
+        if (response.status === 401 || response.status === 403) {
           window.location.href = "/user/login";
           return;
         }
 
         const data = await response.json();
         if (data.success) {
+          const alertContent = data.countMessage
+            ? `${data.message}<br>${data.countMessage}`
+            : data.message;
+
           Swal.fire({
             icon: "success",
-            title: "Added to Cart",
-            text: "Item added to cart successfully!",
+            title: "Added!",
+            html: alertContent,
             timer: 1500,
             showConfirmButton: false,
             heightAuto: false,

@@ -2,28 +2,29 @@ import Cart from '../../models/Cart.js';
 import ProductVariant from '../../models/ProductVariant.js';
 import Product from '../../models/Products.js';
 import { removeVariantFromWishlist } from '../../services/user/wishlistService.js';
+import mongoose from 'mongoose';
 
-export const addVariantToCart = async (userId, productVariantId) => {
-    try {
-        let cartItem = await Cart.findOne({ userId, productVariantId });
+// export const addVariantToCart = async (userId, productVariantId) => {
+//     try {
+//         let cartItem = await Cart.findOne({ userId, productVariantId });
 
-        if (cartItem) {
-            cartItem.quantity += 1;
-            await cartItem.save();
-            return { action: 'updated', quantity: cartItem.quantity };
-        } else {
-            cartItem = new Cart({
-                userId,
-                productVariantId,
-                quantity: 1
-            });
-            await cartItem.save();
-            return { action: 'added', quantity: 1 };
-        }
-    } catch (error) {
-        throw new Error(`Database error while adding to cart: ${error.message}`);
-    }
-};
+//         if (cartItem) {
+//             cartItem.quantity += 1;
+//             await cartItem.save();
+//             return { action: 'updated', quantity: cartItem.quantity };
+//         } else {
+//             cartItem = new Cart({
+//                 userId,
+//                 productVariantId,
+//                 quantity: 1
+//             });
+//             await cartItem.save();
+//             return { action: 'added', quantity: 1 };
+//         }
+//     } catch (error) {
+//         throw new Error(`Database error while adding to cart: ${error.message}`);
+//     }
+// };
 
 export const handleAddToCartIntent = async (userId, variantId, quantity = 1) => {
     try {
@@ -72,7 +73,17 @@ export const handleAddToCartIntent = async (userId, variantId, quantity = 1) => 
 
         await removeVariantFromWishlist(userId, variantId);
 
-        return { success: true };
+        const cartCountAggregation = await Cart.aggregate([
+            { $match: { userId: new mongoose.Types.ObjectId(userId) } },
+            { $group: { _id: null, totalCount: { $sum: "$quantity" } } }
+        ]);
+
+        const totalCartCount = cartCountAggregation.length > 0 ? cartCountAggregation[0].totalCount : 0;
+
+        return { 
+            success: true, 
+            totalCartCount: totalCartCount 
+        };
 
     } catch (error) {
         throw new Error(`Service Layer failure handling add-to-cart logic: ${error.message}`);
@@ -209,7 +220,19 @@ export const updateCartQuantity = async (userId, cartItemId, actionType) => {
 export const deleteCartItemCompletely = async (userId, cartItemId) => {
     try {
         const deletionResult = await Cart.deleteOne({ _id: cartItemId, userId });
-        return deletionResult.deletedCount > 0;
+        const isDeleted = deletionResult.deletedCount > 0;
+
+        const cartCountAggregation = await Cart.aggregate([
+            { $match: { userId: new mongoose.Types.ObjectId(userId) } },
+            { $group: { _id: null, totalCount: { $sum: "$quantity" } } }
+        ]);
+
+        const totalCartCount = cartCountAggregation.length > 0 ? cartCountAggregation[0].totalCount : 0;
+
+        return {
+            isDeleted,
+            totalCartCount
+        };
     } catch (error) {
         throw new Error(`Database error while completely deleting cart entry: ${error.message}`);
     }
