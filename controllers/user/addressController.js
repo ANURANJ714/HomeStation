@@ -70,6 +70,13 @@ export const addAddress = async (req, res) => {
         });
 
     } catch (error) {
+        if (error.isValidationError) {
+            return res.status(400).json({
+                success: false,
+                message: error.message
+            });
+        }
+
         logger.error(`Add Address Error for ${req.user?.email || 'Unknown'} (IP: ${req.ip}): ${error.message}\nStack: ${error.stack}`);
         
         return res.status(500).json({ 
@@ -120,6 +127,13 @@ export const editAddress = async (req, res) => {
         });
 
     } catch (error) {
+        if (error.isValidationError) {
+            return res.status(400).json({
+                success: false,
+                message: error.message
+            });
+        }
+
         logger.error(`Edit Address Error for ${req.user?.email || 'Unknown'} (IP: ${req.ip}): ${error.message}\nStack: ${error.stack}`);
         
         return res.status(500).json({ 

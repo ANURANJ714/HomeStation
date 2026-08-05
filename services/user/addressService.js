@@ -1,4 +1,5 @@
 import Address from '../../models/Address.js';
+import { validateAddressWithGoogle } from '../../utils/googleAddressValidator.js';
 
 export const getUserAddressesPaginated = async (userId, page = 1, limit = 6) => {
     try {
@@ -30,6 +31,13 @@ export const createUserAddress = async (userId, addressData) => {
     try {
         let { addressType, name, phone, fullAddress, city, state, pincode, isDefault } = addressData;
 
+        const validation = await validateAddressWithGoogle({ fullAddress, city, state, pincode });
+        if (!validation.isValid) {
+            const err = new Error(validation.message);
+            err.isValidationError = true;
+            throw err;
+        }
+
         const addressCount = await Address.countDocuments({ userId: userId });
         if (addressCount === 0) {
             isDefault = true; 
@@ -58,6 +66,7 @@ export const createUserAddress = async (userId, addressData) => {
         return newAddress;
 
     } catch (error) {
+        if (error.isValidationError) throw error;
         throw new Error(`Database error while adding user address: ${error.message}`);
     }
 };
@@ -69,6 +78,13 @@ export const updateUserAddress = async (userId, addressId, addressData) => {
         const existingAddress = await Address.findOne({ _id: addressId, userId: userId });
         if (!existingAddress) {
             return { isFound: false };
+        }
+
+        const validation = await validateAddressWithGoogle({ fullAddress, city, state, pincode });
+        if (!validation.isValid) {
+            const err = new Error(validation.message);
+            err.isValidationError = true;
+            throw err;
         }
 
         if (isDefault) {
@@ -96,6 +112,7 @@ export const updateUserAddress = async (userId, addressId, addressData) => {
         return { isFound: true, address: updatedAddress };
 
     } catch (error) {
+        if (error.isValidationError) throw error;
         throw new Error(`Database error while updating user address: ${error.message}`);
     }
 };

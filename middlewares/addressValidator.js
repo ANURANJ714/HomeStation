@@ -1,7 +1,8 @@
 export const validateAddressData = (req, res, next) => {
     const { name, phone, pincode, city, state, fullAddress, addressType } = req.body;
     
-    if (!name || name.trim() === '') return res.status(400).json({ success: false, message: "Full Name is required." });
+    const nameRegex = /^[\p{L}\s]+$/u;
+    if (!name || name.trim() === '' || !nameRegex.test(name)) return res.status(400).json({ success: false, message: "Enter a valid name." });
     
     const phoneRegex = /^[0-9]{10}$/;
     if (!phone || !phoneRegex.test(phone)) return res.status(400).json({ success: false, message: "A valid 10-digit phone number is required." });
