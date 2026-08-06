@@ -2,10 +2,6 @@ import Product from '../../models/Products.js';
 import ProductVariant from '../../models/ProductVariant.js';
 import Category from '../../models/Category.js';
 
-// export const getActiveCategories = async () => {
-//     return await Category.find({ isDeleted: false }).sort({ name: 1 }).lean();
-// };
-
 export const getProductsPageData = async (queryOptions) => {
     const { searchQuery, categoryFilter, maxPriceFilter, safeSkip, limit } = queryOptions;
 
