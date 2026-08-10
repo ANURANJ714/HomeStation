@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>HomeStation - Server Error</title>
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,600;0,700;1,600&display=swap" rel="stylesheet">
+    <link rel="icon" type="image/x-icon" href="https://res.cloudinary.com/dz7fuqwnr/image/upload/v1778395481/WhatsApp_Image_2026-05-10_at_12.12.36_nra5vk.jpg">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="/css/user/404error.css">
+</head>
+
+<body>
+    <header class="header">
+        <div class="container-fluid header-container">
+            <a href="/" class="logo">HomeStation</a>
+        </div>
+    </header>
+
+    <main class="error-wrapper">
+        <div class="error-card">
+            <div class="brand">HomeStation</div>
+            <div class="error-icon">
+                <i class="fa-solid fa-triangle-exclamation"></i>
+            </div>
+            <h1 class="error-title">500</h1>
+            <h2 class="error-subtitle">Internal Server Error</h2>
+            <p class="error-text"><%= typeof message !== 'undefined' ? message : 'Something went wrong on our end. Please try again later.' %></p>
+
+            <div class="action-area">
+                <a href="/" class="btn-home">Back to Home page</a>
+            </div>
+        </div>
+    </main>
+
+    <footer class="footer">
+        <div class="container-fluid copyright">
+            <p>&copy; 2026 HomeStation Store. All rights reserved.</p>
+        </div>
+    </footer>
+</body>
+
+</html>

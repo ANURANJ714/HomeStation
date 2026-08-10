@@ -9,9 +9,42 @@
     <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,600;0,700;1,600&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    
+    <!-- CropperJS CSS -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.5.13/cropper.min.css">
+    
     <link rel="icon" type="image/x-icon" href="https://res.cloudinary.com/dz7fuqwnr/image/upload/v1778395481/WhatsApp_Image_2026-05-10_at_12.12.36_nra5vk.jpg">
     <link rel="stylesheet" href="/css/admin/products.css">
     <link rel="stylesheet" href="/css/admin/categories.css">
+
+    <style>
+        /* Lightweight local overrides for cropper integration preserving UI responsiveness */
+        .crop-preview-wrapper {
+            margin-top: 10px;
+            display: none;
+            text-align: center;
+        }
+        .crop-preview-img {
+            max-width: 100%;
+            max-height: 150px;
+            border-radius: 8px;
+            border: 1px solid #ddd;
+            object-fit: cover;
+        }
+        .cropper-container-box {
+            max-width: 100%;
+            max-height: 400px;
+            overflow: hidden;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            background: #f8f9fa;
+        }
+        .cropper-container-box img {
+            max-width: 100%;
+            display: block;
+        }
+    </style>
 </head>
 
 <body>
@@ -121,6 +154,7 @@
 
                                         <button class="btn btn-secondary action-edit <%= category.isDeleted ? 'hide-btn' : '' %>"
                                             data-id="<%= category._id %>"
+                                            data-image="<%= category.image %>"
                                             data-name="<%= encodeURIComponent(category.name) %>">Edit</button>
 
                                         <% if(category.isDeleted) { %>
@@ -148,7 +182,6 @@
                             <span class="pagination-info">Page <%= currentPage %> of <%= totalPages===0 ? 1 : totalPages %></span>
                             <div class="pagination-controls">
                                 <% 
-                                    // Utility variables parsing safe URL paths preserving tracking queries
                                     const encodedSearch = typeof searchQuery !== 'undefined' && searchQuery ? encodeURIComponent(searchQuery) : '';
                                     const baseQueryPath = `?sort=${currentSort}&q=${encodedSearch}`;
                                 %>
@@ -179,6 +212,7 @@
         </div>
     </div>
 
+    <!-- Add Category Modal -->
     <div class="modal-overlay" id="addCategoryModal">
         <div class="modal-content modal-w-500">
             <div class="modal-header">
@@ -194,6 +228,10 @@
                     <div class="form-group mt-15">
                         <label>Category Image</label>
                         <input type="file" name="image" id="categoryImage" accept="image/*" class="p-6">
+                        <div class="crop-preview-wrapper" id="addCategoryPreviewWrapper">
+                            <label class="d-block mb-5">Cropped Preview:</label>
+                            <img id="addCategoryPreview" class="crop-preview-img" src="" alt="Category Preview">
+                        </div>
                     </div>
                     <div class="modal-footer pt-20">
                         <button type="button" class="btn btn-secondary" data-close="addCategoryModal">Cancel</button>
@@ -204,6 +242,7 @@
         </div>
     </div>
 
+    <!-- Edit Category Modal -->
     <div class="modal-overlay" id="editCategoryModal">
         <div class="modal-content modal-w-500">
             <div class="modal-header">
@@ -220,6 +259,10 @@
                     <div class="form-group mt-15">
                         <label>Edit Category Image (Leave empty to keep current)</label>
                         <input type="file" name="image" id="editCategoryImage" accept="image/*" class="p-6">
+                        <div class="crop-preview-wrapper" id="editCategoryPreviewWrapper">
+                            <label class="d-block mb-5">Image Preview:</label>
+                            <img id="editCategoryPreview" class="crop-preview-img" src="" alt="Category Preview">
+                        </div>
                     </div>
                     <div class="modal-footer pt-20">
                         <button type="button" class="btn btn-secondary" data-close="editCategoryModal">Cancel</button>
@@ -230,6 +273,7 @@
         </div>
     </div>
 
+    <!-- Confirm Modal -->
     <div class="modal-overlay" id="confirmModal">
         <div class="modal-content modal-w-400 text-center">
             <div class="modal-body pt-30">
@@ -244,6 +288,28 @@
         </div>
     </div>
 
+    <!-- Image Crop Modal -->
+    <div class="modal-overlay" id="cropImageModal">
+        <div class="modal-content modal-w-500">
+            <div class="modal-header">
+                <h2>Crop Category Image</h2>
+                <button type="button" class="close-modal-btn" id="cancelCropBtn"><i class="fa-solid fa-xmark"></i></button>
+            </div>
+            <div class="modal-body pt-15">
+                <div class="cropper-container-box">
+                    <img id="cropperImageTarget" src="" alt="Crop Target">
+                </div>
+                <div class="modal-footer pt-20">
+                    <button type="button" class="btn btn-secondary" id="cancelCropModalBtn">Cancel</button>
+                    <button type="button" class="btn btn-primary" id="applyCropBtn">Apply Crop</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- CropperJS Script -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.5.13/cropper.min.js"></script>
     <script src="/js/admin/categories.js"></script>
 </body>
+
 </html>

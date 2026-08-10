@@ -27,7 +27,7 @@ export const getPaginatedUsers = async (params) => {
             case 'az': sortOption = { fullName: 1 }; break;
             case 'za': sortOption = { fullName: -1 }; break;
             case 'newest': 
-            default: sortOption = { createdAt: -1 }; break;
+            default: sortOption = { createdAt: -1}; break;
         }
 
         const [totalUsers, activeUsers, blockedUsers, totalFiltered] = await Promise.all([
@@ -45,7 +45,7 @@ export const getPaginatedUsers = async (params) => {
             .sort(sortOption)
             .skip(skip)
             .limit(limit)
-            .lean(); // 
+            .lean(); 
 
         return {
             users,

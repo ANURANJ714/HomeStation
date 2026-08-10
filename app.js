@@ -15,6 +15,8 @@ import mongoSanitizeMiddleware from "./middlewares/mongoSanitizeMiddleware.js";
 import { noCache } from './middlewares/cache.js';
 import { sessionMiddleware } from './middlewares/session.js';
 import { csrfProtection, injectCsrfToken } from './middlewares/csrf.js';
+import { notFoundMiddleware } from './middlewares/notFoundMiddleware.js';
+import { globalErrorHandler } from './middlewares/globalErrorHandler.js';
 
 import userRoutes from './routes/user/authRoutes.js';
 import profileRoutes from './routes/user/profileRoutes.js';
@@ -71,6 +73,8 @@ app.use('/admin', enquiryRoutes);
 
 app.use('/', pageRoutes);
 
+app.use(notFoundMiddleware);
+app.use(globalErrorHandler);
 
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {
