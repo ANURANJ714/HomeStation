@@ -2,6 +2,7 @@ import Category from '../../models/Category.js';
 import Product from '../../models/Products.js';
 import ProductVariant from '../../models/ProductVariant.js';
 import { calculateProductStats } from '../../services/admin/productService.js';
+import mongoose from 'mongoose';
 
 export const getPaginatedCategories = async (sortQuery, page, limit, searchQuery = '') => {
     try {
@@ -142,9 +143,16 @@ export const updateCategoryDetails = async (categoryId, name, imagePath) => {
     }
 };
 
-export const getCategoryWithProducts = async (categoryId, options) => {
+export const getCategoryWithProducts = async (categoryId, options = {}) => {
     try {
-        const { page, limit, sortQuery, searchQuery } = options;
+        const page = parseInt(options.page, 10) || 1;
+        const limit = parseInt(options.limit, 10) || 10;
+        const sortQuery = options.sortQuery || 'newest';
+        const searchQuery = options.searchQuery || '';
+
+        if (!mongoose.Types.ObjectId.isValid(categoryId)) {
+            return { isNotFound: true };
+        }
 
         const category = await Category.findById(categoryId).lean();
         if (!category) {
@@ -169,22 +177,29 @@ export const getCategoryWithProducts = async (categoryId, options) => {
         const products = await Product.find(dbQuery)
             .sort(sortOption)
             .skip(safeSkip)
-            .limit(limit);
+            .limit(limit)
+            .lean();
 
         const productsWithStats = await Promise.all(products.map(async (product) => {
             const variants = await ProductVariant.find({ productId: product._id }).lean();
             const stats = calculateProductStats(variants);
             
-            const productData = product.toObject();
-            productData.variants = stats.variantsWithPrices;
-            productData.calculatedStock = stats.totalStock;
-            productData.priceDisplay = stats.priceDisplay;
-            productData.stockStatus = stats.stockStatus;
-            productData.badgeClass = stats.badgeClass;
+            const productData = {
+                ...product,
+                variants: stats.variantsWithPrices,
+                calculatedStock: stats.totalStock,
+                priceDisplay: stats.priceDisplay,
+                stockStatus: stats.stockStatus,
+                badgeClass: stats.badgeClass
+            };
 
-            if (stats.stockStatus === 'In Stock') productData.dotClass = 'status-in-stock';
-            else if (stats.stockStatus === 'Low Stock') productData.dotClass = 'status-low-stock';
-            else productData.dotClass = 'status-out-of-stock';
+            if (stats.stockStatus === 'In Stock') {
+                productData.dotClass = 'status-in-stock';
+            } else if (stats.stockStatus === 'Low Stock') {
+                productData.dotClass = 'status-low-stock';
+            } else {
+                productData.dotClass = 'status-out-of-stock';
+            }
 
             return productData;
         }));

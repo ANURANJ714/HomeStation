@@ -5,11 +5,9 @@ import {validateAddressData} from '../../middlewares/addressValidator.js';
 
 const router = express.Router();
 
-router.use(ensureAuthenticated);
-
-router.get('/', getAddresses);
-router.post('/', validateAddressData, addAddress);
-router.patch('/:address_id', validateAddressData, editAddress);
-router.delete('/:address_id', deleteAddress);
+router.get('/', ensureAuthenticated, getAddresses);
+router.post('/', validateAddressData, ensureAuthenticated, addAddress);
+router.patch('/:address_id', ensureAuthenticated, validateAddressData, editAddress);
+router.delete('/:address_id', ensureAuthenticated, deleteAddress);
 
 export default router;

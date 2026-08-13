@@ -26,6 +26,7 @@ export const handleAdminNotFound = async (req, res) => {
 
         return res.status(404).render('admin/admin404error', {
             pageTitle: 'HomeStation - Admin 404 Not Found',
+            user: (req.isAuthenticated && req.isAuthenticated()) ? req.user : (req.user || null),
             csrfToken
         });
 

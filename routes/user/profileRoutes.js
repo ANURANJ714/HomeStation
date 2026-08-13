@@ -8,16 +8,15 @@ import {loadWishlistPage} from '../../controllers/user/wishlistController.js';
 
 const router = express.Router();
 
-router.use(ensureAuthenticated);
 router.use(noCache);
 
-router.get('/profile', getProfile);
-router.patch('/profile', upload.single('profileImage'), updateProfile);
-router.patch('/password', updatePassword);
-router.get('/verify-email', loadVerifyEmailPage);
-router.post('/verify-email-change', verifyEmailChange);
-router.post('/resend-email-otp', resendEmailOtp);
-router.get('/wishlist', loadWishlistPage);
+router.get('/profile', ensureAuthenticated, getProfile);
+router.patch('/profile', ensureAuthenticated, upload.single('profileImage'), updateProfile);
+router.patch('/password', ensureAuthenticated, updatePassword);
+router.get('/verify-email', ensureAuthenticated, loadVerifyEmailPage);
+router.post('/verify-email-change', ensureAuthenticated, verifyEmailChange);
+router.post('/resend-email-otp', ensureAuthenticated, resendEmailOtp);
+router.get('/wishlist', ensureAuthenticated, loadWishlistPage);
 
 router.post('/logout', logoutUser);
 

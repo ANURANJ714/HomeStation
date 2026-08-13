@@ -1,5 +1,6 @@
 import * as categoryService from '../../services/admin/categoryService.js';
 import { calculateProductStats } from '../../services/admin/productService.js';
+import { handleAdminNotFound } from '../admin/adminErrorController.js';
 import logger from '../../utils/logger.js';
 
 export const loadCategories = async (req, res) => {
@@ -171,26 +172,31 @@ export const editCategory = async (req, res) => {
     }
 };
 
-export const viewCategoryProducts = async (req, res) => {
+export const viewCategoryProducts = async (req, res, next) => {
     try {
         const categoryId = req.params.category_id;
         const adminEmail = req.user ? req.user.email : 'Unknown Admin';
         
-        const page = parseInt(req.query.page) || 1;
+        const page = parseInt(req.query.page, 10) || 1;
         const limit = 5;
         const sortQuery = req.query.sort ? String(req.query.sort).trim() : 'newest';
         const searchQuery = req.query.search ? String(req.query.search).trim() : '';
 
-        const result = await categoryService.getCategoryWithProducts(categoryId, { page, limit, sortQuery, searchQuery });
+        const result = await categoryService.getCategoryWithProducts(categoryId, { 
+            page, 
+            limit, 
+            sortQuery, 
+            searchQuery 
+        });
 
-        if (result.isNotFound) {
+        if (!result || result.isNotFound) {
             logger.warn(`View category products failed: Category ID ${categoryId} not found. Attempted by: ${adminEmail}`);
-            return res.status(404).send("Category not found");
+            return handleAdminNotFound(req, res);
         }
 
         logger.info(`Admin (${adminEmail}) viewed products for category "${result.category.name}" (Page: ${result.pagination.safePage}, Sort: ${sortQuery}, Search: "${searchQuery}")`);
 
-        res.render('admin/viewcategoryproducts', {
+        return res.render('admin/viewcategoryproducts', {
             categoryName: result.category.name, 
             categoryId: result.category._id, 
             products: result.products,
@@ -199,11 +205,12 @@ export const viewCategoryProducts = async (req, res) => {
             totalProducts: result.pagination.totalProducts,
             currentSort: sortQuery,
             searchQuery: searchQuery,
-            limit: limit
+            limit: limit,
+            csrfToken: req.csrfToken ? req.csrfToken() : ''
         });
 
     } catch (error) {
         logger.error(`Error loading category products (Category ID: ${req.params.category_id}): ${error.message}\nStack: ${error.stack}`);
-        res.status(500).send("Server Error");
+        next(error);
     }
 };

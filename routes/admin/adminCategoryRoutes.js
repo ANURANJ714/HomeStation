@@ -6,15 +6,13 @@ import { verifyAdmin } from '../../middlewares/adminAuth.js';
 
 const router = express.Router();
 
-router.use(verifyAdmin);
+router.get('/categories',verifyAdmin, loadCategories);
+router.post('/categories', verifyAdmin, uploadCategory.single('image'), addCategory);
 
-router.get('/categories', loadCategories);
-router.post('/categories', uploadCategory.single('image'), addCategory);
+router.delete('/categories/:category_id', verifyAdmin, deleteCategory);
+router.patch('/categories/:category_id/restore',verifyAdmin,  restoreCategory);
 
-router.delete('/categories/:category_id', deleteCategory);
-router.patch('/categories/:category_id/restore', restoreCategory);
-
-router.patch('/categories/:category_id', uploadCategory.single('image'), editCategory);
-router.get('/categories/:category_id/products', viewCategoryProducts);
+router.patch('/categories/:category_id', verifyAdmin, uploadCategory.single('image'), editCategory);
+router.get('/categories/:category_id/products', verifyAdmin, viewCategoryProducts);
 
 export default router;

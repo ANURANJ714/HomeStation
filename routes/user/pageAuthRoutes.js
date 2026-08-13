@@ -5,11 +5,10 @@ import { loadCartPage, changeQuantityController, removeCartItemController } from
 
 const router = express.Router();
 
-router.use(ensureAuthenticated);
 router.use(noCache);
 
-router.get('/cart', loadCartPage);
-router.post('/cart/change-quantity', changeQuantityController);
-router.post('/cart/remove-item', removeCartItemController);
+router.get('/cart', ensureAuthenticated, loadCartPage);
+router.post('/cart/change-quantity', ensureAuthenticated, changeQuantityController);
+router.post('/cart/remove-item', ensureAuthenticated, removeCartItemController);
 
 export default router;

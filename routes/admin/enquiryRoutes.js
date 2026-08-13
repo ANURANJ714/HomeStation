@@ -4,12 +4,9 @@ import { verifyAdmin } from '../../middlewares/adminAuth.js';
 
 const router = express.Router();
 
-router.use(verifyAdmin);
-
-router.get('/enquiries', loadEnquiriesDashboard);
-router.post('/enquiries/subjects', addNewEnquirySubject);
-router.delete('/enquiries/subjects/:id', removeEnquirySubject);
-router.patch('/enquiries/tickets/:id/status', updateTicketStatus);
+router.get('/enquiries', verifyAdmin, loadEnquiriesDashboard);
+router.post('/enquiries/subjects', verifyAdmin, addNewEnquirySubject);
+router.delete('/enquiries/subjects/:id', verifyAdmin, removeEnquirySubject);
+router.patch('/enquiries/tickets/:id/status', verifyAdmin, updateTicketStatus);
 
 export default router;
-

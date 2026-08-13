@@ -6,17 +6,15 @@ import { verifyAdmin } from '../../middlewares/adminAuth.js';
 
 const router = express.Router();
 
-router.use(verifyAdmin);
+router.get('/products', verifyAdmin, loadProducts);
+router.get('/products/add', verifyAdmin, getAddProductPage);
+router.get('/products/deleted', verifyAdmin, loadDeletedProducts);
 
-router.get('/products', loadProducts);
-router.get('/products/add', getAddProductPage);
-router.get('/products/deleted', loadDeletedProducts);
-
-router.post('/products', uploadProduct.array('images', 3), addProduct);
-router.get('/products/:product_id', viewProduct);
-router.get('/products/:product_id/edit', getEditProductPage);
-router.patch('/products/:product_id', uploadProduct.array('images', 3), updateProduct);
-router.delete('/products/:product_id', softDeleteProduct);
-router.patch('/products/:product_id/restore', restoreProduct);
+router.post('/products', verifyAdmin, uploadProduct.array('images', 3), addProduct);
+router.get('/products/:product_id', verifyAdmin, viewProduct);
+router.get('/products/:product_id/edit', verifyAdmin, getEditProductPage);
+router.patch('/products/:product_id', verifyAdmin, uploadProduct.array('images', 3), updateProduct);
+router.delete('/products/:product_id', verifyAdmin, softDeleteProduct);
+router.patch('/products/:product_id/restore', verifyAdmin, restoreProduct);
 
 export default router;

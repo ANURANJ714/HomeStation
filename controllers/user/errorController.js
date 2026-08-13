@@ -27,7 +27,8 @@ export const handleNotFound = async (req, res) => {
         if (isAdmin) {
             return res.status(404).render('admin/admin404error', {
                 pageTitle: 'Admin - Page Not Found',
-                path: req.originalUrl
+                path: req.originalUrl,
+                csrfToken: req.csrfToken ? req.csrfToken() : ''
             });
         }
 
@@ -36,6 +37,7 @@ export const handleNotFound = async (req, res) => {
         return res.status(404).render('user/404error', {
             pageTitle: 'HomeStation - Page Not Found',
             promoBanner: promoBannerText, 
+            user: (req.isAuthenticated && req.isAuthenticated()) ? req.user : (req.user || null),
             csrfToken: req.csrfToken ? req.csrfToken() : ''
         });
 

@@ -8,27 +8,26 @@ import { addToCartController } from '../../controllers/user/cartController.js';
 
 const router = express.Router();
 
-router.use(checkOptionalAuth);
 router.use(noCache);
 
-router.get('/', loadHomePage);
-router.get('/home', loadHomePage);
+router.get('/', checkOptionalAuth, loadHomePage);
+router.get('/home', checkOptionalAuth, loadHomePage);
 
-router.get('/products', loadProductsCatalogPage);
+router.get('/products', checkOptionalAuth, loadProductsCatalogPage);
 
-router.post('/wishlist/add', toggleWishlistItem);
-router.post('/cart/add', addToCartController);
-router.post('/wishlist/remove', deleteWishlistItem);
+router.post('/wishlist/add', checkOptionalAuth, toggleWishlistItem);
+router.post('/cart/add', checkOptionalAuth, addToCartController);
+router.post('/wishlist/remove', checkOptionalAuth, deleteWishlistItem);
 
-router.get('/products/:id', loadProductDetailViewPage);
-router.get('/search', executeCatalogSearchPage);
+router.get('/products/:id', checkOptionalAuth, loadProductDetailViewPage);
+router.get('/search', checkOptionalAuth, executeCatalogSearchPage);
 
-router.get('/contact', loadContactPage);
-router.post('/contact/submit', submitContactInquiryForm);
+router.get('/contact', checkOptionalAuth, loadContactPage);
+router.post('/contact/submit', checkOptionalAuth, submitContactInquiryForm);
 
-router.get('/deals', loadTopDealsPage);
-router.get('/bestsellers', loadBestsellersPage);
-router.get('/privacy-policy', loadPrivacyPolicyPage);
+router.get('/deals', checkOptionalAuth, loadTopDealsPage);
+router.get('/bestsellers', checkOptionalAuth, loadBestsellersPage);
+router.get('/privacy-policy', checkOptionalAuth, loadPrivacyPolicyPage);
 
 
 export default router;
