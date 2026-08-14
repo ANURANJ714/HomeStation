@@ -13,9 +13,7 @@ document.addEventListener("DOMContentLoaded", () => {
         }
     }
 
-    if (searchBtn) {
-        searchBtn.addEventListener("click", performSearch);
-    }
+    if (searchBtn) searchBtn.addEventListener("click", performSearch);
     if (searchInput) {
         searchInput.addEventListener("keypress", (e) => {
             if (e.key === "Enter") performSearch();
@@ -52,30 +50,83 @@ document.addEventListener("DOMContentLoaded", () => {
         return; 
     }
 
+    const imageContainer = document.getElementById("mainImageContainer");
     const mainProductImage = document.getElementById("main-product-image");
-    document.querySelectorAll(".custom-thumb-click").forEach(thumb => {
-        thumb.addEventListener("click", function() {
-            document.querySelectorAll(".custom-thumb-click").forEach(t => t.classList.remove("active"));
-            this.classList.add('active');
-            if (mainProductImage) {
-                mainProductImage.src = this.getAttribute("data-src");
+    const zoomLens = document.getElementById("imageZoomLens");
+    const zoomResult = document.getElementById("imageZoomResult");
+
+    function updateZoomBackground() {
+        if (zoomResult && mainProductImage) {
+            zoomResult.style.backgroundImage = `url('${mainProductImage.src}')`;
+        }
+    }
+
+    function initImageZoom() {
+        if (!imageContainer || !mainProductImage || !zoomLens || !zoomResult) return;
+
+        updateZoomBackground();
+
+        function moveLens(e) {
+            if (window.innerWidth <= 992) return;
+
+            const rect = mainProductImage.getBoundingClientRect();
+            let x = e.clientX - rect.left - (zoomLens.offsetWidth / 2);
+            let y = e.clientY - rect.top - (zoomLens.offsetHeight / 2);
+
+            if (x > mainProductImage.offsetWidth - zoomLens.offsetWidth) {
+                x = mainProductImage.offsetWidth - zoomLens.offsetWidth;
+            }
+            if (x < 0) x = 0;
+
+            if (y > mainProductImage.offsetHeight - zoomLens.offsetHeight) {
+                y = mainProductImage.offsetHeight - zoomLens.offsetHeight;
+            }
+            if (y < 0) y = 0;
+
+            zoomLens.style.left = x + "px";
+            zoomLens.style.top = y + "px";
+
+            const cx = zoomResult.offsetWidth / zoomLens.offsetWidth;
+            const cy = zoomResult.offsetHeight / zoomLens.offsetHeight;
+
+            zoomResult.style.backgroundSize = `${mainProductImage.offsetWidth * cx}px ${mainProductImage.offsetHeight * cy}px`;
+            zoomResult.style.backgroundPosition = `-${x * cx}px -${y * cy}px`;
+        }
+
+        imageContainer.addEventListener("mouseenter", () => {
+            if (window.innerWidth > 992) {
+                updateZoomBackground();
+                zoomLens.style.display = "block";
+                zoomResult.style.display = "block";
             }
         });
-    });
+
+        imageContainer.addEventListener("mouseleave", () => {
+            zoomLens.style.display = "none";
+            zoomResult.style.display = "none";
+        });
+
+        imageContainer.addEventListener("mousemove", moveLens);
+    }
+
+    initImageZoom();
 
     const zoomModal = document.getElementById("imageZoomModal");
     const zoomedImg = document.getElementById("zoomedImage");
     const closeZoomBtn = document.getElementById("closeZoomOverlayTargetBtn");
 
-    if (mainProductImage && zoomModal && zoomedImg) {
-        mainProductImage.addEventListener("click", () => {
+    if (imageContainer && zoomModal && zoomedImg) {
+        imageContainer.addEventListener("click", () => {
+            if (zoomLens) zoomLens.style.display = "none";
+            if (zoomResult) zoomResult.style.display = "none";
+
             zoomedImg.src = mainProductImage.src;
             zoomedImg.classList.remove("zoomed");
             zoomModal.style.display = "flex";
         });
     }
 
-    if (closeZoomBtn) {
+    if (closeZoomBtn && zoomModal) {
         closeZoomBtn.addEventListener("click", () => {
             zoomModal.style.display = "none";
         });
@@ -93,6 +144,17 @@ document.addEventListener("DOMContentLoaded", () => {
             this.classList.toggle("zoomed");
         });
     }
+
+    document.querySelectorAll(".custom-thumb-click").forEach(thumb => {
+        thumb.addEventListener("click", function() {
+            document.querySelectorAll(".custom-thumb-click").forEach(t => t.classList.remove("active"));
+            this.classList.add('active');
+            if (mainProductImage) {
+                mainProductImage.src = this.getAttribute("data-src");
+                updateZoomBackground();
+            }
+        });
+    });
 
     document.querySelectorAll(".variant-selector-input").forEach(radio => {
         radio.addEventListener("change", function() {

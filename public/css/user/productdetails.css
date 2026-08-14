@@ -922,6 +922,64 @@ img {
     cursor: pointer;
 }
 
+.product-split-layout {
+    position: relative;
+}
+
+.main-image-container {
+    position: relative;
+    overflow: hidden;
+    cursor: crosshair;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    background-color: #fff;
+    border-radius: 8px;
+}
+
+.main-image-container img {
+    width: 100%;
+    height: auto;
+    display: block;
+    object-fit: contain;
+}
+
+.image-zoom-lens {
+    position: absolute;
+    width: 140px;
+    height: 140px;
+    border: 1px solid #aaa;
+    background-color: rgba(255, 235, 59, 0.25);
+    cursor: crosshair;
+    display: none;
+    pointer-events: none;
+    z-index: 10;
+    box-shadow: 0 0 5px rgba(0, 0, 0, 0.15);
+}
+
+.image-zoom-result {
+    position: absolute;
+    top: 0;
+    left: 52%;
+    width: 48%;
+    height: 500px;
+    border: 1px solid #ddd;
+    background-repeat: no-repeat;
+    background-color: #fff;
+    display: none;
+    z-index: 100;
+    box-shadow: 0 10px 25px rgba(0, 0, 0, 0.15);
+    border-radius: 8px;
+    pointer-events: none;
+}
+
+@media (max-width: 992px) {
+    .image-zoom-lens,
+    .image-zoom-result {
+        display: none !important;
+    }
+}
+
 @media (max-width: 1200px) {
     .related-products .products-grid {
         grid-template-columns: repeat(3, 1fr);
