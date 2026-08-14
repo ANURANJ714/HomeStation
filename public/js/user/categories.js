@@ -29,8 +29,6 @@ document.addEventListener("DOMContentLoaded", () => {
   });
 
   function triggerFilterState(targetPage = 1) {
-    const activeCategory =
-      document.getElementById("currentCategoryFilter")?.value || "all";
     const selectedSort = document.getElementById("priceSort")
       ? document.getElementById("priceSort").value
       : "all";
@@ -38,12 +36,23 @@ document.addEventListener("DOMContentLoaded", () => {
       ? document.getElementById("searchInput").value.trim()
       : "";
 
+    const selectedCategories = [];
+    document.querySelectorAll(".cat-filter-item.active").forEach((btn) => {
+      const catId = btn.getAttribute("data-category-id");
+      if (catId) {
+        selectedCategories.push(encodeURIComponent(catId));
+      }
+    });
+
     const checkedBrands = [];
     document.querySelectorAll(".brand-checkbox:checked").forEach((checkbox) => {
       checkedBrands.push(encodeURIComponent(checkbox.value));
     });
 
-    let targetUrl = `/products?page=${targetPage}&category=${activeCategory}&sort=${selectedSort}`;
+    let targetUrl = `/products?page=${targetPage}&sort=${selectedSort}`;
+    if (selectedCategories.length > 0) {
+      targetUrl += `&categories=${selectedCategories.join(",")}`;
+    }
     if (checkedBrands.length > 0) {
       targetUrl += `&brands=${checkedBrands.join(",")}`;
     }
@@ -54,14 +63,27 @@ document.addEventListener("DOMContentLoaded", () => {
     window.location.href = targetUrl;
   }
 
-  const priceSortDropdown = document.getElementById("priceSort");
-  if (priceSortDropdown) {
-    priceSortDropdown.addEventListener("change", () => triggerFilterState(1));
-  }
+  document.querySelectorAll(".cat-filter-item").forEach((btn) => {
+    btn.addEventListener("click", function () {
+      this.classList.toggle("active");
+      const icon = this.querySelector(".check-icon");
+      if (this.classList.contains("active")) {
+        if (icon) icon.className = "fa-solid fa-check check-icon";
+      } else {
+        if (icon) icon.className = "check-icon";
+      }
+      triggerFilterState(1);
+    });
+  });
 
   document.querySelectorAll(".brand-checkbox").forEach((box) => {
     box.addEventListener("change", () => triggerFilterState(1));
   });
+
+  const priceSortDropdown = document.getElementById("priceSort");
+  if (priceSortDropdown) {
+    priceSortDropdown.addEventListener("change", () => triggerFilterState(1));
+  }
 
   document.querySelectorAll(".change-page-btn").forEach((btn) => {
     btn.addEventListener("click", function () {

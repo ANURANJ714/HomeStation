@@ -13,7 +13,16 @@ export const loadProductsCatalogPage = async (req, res) => {
             delete req.session.serverAlert; 
         }
 
-        const currentCategory = req.query.category ? String(req.query.category).trim() : 'all';
+        let selectedCategoriesArray = [];
+        if (req.query.categories) {
+            selectedCategoriesArray = String(req.query.categories)
+                .split(',')
+                .map(c => c.trim())
+                .filter(Boolean);
+        } else if (req.query.category && req.query.category !== 'all') {
+            selectedCategoriesArray = [String(req.query.category).trim()];
+        }
+
         const currentSort = req.query.sort ? String(req.query.sort).trim() : 'all';
         const searchQuery = req.query.q ? String(req.query.q).trim() : '';
         const page = Math.max(1, parseInt(req.query.page, 10) || 1);
@@ -21,14 +30,17 @@ export const loadProductsCatalogPage = async (req, res) => {
 
         let selectedBrandsArray = [];
         if (req.query.brands) {
-            selectedBrandsArray = String(req.query.brands).split(',').map(b => decodeURIComponent(b.trim()));
+            selectedBrandsArray = String(req.query.brands)
+                .split(',')
+                .map(b => decodeURIComponent(b.trim()))
+                .filter(Boolean);
         }
 
         const [metaData, uniqueBrands, catalogResult, bannerText, userWishlist] = await Promise.all([
-            productService.getCatalogPageMetadata(currentCategory),
+            productService.getCatalogPageMetadata(selectedCategoriesArray),
             productService.getUniqueActiveBrands(),
             productService.getFilteredProductsCatalog({
-                category: currentCategory,
+                categories: selectedCategoriesArray,
                 brands: selectedBrandsArray,
                 sort: currentSort,
                 searchQuery,
@@ -39,7 +51,7 @@ export const loadProductsCatalogPage = async (req, res) => {
             wishlistService.getUserWishlistArray(user ? user._id : null)
         ]);
 
-        logger.info(`Catalog rendered safely for context: [Category: ${currentCategory}] by User: ${user ? user.email : 'Guest'}`);
+        logger.info(`Catalog rendered safely for categories [${selectedCategoriesArray.join(', ')}] by User: ${user ? user.email : 'Guest'}`);
 
         return res.render('user/categories', {
             user,
@@ -50,7 +62,7 @@ export const loadProductsCatalogPage = async (req, res) => {
             totalPages: catalogResult.totalPages,
             totalItems: catalogResult.totalItems,
             pageHeading: metaData.pageHeading,
-            currentCategory,
+            currentCategories: selectedCategoriesArray, 
             currentSort,
             currentBrands: selectedBrandsArray,
             searchQuery,

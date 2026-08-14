@@ -505,6 +505,50 @@ img {
     cursor: pointer;
 }
 
+.filter-list {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.cat-filter-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    width: 100%;
+    padding: 10px 14px;
+    background-color: #f8f9fa;
+    color: #333;
+    border: 1px solid #e0e0e0;
+    border-radius: 6px;
+    font-size: 14px;
+    font-weight: 500;
+    cursor: pointer;
+    text-align: left;
+    transition: all 0.2s ease-in-out;
+}
+
+.cat-filter-item:hover {
+    background-color: #fffde7;
+    border-color: #ffd600;
+}
+
+.cat-filter-item.active {
+    background-color: #ffeb3b;
+    border-color: #fbc02d;
+    color: #000;
+    font-weight: 700;
+    box-shadow: 0 2px 6px rgba(255, 235, 59, 0.4);
+}
+
+.cat-filter-item .check-icon {
+    font-size: 12px;
+    color: #222;
+}
+
 @media (max-width: 1200px) {
     .products-grid {
         grid-template-columns: repeat(2, 1fr);

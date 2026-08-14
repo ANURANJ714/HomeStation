@@ -56,16 +56,18 @@ export const getProductsPageData = async (queryOptions) => {
     };
 };
 
-export const getCatalogPageMetadata = async (categoryId) => {
+export const getCatalogPageMetadata = async (selectedCategoriesArray = []) => {
     try {
-        const activeCategories = await Category.find({ isDeleted: false }).lean();
+        const activeCategories = await Category.find({ isDeleted: false }).sort({ name: 1 }).lean();
         
-        let pageHeading = "All Mattresses";
-        if (categoryId && categoryId !== 'all') {
-            const activeCategoryDoc = await Category.findOne({ _id: categoryId, isDeleted: false });
-            if (activeCategoryDoc) {
-                pageHeading = activeCategoryDoc.name;
+        let pageHeading = 'World of Mattress';
+        if (selectedCategoriesArray.length === 1) {
+            const singleCat = activeCategories.find(c => c._id.toString() === selectedCategoriesArray[0]);
+            if (singleCat) {
+                pageHeading = singleCat.name;
             }
+        } else if (selectedCategoriesArray.length > 1) {
+            pageHeading = `Selected Categories (${selectedCategoriesArray.length})`;
         }
 
         return {
@@ -73,7 +75,7 @@ export const getCatalogPageMetadata = async (categoryId) => {
             pageHeading
         };
     } catch (error) {
-        throw new Error(`Service Layer failure handling catalog page metadata: ${error.message}`);
+        throw new Error(`Database error while fetching catalog metadata: ${error.message}`);
     }
 };
 
@@ -88,14 +90,14 @@ export const getUniqueActiveBrands = async () => {
 
 export const getFilteredProductsCatalog = async (filters) => {
     try {
-        const { category, brands, sort, searchQuery, page, limit } = filters;
+        const { categories, brands, sort, searchQuery, page, limit } = filters;
 
         let matchedCategoryIds = [];
-        if (category && category !== 'all') {
-            matchedCategoryIds = [category];
+        if (categories && Array.isArray(categories) && categories.length > 0) {
+            matchedCategoryIds = categories;
         } else {
-            const activeCategories = await Category.find({ isDeleted: false }).select('_id');
-            matchedCategoryIds = activeCategories.map(c => typeof c._id !== 'undefined' ? c._id : c);
+            const activeCategories = await Category.find({ isDeleted: false }).select('_id').lean();
+            matchedCategoryIds = activeCategories.map(c => c._id);
         }
 
         let productMatchQuery = {
@@ -103,7 +105,7 @@ export const getFilteredProductsCatalog = async (filters) => {
             categoryId: { $in: matchedCategoryIds }
         };
 
-        if (brands && brands.length > 0) {
+        if (brands && Array.isArray(brands) && brands.length > 0) {
             productMatchQuery.brand = { $in: brands };
         }
 
@@ -115,7 +117,9 @@ export const getFilteredProductsCatalog = async (filters) => {
         const finalCatalog = [];
 
         for (const product of baseProductsList) {
-            const variants = await ProductVariant.find({ productId: product._id }).sort({ originalPrice: 1 }).lean();
+            const variants = await ProductVariant.find({ productId: product._id })
+                .sort({ originalPrice: 1 })
+                .lean();
 
             let totalStockAccumulator = 0;
             let firstInStockVariant = null;
@@ -124,7 +128,9 @@ export const getFilteredProductsCatalog = async (filters) => {
                 totalStockAccumulator += variant.stock;
                 
                 if (variant.stock > 0 && !firstInStockVariant) {
-                    const finalCalculatedPrice = Math.round(variant.originalPrice * (1 - (variant.discount || 0) / 100));
+                    const finalCalculatedPrice = Math.round(
+                        variant.originalPrice * (1 - (variant.discount || 0) / 100)
+                    );
                     firstInStockVariant = {
                         ...variant,
                         calculatedPrice: finalCalculatedPrice
@@ -147,7 +153,7 @@ export const getFilteredProductsCatalog = async (filters) => {
         }
 
         const totalItemsCount = finalCatalog.length;
-        const totalPagesCount = Math.ceil(totalItemsCount / limit);
+        const totalPagesCount = Math.ceil(totalItemsCount / limit) || 1;
         const startIndexOffset = (page - 1) * limit;
         const paginatedResultItems = finalCatalog.slice(startIndexOffset, startIndexOffset + limit);
 
