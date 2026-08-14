@@ -119,14 +119,22 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     const croppedFilesMap = {}; 
+    const croppedBlobUrls = {};
     let cropperInstance = null;
     let activeBoxIndex = null;
+
+    const allowedImageTypes = ['image/jpeg', 'image/png', 'image/webp', 'image/jpg'];
 
     const cropperModal = document.getElementById('cropperModal');
     const cropperTargetImage = document.getElementById('cropperTargetImage');
     const applyCropBtn = document.getElementById('applyCropBtn');
     const cancelCropBtn = document.getElementById('cancelCropBtn');
     const closeCropperBtn = document.getElementById('closeCropperBtn');
+
+    const previewModal = document.getElementById('imagePreviewModal');
+    const fullSizePreviewTarget = document.getElementById('fullSizePreviewTarget');
+    const previewModalTitle = document.getElementById('previewModalTitle');
+    const closePreviewModalBtn = document.getElementById('closePreviewModalBtn');
 
     function closeCropper() {
         if (cropperInstance) {
@@ -147,6 +155,21 @@ document.addEventListener('DOMContentLoaded', () => {
             const index = parseInt(this.getAttribute('data-index'), 10);
             if (this.files && this.files[0]) {
                 const file = this.files[0];
+
+                if (!allowedImageTypes.includes(file.type.toLowerCase())) {
+                    this.value = '';
+                    return Swal.fire({
+                        icon: 'error',
+                        title: 'Invalid File Format',
+                        html: `
+                            <p style="margin-bottom: 8px;">The file <b>"${file.name}"</b> is not a supported image format.</p>
+                            <p style="font-size: 14px; color: #555;">Accepted formats: <b>JPG, JPEG, PNG, WEBP</b></p>
+                        `,
+                        confirmButtonColor: '#1a1a1a',
+                        heightAuto: false
+                    });
+                }
+
                 activeBoxIndex = index;
 
                 const reader = new FileReader();
@@ -158,7 +181,9 @@ document.addEventListener('DOMContentLoaded', () => {
                     cropperInstance = new Cropper(cropperTargetImage, {
                         aspectRatio: 1,
                         viewMode: 1,
-                        background: false
+                        background: false,
+                        autoCropArea: 1,
+                        responsive: true
                     });
                 };
                 reader.readAsDataURL(file);
@@ -177,19 +202,69 @@ document.addEventListener('DOMContentLoaded', () => {
                 const file = new File([blob], `product-image-${activeBoxIndex + 1}.jpg`, { type: 'image/jpeg' });
                 croppedFilesMap[activeBoxIndex] = file;
 
+                const blobUrl = URL.createObjectURL(blob);
+                croppedBlobUrls[activeBoxIndex] = blobUrl;
+
                 const box = document.querySelector(`.upload-box[data-index="${activeBoxIndex}"]`);
                 const img = box.querySelector('.preview-img');
                 const placeholder = box.querySelector('.upload-placeholder');
+                const actionsOverlay = box.querySelector('.upload-box-actions');
 
-                img.src = URL.createObjectURL(blob);
+                img.src = blobUrl;
                 img.classList.remove('hidden');
                 img.classList.add('show-block');
+                
                 placeholder.classList.remove('show-flex');
                 placeholder.classList.add('hidden');
+                
+                if (actionsOverlay) {
+                    actionsOverlay.classList.remove('hidden');
+                }
+                
                 box.classList.add('has-image');
 
                 closeCropper();
             }, 'image/jpeg', 0.9);
+        });
+    }
+
+    document.addEventListener('click', (e) => {
+        const viewBtn = e.target.closest('.view-preview-btn');
+        if (viewBtn) {
+            e.stopPropagation();
+            const idx = viewBtn.getAttribute('data-index');
+            const targetUrl = croppedBlobUrls[idx];
+
+            if (targetUrl && previewModal && fullSizePreviewTarget) {
+                const titleMap = { '0': 'Main Image Preview', '1': 'Side Image 1 Preview', '2': 'Side Image 2 Preview' };
+                if (previewModalTitle) previewModalTitle.textContent = titleMap[idx] || 'Product Image Preview';
+                fullSizePreviewTarget.src = targetUrl;
+                previewModal.style.display = 'flex';
+            }
+            return;
+        }
+
+        const changeBtn = e.target.closest('.change-image-btn');
+        if (changeBtn) {
+            e.stopPropagation();
+            const idx = changeBtn.getAttribute('data-index');
+            const targetInput = document.querySelector(`.image-input[data-index="${idx}"]`);
+            if (targetInput) {
+                targetInput.click();
+            }
+            return;
+        }
+    });
+
+    function closePreviewModal() {
+        if (previewModal) previewModal.style.display = 'none';
+        if (fullSizePreviewTarget) fullSizePreviewTarget.src = '';
+    }
+
+    if (closePreviewModalBtn) closePreviewModalBtn.addEventListener('click', closePreviewModal);
+    if (previewModal) {
+        previewModal.addEventListener('click', (e) => {
+            if (e.target === previewModal) closePreviewModal();
         });
     }
 

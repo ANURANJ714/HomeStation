@@ -2,9 +2,14 @@ document.addEventListener('DOMContentLoaded', () => {
     const csrfToken = document.getElementById('csrfToken').value;
 
     let cropper = null;
-    let currentTargetInput = null; // 'add' or 'edit'
+    let currentTargetInput = null;
     let addCroppedBlob = null;
     let editCroppedBlob = null;
+
+    let addBlobUrl = null;
+    let editBlobUrl = null;
+
+    const allowedImageTypes = ['image/jpeg', 'image/png', 'image/webp', 'image/jpg'];
 
     function updateDateTime() {
         const display = document.getElementById('datetimeDisplay');
@@ -66,8 +71,8 @@ document.addEventListener('DOMContentLoaded', () => {
     const openAddModalBtn = document.getElementById('openAddModalBtn');
     if (openAddModalBtn) {
         openAddModalBtn.addEventListener('click', () => {
-            // Reset state on open
             addCroppedBlob = null;
+            addBlobUrl = null;
             document.getElementById('addCategoryPreviewWrapper').style.display = 'none';
             document.getElementById('addCategoryPreview').src = '';
             document.getElementById('categoryImage').value = '';
@@ -111,13 +116,22 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
-    // --- Cropper.js Integration Handlers ---
     function initCropper(file, targetType) {
         currentTargetInput = targetType;
-        const validTypes = ['image/jpeg', 'image/png', 'image/webp', 'image/jpg'];
-        if (!validTypes.includes(file.type)) {
-            Swal.fire({ icon: 'error', title: 'Invalid File', text: 'Only JPG, PNG, and WEBP images are allowed.', heightAuto: false });
-            return;
+        
+        if (!allowedImageTypes.includes(file.type.toLowerCase())) {
+            const inputElement = document.getElementById(targetType === 'add' ? 'categoryImage' : 'editCategoryImage');
+            if (inputElement) inputElement.value = '';
+            return Swal.fire({
+                icon: 'error',
+                title: 'Invalid File Format',
+                html: `
+                    <p style="margin-bottom: 8px;">The file <b>"${file.name}"</b> is not a supported image.</p>
+                    <p style="font-size: 14px; color: #555;">Accepted formats: <b>JPG, JPEG, PNG, WEBP</b></p>
+                `,
+                confirmButtonColor: '#1a1a1a',
+                heightAuto: false
+            });
         }
 
         const reader = new FileReader();
@@ -132,7 +146,7 @@ document.addEventListener('DOMContentLoaded', () => {
             }
 
             cropper = new Cropper(imageTarget, {
-                aspectRatio: 1, // 1:1 Aspect ratio for categories
+                aspectRatio: 1,
                 viewMode: 1,
                 autoCropArea: 1,
                 responsive: true,
@@ -184,12 +198,14 @@ document.addEventListener('DOMContentLoaded', () => {
 
             if (currentTargetInput === 'add') {
                 addCroppedBlob = blob;
+                addBlobUrl = croppedUrl;
                 const previewImg = document.getElementById('addCategoryPreview');
                 const previewWrapper = document.getElementById('addCategoryPreviewWrapper');
                 previewImg.src = croppedUrl;
                 previewWrapper.style.display = 'block';
             } else if (currentTargetInput === 'edit') {
                 editCroppedBlob = blob;
+                editBlobUrl = croppedUrl;
                 const previewImg = document.getElementById('editCategoryPreview');
                 const previewWrapper = document.getElementById('editCategoryPreviewWrapper');
                 previewImg.src = croppedUrl;
@@ -198,6 +214,62 @@ document.addEventListener('DOMContentLoaded', () => {
 
             closeCropModal();
         }, 'image/jpeg', 0.9);
+    });
+
+    const catPreviewModal = document.getElementById('categoryImagePreviewModal');
+    const catFullSizePreviewTarget = document.getElementById('categoryFullSizePreviewTarget');
+    const catPreviewModalTitle = document.getElementById('categoryPreviewModalTitle');
+    const closeCatPreviewModalBtn = document.getElementById('closeCatPreviewModalBtn');
+
+    function openFullCategoryPreview(srcUrl, titleText) {
+        if (catPreviewModal && catFullSizePreviewTarget && srcUrl) {
+            if (catPreviewModalTitle) catPreviewModalTitle.textContent = titleText || 'Category Image Full Preview';
+            catFullSizePreviewTarget.src = srcUrl;
+            catPreviewModal.style.display = 'flex';
+        }
+    }
+
+    function closeFullCategoryPreview() {
+        if (catPreviewModal) catPreviewModal.style.display = 'none';
+        if (catFullSizePreviewTarget) catFullSizePreviewTarget.src = '';
+    }
+
+    if (closeCatPreviewModalBtn) closeCatPreviewModalBtn.addEventListener('click', closeFullCategoryPreview);
+    if (catPreviewModal) {
+        catPreviewModal.addEventListener('click', (e) => {
+            if (e.target === catPreviewModal) closeFullCategoryPreview();
+        });
+    }
+
+    document.addEventListener('click', (e) => {
+        const viewBtn = e.target.closest('.view-cat-preview-btn');
+        if (viewBtn) {
+            e.stopPropagation();
+            const target = viewBtn.getAttribute('data-target');
+            if (target === 'add') {
+                const img = document.getElementById('addCategoryPreview');
+                openFullCategoryPreview(addBlobUrl || img?.src, 'New Category Image Preview');
+            } else {
+                const img = document.getElementById('editCategoryPreview');
+                openFullCategoryPreview(editBlobUrl || img?.src, 'Category Image Preview');
+            }
+            return;
+        }
+
+        const reuploadBtn = e.target.closest('.reupload-cat-btn');
+        if (reuploadBtn) {
+            e.stopPropagation();
+            const target = reuploadBtn.getAttribute('data-target');
+            const targetInput = document.getElementById(target === 'add' ? 'categoryImage' : 'editCategoryImage');
+            if (targetInput) targetInput.click();
+            return;
+        }
+
+        const previewImageClick = e.target.closest('.crop-preview-img');
+        if (previewImageClick) {
+            openFullCategoryPreview(previewImageClick.src, 'Category Image Full Preview');
+            return;
+        }
     });
 
     document.addEventListener('click', (e) => {
@@ -213,8 +285,8 @@ document.addEventListener('DOMContentLoaded', () => {
             nameInput.dataset.originalName = name;
             document.getElementById('editCategoryImage').value = '';
 
-            // Setup current image preview for edit
             editCroppedBlob = null;
+            editBlobUrl = null;
             const previewImg = document.getElementById('editCategoryPreview');
             const previewWrapper = document.getElementById('editCategoryPreviewWrapper');
 
@@ -307,7 +379,6 @@ document.addEventListener('DOMContentLoaded', () => {
             if (!addCroppedBlob) return Swal.fire({ icon: 'warning', title: 'Missing Image', text: 'Please upload and crop an image for the category.', heightAuto: false });
 
             const formData = new FormData(this);
-            // Replace raw uploaded file with cropped JPEG blob
             formData.set('image', addCroppedBlob, 'category_image.jpg');
 
             submitBtn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Adding...';
@@ -359,7 +430,7 @@ document.addEventListener('DOMContentLoaded', () => {
             if (editCroppedBlob) {
                 formData.set('image', editCroppedBlob, 'edited_category_image.jpg');
             } else {
-                formData.delete('image'); // Don't send empty image field
+                formData.delete('image');
             }
 
             submitBtn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Saving...';

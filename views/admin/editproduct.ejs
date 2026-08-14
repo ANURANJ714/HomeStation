@@ -13,6 +13,7 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.5.13/cropper.min.css">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.5.13/cropper.min.js"></script>
     <link rel="stylesheet" href="/css/admin/products.css">
+    <link rel="stylesheet" href="/css/admin/addproduct.css">
     <link rel="stylesheet" href="/css/admin/editproduct.css">
 </head>
 
@@ -181,11 +182,19 @@
                                     <% for(let i=0; i<3; i++) { %>
                                         <% const hasImage = product.images && product.images[i]; %>
                                         <div class="upload-box <%= hasImage ? 'has-image' : '' %>" data-index="<%= i %>">
-                                            <input type="file" class="image-input" accept="image/*" title="Image <%= i+1 %>" data-index="<%= i %>">
+                                            <input type="file" class="image-input" accept="image/jpeg,image/png,image/webp,image/jpg" title="Image <%= i+1 %>" data-index="<%= i %>">
                                             <img src="<%= hasImage ? product.images[i] : '' %>" class="preview-img <%= hasImage ? 'show-block' : 'hidden' %>" alt="Preview" data-existing-url="<%= hasImage ? product.images[i] : '' %>">
                                             <div class="upload-placeholder <%= hasImage ? 'hidden' : 'show-flex' %>">
                                                 <i class="fa-solid fa-cloud-arrow-up"></i>
                                                 <span><%= i===0 ? 'Main Image *' : 'Side Image ' + i + ' *' %></span>
+                                            </div>
+                                            <div class="upload-box-actions <%= hasImage ? '' : 'hidden' %>">
+                                                <button type="button" class="box-action-btn view-preview-btn" title="View Full Preview" data-index="<%= i %>">
+                                                    <i class="fa-solid fa-magnifying-glass-plus"></i>
+                                                </button>
+                                                <button type="button" class="box-action-btn change-image-btn" title="Change Image" data-index="<%= i %>">
+                                                    <i class="fa-solid fa-arrows-rotate"></i>
+                                                </button>
                                             </div>
                                         </div>
                                     <% } %>
@@ -217,6 +226,18 @@
             <div class="cropper-modal-footer">
                 <button type="button" class="btn btn-secondary" id="cancelCropBtn">Cancel</button>
                 <button type="button" class="btn btn-primary" id="applyCropBtn">Crop & Save</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="imagePreviewModal" class="image-preview-modal-overlay">
+        <div class="image-preview-modal-box">
+            <div class="preview-modal-header">
+                <h4 id="previewModalTitle">Image Preview</h4>
+                <button type="button" id="closePreviewModalBtn" class="preview-modal-close"><i class="fa-solid fa-xmark"></i></button>
+            </div>
+            <div class="preview-modal-body">
+                <img id="fullSizePreviewTarget" src="" alt="Full Product Image Preview">
             </div>
         </div>
     </div>

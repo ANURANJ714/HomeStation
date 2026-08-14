@@ -190,30 +190,58 @@
                             <div class="form-group full-width">
                                 <label>Product Images (All 3 required <span class="required-asterisk">*</span>)</label>
                                 <div class="image-upload-row">
+                                    
                                     <div class="upload-box" data-index="0">
-                                        <input type="file" class="image-input" accept="image/*" title="Main Image" data-index="0">
+                                        <input type="file" class="image-input" accept="image/jpeg,image/png,image/webp,image/jpg" title="Main Image" data-index="0">
                                         <img class="preview-img hidden" src="" alt="Main Preview">
                                         <div class="upload-placeholder show-flex">
                                             <i class="fa-solid fa-cloud-arrow-up"></i>
                                             <span>Main Image *</span>
                                         </div>
+                                        <div class="upload-box-actions hidden">
+                                            <button type="button" class="box-action-btn view-preview-btn" title="View Full Preview" data-index="0">
+                                                <i class="fa-solid fa-magnifying-glass-plus"></i>
+                                            </button>
+                                            <button type="button" class="box-action-btn change-image-btn" title="Change Image" data-index="0">
+                                                <i class="fa-solid fa-arrows-rotate"></i>
+                                            </button>
+                                        </div>
                                     </div>
+
                                     <div class="upload-box" data-index="1">
-                                        <input type="file" class="image-input" accept="image/*" title="Side Image 1" data-index="1">
+                                        <input type="file" class="image-input" accept="image/jpeg,image/png,image/webp,image/jpg" title="Side Image 1" data-index="1">
                                         <img class="preview-img hidden" src="" alt="Side 1 Preview">
                                         <div class="upload-placeholder show-flex">
                                             <i class="fa-solid fa-cloud-arrow-up"></i>
                                             <span>Side Image 1 *</span>
                                         </div>
+                                        <div class="upload-box-actions hidden">
+                                            <button type="button" class="box-action-btn view-preview-btn" title="View Full Preview" data-index="1">
+                                                <i class="fa-solid fa-magnifying-glass-plus"></i>
+                                            </button>
+                                            <button type="button" class="box-action-btn change-image-btn" title="Change Image" data-index="1">
+                                                <i class="fa-solid fa-arrows-rotate"></i>
+                                            </button>
+                                        </div>
                                     </div>
+
                                     <div class="upload-box" data-index="2">
-                                        <input type="file" class="image-input" accept="image/*" title="Side Image 2" data-index="2">
+                                        <input type="file" class="image-input" accept="image/jpeg,image/png,image/webp,image/jpg" title="Side Image 2" data-index="2">
                                         <img class="preview-img hidden" src="" alt="Side 2 Preview">
                                         <div class="upload-placeholder show-flex">
                                             <i class="fa-solid fa-cloud-arrow-up"></i>
                                             <span>Side Image 2 *</span>
                                         </div>
+                                        <div class="upload-box-actions hidden">
+                                            <button type="button" class="box-action-btn view-preview-btn" title="View Full Preview" data-index="2">
+                                                <i class="fa-solid fa-magnifying-glass-plus"></i>
+                                            </button>
+                                            <button type="button" class="box-action-btn change-image-btn" title="Change Image" data-index="2">
+                                                <i class="fa-solid fa-arrows-rotate"></i>
+                                            </button>
+                                        </div>
                                     </div>
+
                                 </div>
                                 <small class="error-msg" id="imagesError"></small>
                             </div>
@@ -242,6 +270,18 @@
             <div class="cropper-modal-footer">
                 <button type="button" class="btn btn-secondary" id="cancelCropBtn">Cancel</button>
                 <button type="button" class="btn btn-primary" id="applyCropBtn">Crop & Save</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="imagePreviewModal" class="image-preview-modal-overlay">
+        <div class="image-preview-modal-box">
+            <div class="preview-modal-header">
+                <h4 id="previewModalTitle">Image Preview</h4>
+                <button type="button" id="closePreviewModalBtn" class="preview-modal-close"><i class="fa-solid fa-xmark"></i></button>
+            </div>
+            <div class="preview-modal-body">
+                <img id="fullSizePreviewTarget" src="" alt="Full Uploaded Preview">
             </div>
         </div>
     </div>
