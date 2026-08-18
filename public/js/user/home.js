@@ -174,6 +174,30 @@ document.addEventListener("DOMContentLoaded", () => {
     }
   });
 
+  function updateHeaderBadge(type, count) {
+    const badgeId = type === 'wishlist' ? 'headerWishlistBadge' : 'headerCartBadge';
+    const parentSelector = type === 'wishlist' ? '.wishlist-link' : '.cart-link';
+    const badgeClass = type === 'wishlist' ? 'wishlist-badge' : 'cart-badge';
+    
+    let badge = document.getElementById(badgeId);
+    const parentLink = document.querySelector(parentSelector);
+
+    if (count > 0) {
+        if (!badge && parentLink) {
+            badge = document.createElement('span');
+            badge.id = badgeId;
+            badge.className = `count-pill-badge ${badgeClass}`;
+            parentLink.appendChild(badge);
+        }
+        if (badge) {
+            badge.textContent = count;
+            badge.style.display = 'inline-flex';
+        }
+    } else if (badge) {
+        badge.remove();
+    }
+}
+
   const searchInput = document.getElementById("searchInput");
   const searchBtn = document.getElementById("searchBtn");
 

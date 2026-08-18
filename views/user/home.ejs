@@ -49,17 +49,42 @@
                     </div>
 
                     <div class="header-actions">
-                        <a href="/user/wishlist" class="icon-link wishlist-link"><i class="fa-regular fa-heart"></i>
-                            <span class="action-text">Wishlist</span></a>
-                        <% if (user) { %>
-                            <a href="/user/profile" class="icon-link"><i class="fa-solid fa-user"></i> <span
-                                    class="action-text">Profile</span></a>
-                            <% } else { %>
-                                <a href="/user/login" class="icon-link"><i class="fa-solid fa-right-to-bracket"></i>
-                                    <span class="action-text">Login</span></a>
+                        <!-- Wishlist Link -->
+                        <a href="/user/wishlist" class="icon-link wishlist-link">
+                            <i class="fa-regular fa-heart"></i>
+                            <span class="action-text">Wishlist</span>
+                            <% if (typeof user !=='undefined' && user && typeof wishlistCount !=='undefined' &&
+                                wishlistCount> 0) { %>
+                                <span class="count-pill-badge wishlist-badge" id="headerWishlistBadge">
+                                    <%= wishlistCount %>
+                                </span>
                                 <% } %>
-                                    <a href="/user/cart" class="icon-link"><i class="fa-solid fa-cart-shopping"></i>
-                                        <span class="action-text">Cart</span></a>
+                        </a>
+
+                        <!-- Profile / Login Toggle -->
+                        <% if (typeof user !=='undefined' && user) { %>
+                            <a href="/user/profile" class="icon-link">
+                                <i class="fa-solid fa-user"></i>
+                                <span class="action-text">Profile</span>
+                            </a>
+                            <% } else { %>
+                                <a href="/user/login" class="icon-link">
+                                    <i class="fa-solid fa-right-to-bracket"></i>
+                                    <span class="action-text">Login</span>
+                                </a>
+                                <% } %>
+
+                                    <!-- Cart Link -->
+                                    <a href="/user/cart" class="icon-link cart-link">
+                                        <i class="fa-solid fa-cart-shopping"></i>
+                                        <span class="action-text">Cart</span>
+                                        <% if (typeof user !=='undefined' && user && typeof cartCount !=='undefined' &&
+                                            cartCount> 0) { %>
+                                            <span class="count-pill-badge cart-badge" id="headerCartBadge">
+                                                <%= cartCount %>
+                                            </span>
+                                            <% } %>
+                                    </a>
                     </div>
                 </div>
             </header>

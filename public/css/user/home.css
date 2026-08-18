@@ -565,6 +565,54 @@ img {
     cursor: pointer;
 }
 
+.header-actions {
+    display: flex;
+    align-items: center;
+    gap: 20px;
+}
+
+.header-actions .icon-link {
+    position: relative;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    text-decoration: none;
+    font-size: 15px;
+    font-weight: 500;
+    color: #222222;
+    transition: color 0.2s ease;
+}
+
+.header-actions .icon-link:hover {
+    color: #000000;
+}
+
+.count-pill-badge {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 26px;
+    height: 20px;
+    padding: 0 7px;
+    border-radius: 12px;
+    color: #ffffff;
+    font-size: 12px;
+    font-weight: 700;
+    font-family: inherit;
+    line-height: 1;
+    text-align: center;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+    transform: translateY(-2px);
+    transition: transform 0.2s ease, opacity 0.2s ease;
+}
+
+.count-pill-badge.wishlist-badge {
+    background: #e60000;
+}
+
+.count-pill-badge.cart-badge {
+    background: #0044ff;
+}
 @media (max-width: 992px) {
     .products-grid {
         grid-template-columns: repeat(3, 1fr);

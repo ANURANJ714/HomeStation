@@ -11,9 +11,16 @@ export const loadProducts = async (req, res) => {
         const limit = 5;
         const searchQuery = req.query.search ? req.query.search.trim() : "";
         const statusFilter = req.query.status || "all";
-        const adminEmail = req.user ? req.user.email : 'Unknown Admin';
+        const currentUser = req.user || req.session?.user || null;
+        const adminEmail = currentUser ? currentUser.email : 'Unknown Admin';
 
         const result = await productService.getAdminProductsPageData(page, limit, searchQuery, statusFilter);
+
+        let badgeCounts = { cartCount: 0, wishlistCount: 0 };
+        if (currentUser && (currentUser._id || currentUser.id)) {
+            const userId = currentUser._id || currentUser.id;
+            badgeCounts = await badgeService.getUserHeaderCounts(userId);
+        }
 
         logger.info(`Admin (${adminEmail}) viewed products (Page: ${result.safePage}, Filter: "${statusFilter}", Search: "${searchQuery}")`);
 
@@ -23,9 +30,12 @@ export const loadProducts = async (req, res) => {
             currentPage: result.safePage,
             totalPages: result.totalPages,
             totalProducts: result.totalProducts,
+            cartCount: badgeCounts.cartCount,
+            wishlistCount: badgeCounts.wishlistCount,
             searchQuery,
             statusFilter,
-            limit
+            limit,
+            user: currentUser
         });
 
     } catch (error) {
@@ -278,7 +288,7 @@ export const softDeleteProduct = async (req, res) => {
 
     product.isDeleted = true;
     await product.save();
-
+    
     return res.json({
       success: true,
       message: "Product successfully moved to Recycle Bin.",

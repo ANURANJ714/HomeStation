@@ -26,10 +26,14 @@ export const addToCartController = async (req, res) => {
 
         const userId = req.user._id;
 
+        if (req.session.checkoutActive) {
+            delete req.session.checkoutActive;
+        }
+
         const result = await cartService.handleAddToCartIntent(userId, variantId, targetQuantity);
 
         if (!result.success) {
-            return res.status(200).json({ 
+            return res.status(400).json({ 
                 success: false, 
                 reason: result.reason, 
                 message: result.message 
@@ -91,6 +95,10 @@ export const changeQuantityController = async (req, res) => {
             return res.status(400).json({ success: false, message: "Invalid payload parameters." });
         }
 
+        if (req.session.checkoutActive) {
+            delete req.session.checkoutActive;
+        }
+
         const result = await cartService.updateCartQuantity(userId, cartItemId, action);
 
         if (!result.success) {
@@ -124,6 +132,10 @@ export const removeCartItemController = async (req, res) => {
 
         if (!cartItemId) {
             return res.status(400).json({ success: false, message: "Cart item identifier is required." });
+        }
+
+        if (req.session.checkoutActive) {
+            delete req.session.checkoutActive;
         }
 
         const { isDeleted, totalCartCount } = await cartService.deleteCartItemCompletely(userId, cartItemId);

@@ -19,9 +19,11 @@ document.addEventListener("DOMContentLoaded", () => {
     if (alertInput) alertInput.value = "";
   }
 
-  document.querySelectorAll(".clickable-cart-card").forEach(card => {
-    card.addEventListener("click", function(e) {
-      const excludedTarget = e.target.closest(".trigger-delete-btn, .quantity-selector, .item-actions");
+  document.querySelectorAll(".clickable-cart-card").forEach((card) => {
+    card.addEventListener("click", function (e) {
+      const excludedTarget = e.target.closest(
+        ".trigger-delete-btn, .quantity-selector, .item-actions",
+      );
       if (excludedTarget) return;
 
       const productId = this.getAttribute("data-product-id");
@@ -180,14 +182,14 @@ document.addEventListener("DOMContentLoaded", () => {
             }, 300);
           }
 
-          const alertContent = data.countMessage 
-            ? `${data.message}<br>${data.countMessage}` 
-            : (data.message || "Item removed from cart.");
+          const alertContent = data.countMessage
+            ? `${data.message}<br>${data.countMessage}`
+            : data.message || "Item removed from cart.";
 
           Swal.fire({
             icon: "success",
             title: "Removed!",
-            html: alertContent, 
+            html: alertContent,
             timer: 1500,
             showConfirmButton: false,
             heightAuto: false,
@@ -234,6 +236,59 @@ document.addEventListener("DOMContentLoaded", () => {
       ".summary-row.total span:last-child",
     );
     if (totalUI) totalUI.innerText = `₹${totalPayable.toLocaleString("en-IN")}`;
+  }
+
+  const proceedCheckoutBtn = document.getElementById("proceedCheckoutBtn");
+
+  if (proceedCheckoutBtn) {
+    proceedCheckoutBtn.addEventListener("click", async (e) => {
+      e.preventDefault();
+
+      const originalText = proceedCheckoutBtn.innerText;
+      proceedCheckoutBtn.disabled = true;
+      proceedCheckoutBtn.innerText = "Verifying Cart...";
+
+      try {
+        const response = await fetch("/user/cart/checkout", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            "CSRF-Token": csrfToken,
+            "x-csrf-token": csrfToken,
+          },
+        });
+
+        const data = await response.json();
+
+        if (data.success && data.redirectUrl) {
+          window.location.href = data.redirectUrl;
+        } else {
+          Swal.fire({
+            icon:
+              data.reason === "OUT_OF_STOCK" || data.reason === "SOFT_DELETED"
+                ? "error"
+                : "warning",
+            title: "Checkout Notice",
+            text: data.message || "Unable to proceed to checkout.",
+            confirmButtonColor: "#222",
+            heightAuto: false,
+          });
+          proceedCheckoutBtn.disabled = false;
+          proceedCheckoutBtn.innerText = originalText;
+        }
+      } catch (error) {
+        console.error("Checkout submission error:", error);
+        Swal.fire({
+          icon: "error",
+          title: "Network Error",
+          text: "Could not verify your cart. Please try again.",
+          confirmButtonColor: "#222",
+          heightAuto: false,
+        });
+        proceedCheckoutBtn.disabled = false;
+        proceedCheckoutBtn.innerText = originalText;
+      }
+    });
   }
 
   const searchInput = document.getElementById("searchInput");

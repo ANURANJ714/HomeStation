@@ -140,3 +140,40 @@ export const removeUserAddress = async (userId, addressId) => {
         throw new Error(`Database error while deleting user address: ${error.message}`);
     }
 };
+
+//// For checkout ------------------------->
+
+export const getAdressForCheckout = async (userId, page = 1, limit = 4) => {
+    try {
+        const skip = (page - 1) * limit;
+
+        const [addresses, totalAddresses] = await Promise.all([
+            Address.find({ userId, isDeleted: false })
+                .sort({ isDefault: -1, createdAt: -1 })
+                .skip(skip)
+                .limit(limit)
+                .lean(),
+            Address.countDocuments({ userId, isDeleted: false })
+        ]);
+
+        const totalPages = Math.ceil(totalAddresses / limit) || 1;
+        const safePage = Math.min(page, totalPages);
+
+        return {
+            addresses,
+            totalAddresses,
+            totalPages,
+            currentPage: safePage
+        };
+    } catch (error) {
+        throw new Error(`Service Layer failure while fetching addresses: ${error.message}`);
+    }
+};
+
+export const getDefaultAddress = async (userId) => {
+    try {
+        return await Address.findOne({ userId, isDefault: true, isDeleted: false }).lean();
+    } catch (error) {
+        throw new Error(`Service Layer failure fetching default address: ${error.message}`);
+    }
+};
