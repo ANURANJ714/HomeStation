@@ -1,3 +1,4 @@
+import mongoose from 'mongoose';
 import Address from '../../models/Address.js';
 import { validateAddressWithGoogle } from '../../utils/googleAddressValidator.js';
 
@@ -172,8 +173,26 @@ export const getAdressForCheckout = async (userId, page = 1, limit = 4) => {
 
 export const getDefaultAddress = async (userId) => {
     try {
-        return await Address.findOne({ userId, isDefault: true, isDeleted: false }).lean();
+        return await Address.findOne({ userId, isDeleted: false })
+            .sort({ isDefault: -1, createdAt: 1 })
+            .lean();
     } catch (error) {
         throw new Error(`Service Layer failure fetching default address: ${error.message}`);
     }
 };
+
+export const getAddressById = async (userId, addressId) => {
+    try {
+        if (!addressId || !mongoose.Types.ObjectId.isValid(addressId)) {
+            return null;
+        }
+
+        return await Address.findOne({
+            _id: addressId,
+            userId: userId,
+            isDeleted: { $ne: true }
+        }).lean();
+    } catch (error) {
+        throw new Error(`Service Layer failure fetching address by ID: ${error.message}`);
+    }
+};;

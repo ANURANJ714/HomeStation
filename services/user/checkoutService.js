@@ -73,3 +73,12 @@ export const validateCartForCheckout = async (userId) => {
         throw new Error(`Checkout Service failure during cart validation: ${error.message}`);
     }
 };
+
+export const getUserWalletBalance = async (userId) => {
+    try {
+        return 0;
+    } catch (error) {
+        throw new Error(`Database error while fetching wallet balance: ${error.message}`);
+    }
+};
+

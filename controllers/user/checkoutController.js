@@ -24,6 +24,18 @@ export const postCartItems = async (req, res) => {
         }
 
         req.session.checkoutActive = true;
+        req.session.checkoutOrder = {
+        cartItems: result.cartItems,
+        totalQuantity: result.cartItems.reduce((acc, item) => acc + item.quantity, 0),
+        subtotal: result.cartItems.reduce((acc, item) => {
+            const variant = item.productVariantId;
+            const price = Math.round(variant.originalPrice * (1 - (variant.discount || 0) / 100));
+            return acc + (price * item.quantity);
+        }, 0),
+        offerDiscount: 0,
+        couponDiscount: 0,
+        shippingCharges: 0
+        };
 
         logger.info(`Cart validated successfully for (${userEmail}). Proceeding to address selection.`);
 
@@ -61,7 +73,6 @@ export const loadCheckoutAddress = async (req, res) => {
         logger.info(`User (${userEmail}) loaded checkout address page (Page: ${page}). IP: ${clientIp}`);
 
         return res.render('user/selectaddress', {
-            pageTitle: 'HomeStation - Select Delivery Address',
             user: req.user,
             addresses: addressData.addresses,
             currentPage: addressData.currentPage,
@@ -86,7 +97,6 @@ export const loadCheckoutAddress = async (req, res) => {
 export const postCheckoutAddress = async (req, res) => {
     try {
         const { selectedAddressId } = req.body;
-        const userId = req.user._id;
 
         if (!selectedAddressId) {
             return res.status(400).json({
@@ -96,6 +106,7 @@ export const postCheckoutAddress = async (req, res) => {
         }
 
         req.session.checkoutOrder = {
+            ...req.session.checkoutOrder,
             shippingAddressId: selectedAddressId
         };
 
@@ -104,10 +115,142 @@ export const postCheckoutAddress = async (req, res) => {
             redirectUrl: '/user/checkout/payment'
         });
     } catch (error) {
-        logger.error(`Error initiating payment checkout phase: ${error.message}`);
+        logger.error(`Error saving checkout address: ${error.message}`);
         return res.status(500).json({
             success: false,
             message: 'Unable to select address. Please try again.'
+        });
+    }
+};
+
+export const loadSelectPaymentMode = async (req, res) => {
+    try {
+        const clientIp = req.ip;
+        const userEmail = req.user?.email || 'Unknown User';
+        const userId = req.user._id;
+
+        const [walletBalance, bannerText, headerCounts] = await Promise.all([
+            checkoutService.getUserWalletBalance(userId),
+            getActivePromoBanner(),
+            badgeService.getUserHeaderCounts(userId)
+        ]);
+
+        logger.info(`User (${userEmail}) loaded payment selection page. IP: ${clientIp}`);
+
+        return res.render('user/selectpaymentmode', {
+            user: req.user,
+            walletBalance,
+            cartCount: headerCounts.cartCount,
+            wishlistCount: headerCounts.wishlistCount,
+            bannerText: bannerText,
+            csrfToken: req.csrfToken ? req.csrfToken() : ''
+        });
+
+    } catch (error) {
+        logger.error(`Error loading payment selection page for ${req.user?.email || 'Unknown'} (IP: ${req.ip}): ${error.message}\nStack: ${error.stack}`);
+
+        return res.status(500).json({
+            success: false,
+            title: 'Server Error',
+            message: 'An internal server error occurred while loading payment modes.'
+        });
+    }
+};
+
+export const postCheckoutPaymentMode = async (req, res) => {
+    try {
+        const clientIp = req.ip;
+        const userEmail = req.user?.email || 'Unknown User';
+        const { paymentMode } = req.body;
+
+        const allowedModes = ['razorpay', 'wallet', 'cod'];
+        if (!paymentMode || !allowedModes.includes(paymentMode)) {
+            return res.status(400).json({
+                success: false,
+                message: 'Please select a valid payment method.'
+            });
+        }
+
+        req.session.checkoutOrder = {
+            ...req.session.checkoutOrder,
+            paymentMode: paymentMode
+        };
+
+
+        logger.info(`User (${userEmail}) selected payment mode: [${paymentMode}]. IP: ${clientIp}`);
+
+        return res.status(200).json({
+            success: true,
+            message: 'Payment mode selected successfully.',
+            redirectUrl: '/user/checkout/review'
+        });
+
+    } catch (error) {
+        logger.error(`Error saving payment mode for ${req.user?.email || 'Unknown'} (IP: ${req.ip}): ${error.message}\nStack: ${error.stack}`);
+
+        return res.status(500).json({
+            success: false,
+            message: 'Failed to process payment selection. Please try again.'
+        });
+    }
+};
+
+export const loadOrderReview = async (req, res) => {
+    try {
+        const clientIp = req.ip;
+        const userEmail = req.user?.email || 'Unknown User';
+        const userId = req.user._id;
+
+        const checkout = req.session.checkoutOrder || {};
+
+        let [shippingAddress, defaultBillingAddress, bannerText, headerCounts] = await Promise.all([
+            checkout.shippingAddressId ? addressService.getAddressById(userId, checkout.shippingAddressId) : null,
+            addressService.getDefaultAddress(userId),
+            getActivePromoBanner(),
+            badgeService.getUserHeaderCounts(userId)
+        ]);
+
+        if (!shippingAddress && defaultBillingAddress) {
+            shippingAddress = defaultBillingAddress;
+            checkout.shippingAddressId = defaultBillingAddress._id.toString();
+        }
+
+        const billingAddress = defaultBillingAddress || shippingAddress;
+
+        const subtotal = checkout.subtotal || 0;
+        const offerDiscount = checkout.offerDiscount || 0;
+        const couponDiscount = checkout.couponDiscount || 0;
+        const deliveryCharges = checkout.shippingCharges || 0;
+        const totalPayable = Math.max(0, subtotal - offerDiscount - couponDiscount + deliveryCharges);
+
+        logger.info(`User (${userEmail}) accessed Order Review page. IP: ${clientIp}`);
+
+        return res.render('user/orderreview', {
+            pageTitle: 'HomeStation - Order Review & Checkout',
+            user: req.user,
+            cartItems: checkout.cartItems || [],
+            totalQuantity: checkout.totalQuantity || 0,
+            shippingAddress,
+            billingAddress,
+            paymentMode: checkout.paymentMode || 'cod',
+            subtotal,
+            offerDiscount,
+            couponDiscount,
+            deliveryCharges,
+            totalPayable,
+            cartCount: headerCounts.cartCount,
+            wishlistCount: headerCounts.wishlistCount,
+            bannerText,
+            csrfToken: req.csrfToken ? req.csrfToken() : ''
+        });
+
+    } catch (error) {
+        logger.error(`Error loading order review page for ${req.user?.email || 'Unknown'} (IP: ${req.ip}): ${error.message}\nStack: ${error.stack}`);
+
+        return res.status(500).json({
+            success: false,
+            title: 'Server Error',
+            message: 'An internal server error occurred while preparing order review.'
         });
     }
 };

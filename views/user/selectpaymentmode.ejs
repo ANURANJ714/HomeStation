@@ -1,0 +1,165 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>HomeStation</title>
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,600;0,700;1,600&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="icon" type="image/x-icon" href="https://res.cloudinary.com/dz7fuqwnr/image/upload/v1778395481/WhatsApp_Image_2026-05-10_at_12.12.36_nra5vk.jpg">
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <link rel="stylesheet" href="/css/user/home.css">
+    <link rel="stylesheet" href="/css/user/selectpaymentmode.css">
+</head>
+
+<body>
+    <input type="hidden" id="csrfToken" value="<%= typeof csrfToken !== 'undefined' ? csrfToken : '' %>">
+
+    <% if (typeof bannerText !== 'undefined' && bannerText) { %>
+        <div class="promo-bar">
+            <b><%- bannerText %></b>
+        </div>
+    <% } %>
+
+    <header class="header">
+        <div class="container-fluid header-container">
+            <a href="/home" class="logo">HomeStation</a>
+            <nav class="nav">
+                <ul class="nav-list">
+                    <li><a href="/home" class="nav-link">Home</a></li>
+                    <li><a href="/products" class="nav-link">World of Mattress</a></li>
+                    <li><a href="/deals" class="nav-link">Top Deals</a></li>
+                    <li><a href="/bestsellers" class="nav-link">Best Sellers</a></li>
+                    <li><a href="/contact" class="nav-link">Contact Us</a></li>
+                </ul>
+            </nav>
+            <div class="search-container">
+                <input type="text" placeholder="Search for products, brands and more..." id="searchInput">
+                <button id="searchBtn" type="button"><i class="fa-solid fa-magnifying-glass"></i></button>
+            </div>
+            <div class="header-actions">
+                <a href="/user/wishlist" class="icon-link wishlist-link">
+                    <i class="fa-regular fa-heart"></i>
+                    <span class="action-text">Wishlist</span>
+                    <% if (typeof user !== 'undefined' && user && typeof wishlistCount !== 'undefined' && wishlistCount > 0) { %>
+                        <span class="count-pill-badge wishlist-badge" id="headerWishlistBadge"><%= wishlistCount %></span>
+                    <% } %>
+                </a>
+                <a href="/user/profile" class="icon-link">
+                    <i class="fa-regular fa-user"></i>
+                    <span class="action-text">Profile</span>
+                </a>
+                <a href="/user/cart" class="icon-link cart-link">
+                    <i class="fa-solid fa-cart-shopping"></i>
+                    <span class="action-text">Cart</span>
+                    <% if (typeof user !== 'undefined' && user && typeof cartCount !== 'undefined' && cartCount > 0) { %>
+                        <span class="count-pill-badge cart-badge" id="headerCartBadge"><%= cartCount %></span>
+                    <% } %>
+                </a>
+            </div>
+        </div>
+    </header>
+
+    <main class="select-payment-main">
+        <div class="container">
+            <div class="checkout-steps">
+                <div class="step completed"><i class="fa-solid fa-circle-check"></i> Cart</div>
+                <div class="step completed"><i class="fa-solid fa-circle-check"></i> Address</div>
+                <div class="step active">3. Payment</div>
+                <div class="step">4. Order Review</div>
+            </div>
+
+            <div class="page-header">
+                <h1 class="page-title">Select Payment Mode</h1>
+            </div>
+
+            <div class="payment-options-grid">
+                <label class="payment-option-card">
+                    <input type="radio" name="payment-mode" value="razorpay" checked>
+                    <div class="card-content">
+                        <div class="option-header">
+                            <span class="option-title">Razorpay</span>
+                            <span class="selection-indicator"></span>
+                        </div>
+                        <div class="option-body">
+                            <i class="fa-solid fa-credit-card payment-icon"></i>
+                            <p class="description">Cards, Netbanking, UPI & Wallets</p>
+                            <span class="secure-tag"><i class="fa-solid fa-shield-halved"></i> 100% Secure</span>
+                        </div>
+                    </div>
+                </label>
+
+                <label class="payment-option-card">
+                    <input type="radio" name="payment-mode" value="wallet">
+                    <div class="card-content">
+                        <div class="option-header">
+                            <span class="option-title">HomeStation Wallet</span>
+                            <span class="selection-indicator"></span>
+                        </div>
+                        <div class="option-body">
+                            <i class="fa-solid fa-wallet payment-icon"></i>
+                            <p class="description">Pay using your wallet balance</p>
+                            <p class="balance">Available Balance: ₹<%= typeof walletBalance !== 'undefined' ? walletBalance.toLocaleString('en-IN') : '0' %></p>
+                        </div>
+                    </div>
+                </label>
+
+                <label class="payment-option-card">
+                    <input type="radio" name="payment-mode" value="cod">
+                    <div class="card-content">
+                        <div class="option-header">
+                            <span class="option-title">Cash On Delivery (COD)</span>
+                            <span class="selection-indicator"></span>
+                        </div>
+                        <div class="option-body">
+                            <i class="fa-solid fa-hand-holding-dollar payment-icon"></i>
+                            <p class="description">Pay with cash upon delivery</p>
+                            <span class="secure-tag"><i class="fa-solid fa-truck"></i> Standard Delivery</span>
+                        </div>
+                    </div>
+                </label>
+            </div>
+
+            <div class="action-buttons">
+                <a href="/user/checkout/address" class="btn-back">Back to Address</a>
+                <button type="button" class="btn-proceed" id="proceedToReviewBtn">Proceed to Review</button>
+            </div>
+        </div>
+    </main>
+
+    <footer class="footer">
+        <div class="container-fluid footer-container">
+            <div class="footer-left">
+                <a href="/home" class="logo footer-logo">HomeStation</a>
+                <p>Your premier destination for high-quality mattresses and sleep essentials, crafted to bring cloud-like comfort to every night.</p>
+            </div>
+            <div class="footer-links-wrapper">
+                <div class="footer-column">
+                    <h4>Shop</h4>
+                    <ul>
+                        <li><a href="/products">World of Mattress</a></li>
+                        <li><a href="/deals">Top Deals</a></li>
+                        <li><a href="/bestsellers">Best Sellers</a></li>
+                    </ul>
+                </div>
+                <div class="footer-column">
+                    <h4>Support</h4>
+                    <ul>
+                        <li><a href="/user/orders">Track Your Orders</a></li>
+                        <li><a href="/privacy-policy">Privacy Policy</a></li>
+                        <li><a href="/contact">Contact Us</a></li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+        <div class="container-fluid copyright">
+            <p>&copy; 2026 HomeStation Store. All rights reserved.</p>
+        </div>
+    </footer>
+
+    <script src="/js/user/selectpaymentmode.js"></script>
+</body>
+
+</html>
