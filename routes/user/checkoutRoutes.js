@@ -1,6 +1,7 @@
 import express from 'express';
 import { ensureCheckoutOrigin, ensureAddressSelected, ensurePaymentModeSelected } from '../../middlewares/checkoutAuth.js';
-import { loadCheckoutAddress, postCheckoutAddress, loadSelectPaymentMode, postCheckoutPaymentMode, loadOrderReview } from '../../controllers/user/checkoutController.js';
+import { loadCheckoutAddress, postCheckoutAddress, loadSelectPaymentMode, postCheckoutPaymentMode,
+     loadOrderReview, placeOrder, loadSuccessPage, loadFailurePage } from '../../controllers/user/checkoutController.js';
 import { addAddress, editAddress, deleteAddress } from '../../controllers/user/addressController.js';
 
 const router = express.Router();
@@ -16,5 +17,9 @@ router.get('/payment', ensureAddressSelected, loadSelectPaymentMode);
 router.post('/payment/select', ensureAddressSelected, postCheckoutPaymentMode);
 
 router.get('/review', ensurePaymentModeSelected, loadOrderReview);
+router.post('/order/create', ensurePaymentModeSelected, placeOrder);
+
+router.get('/success', loadSuccessPage);
+router.get('/failure', loadFailurePage);
 
 export default router;

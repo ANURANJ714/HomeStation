@@ -1,0 +1,96 @@
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+body {
+  font-family: "Roboto", Arial, sans-serif;
+  background-color: #f8f8f8;
+  color: #333;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 100vh;
+}
+
+.success-wrapper {
+  padding: 20px;
+  width: 100%;
+  max-width: 500px;
+}
+
+.success-card {
+  background: #fff;
+  padding: 50px 40px;
+  border-radius: 16px;
+  text-align: center;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.08);
+}
+
+.brand {
+  font-family: "Playfair Display", serif;
+  font-size: 28px;
+  font-weight: 700;
+  color: #222;
+  margin-bottom: 30px;
+  letter-spacing: 0.5px;
+}
+
+.success-icon {
+  font-size: 80px;
+  color: #2e7d32;
+  margin-bottom: 30px;
+}
+
+.success-title {
+  font-family: "Playfair Display", serif;
+  font-size: 36px;
+  color: #222;
+  margin-bottom: 15px;
+}
+
+.success-text {
+  font-size: 16px;
+  color: #666;
+  line-height: 1.6;
+  margin-bottom: 40px;
+}
+
+.btn-continue {
+  display: inline-block;
+  padding: 16px 40px;
+  background-color: #222;
+  color: #fff;
+  text-decoration: none;
+  border-radius: 8px;
+  font-weight: 700;
+  font-size: 16px;
+  transition: all 0.2s;
+}
+
+.btn-continue:hover {
+  background-color: #000;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+}
+
+.action-area {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.btn-continue{
+  background-color: #8b0000;
+}
+
+@media (max-width: 480px) {
+  .success-card {
+    padding: 40px 20px;
+  }
+
+  .success-title {
+    font-size: 28px;
+  }
+}

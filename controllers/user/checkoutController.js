@@ -3,6 +3,7 @@ import * as addressService from '../../services/user/addressService.js';
 import * as badgeService from '../../services/user/badgeService.js';
 import { getActivePromoBanner } from '../../services/user/bannerService.js';
 import * as checkoutService from '../../services/user/checkoutService.js';
+import * as orderService from '../../services/user/orderService.js';
 
 export const postCartItems = async (req, res) => {
     try {
@@ -251,6 +252,99 @@ export const loadOrderReview = async (req, res) => {
             success: false,
             title: 'Server Error',
             message: 'An internal server error occurred while preparing order review.'
+        });
+    }
+};
+
+export const placeOrder = async (req, res) => {
+    try {
+        const userId = req.user._id;
+        const userEmail = req.user?.email || 'Unknown User';
+        const clientIp = req.ip;
+
+        const checkout = req.session.checkoutOrder;
+
+        if (!checkout || !checkout.cartItems || !checkout.shippingAddressId || !checkout.paymentMode) {
+            return res.status(400).json({
+                success: false,
+                message: 'Incomplete checkout session details.'
+            });
+        }
+
+        const [shippingAddress, defaultBillingAddress] = await Promise.all([
+            addressService.getAddressById(userId, checkout.shippingAddressId),
+            addressService.getDefaultAddress(userId)
+        ]);
+
+        const billingAddress = defaultBillingAddress || shippingAddress;
+
+        const order = await orderService.createNewOrder(userId, checkout, shippingAddress, billingAddress);
+
+        logger.info(`Order placed successfully! ID: ${order.orderId} for User (${userEmail}) | IP: ${clientIp}`);
+
+        req.session.lastPlacedOrderId = order.orderId;
+
+        delete req.session.checkoutActive;
+        delete req.session.checkoutOrder;
+
+        return res.status(200).json({
+            success: true,
+            orderId: order.orderId,
+            redirectUrl: `/user/checkout/success?orderId=${encodeURIComponent(order.orderId)}`
+        });
+
+    } catch (error) {
+        logger.error(`Order Placement Error for (${req.user?.email || 'Unknown'}): ${error.message}\nStack: ${error.stack}`);
+
+        return res.status(200).json({
+            success: false,
+            message: error.message || 'Payment or order processing failed.',
+            redirectUrl: '/user/checkout/failure'
+        });
+    }
+};
+
+export const loadSuccessPage = async (req, res) => {
+    try {
+        const clientIp = req.ip;
+        const userEmail = req.user?.email || 'Unknown User';
+        
+        const orderId = req.query.orderId || req.session.lastPlacedOrderId || 'N/A';
+
+        logger.info(`User (${userEmail}) loaded Order Success page for Order ID: ${orderId} | IP: ${clientIp}`);
+
+        return res.render('user/orderpaymentsuccess', { 
+            orderId, 
+            csrfToken: req.csrfToken ? req.csrfToken() : '' 
+        });
+    } catch (error) {
+        logger.error(`Error rendering order success page for (${req.user?.email || 'Unknown'}): ${error.message}\nStack: ${error.stack}`);
+        
+        return res.status(500).json({
+            success: false,
+            title: "Server Error",
+            message: "An unexpected error occurred while loading the order confirmation page."
+        });
+    }
+};
+
+export const loadFailurePage = async (req, res, next) => {
+    try {
+        const clientIp = req.ip;
+        const userEmail = req.user?.email || 'Unknown User';
+
+        logger.warn(`User (${userEmail}) viewed Order Failure page | IP: ${clientIp}`);
+
+        return res.render('user/orderpaymentfail', { 
+            csrfToken: req.csrfToken ? req.csrfToken() : '' 
+        });
+    } catch (error) {
+        logger.error(`Error rendering order failure page for (${req.user?.email || 'Unknown'}): ${error.message}\nStack: ${error.stack}`);
+        
+        return res.status(500).json({
+            success: false,
+            title: "Server Error",
+            message: "An unexpected error occurred while loading the payment failure page."
         });
     }
 };

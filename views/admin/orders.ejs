@@ -1,0 +1,373 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title><%= typeof pageTitle !== 'undefined' ? pageTitle : 'HomeStation - ADMIN' %></title>
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,600;0,700;1,600&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="icon" type="image/x-icon" href="https://res.cloudinary.com/dz7fuqwnr/image/upload/v1778395481/WhatsApp_Image_2026-05-10_at_12.12.36_nra5vk.jpg">
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <link rel="stylesheet" href="/css/admin/orders.css">
+</head>
+
+<body>
+    <input type="hidden" id="csrfToken" value="<%= typeof csrfToken !== 'undefined' ? csrfToken : '' %>">
+
+    <div class="dashboard-layout">
+
+        <aside class="sidebar">
+            <div class="sidebar-header">
+                <h2 class="brand-title">HomeStation</h2>
+                <button class="close-sidebar" id="closeSidebar" type="button">
+                    <i class="fa-solid fa-xmark"></i>
+                </button>
+            </div>
+
+            <nav class="sidebar-nav">
+                <ul class="nav-list">
+                    <li class="nav-item">
+                        <a href="/admin/dashboard" class="nav-link">
+                            <i class="fa-solid fa-chart-pie nav-icon"></i> Dashboard
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a href="/admin/products" class="nav-link">
+                            <i class="fa-solid fa-box nav-icon"></i> Products
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a href="/admin/categories" class="nav-link">
+                            <i class="fa-solid fa-tags nav-icon"></i> Categories
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a href="/admin/orders" class="nav-link active">
+                            <i class="fa-solid fa-cart-shopping nav-icon"></i> Orders
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a href="/admin/users" class="nav-link">
+                            <i class="fa-solid fa-users nav-icon"></i> User Management
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a href="/admin/sales-report" class="nav-link">
+                            <i class="fa-solid fa-file-invoice-dollar nav-icon"></i> Sales Report
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a href="/admin/coupons" class="nav-link">
+                            <i class="fa-solid fa-ticket nav-icon"></i> Manage Coupons
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a href="/admin/enquiries" class="nav-link">
+                            <i class="fa-solid fa-envelope nav-icon"></i> Enquiry
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a href="/admin/offers" class="nav-link">
+                            <i class="fa-solid fa-gift nav-icon"></i> Offers
+                        </a>
+                    </li>
+                </ul>
+
+                <ul class="nav-list logout-section">
+                    <li class="nav-item">
+                        <a href="javascript:void(0)" class="nav-link logout-link" id="adminLogoutBtn">
+                            <i class="fa-solid fa-right-from-bracket nav-icon"></i> Logout
+                        </a>
+                    </li>
+                </ul>
+            </nav>
+        </aside>
+
+        <div class="main-panel">
+
+            <header class="top-header">
+                <div class="header-left">
+                    <button class="hamburger-menu" id="hamburgerMenu" type="button">
+                        <i class="fa-solid fa-bars"></i>
+                    </button>
+                </div>
+                <div class="header-right">
+                    <div class="datetime-display" id="datetimeDisplay"></div>
+                    <div class="admin-badge">
+                        <i class="fa-solid fa-user-shield"></i> Admin
+                    </div>
+                </div>
+            </header>
+
+            <main class="content-wrapper">
+
+                <div class="page-header-row">
+                    <h1 class="page-title">Order Management</h1>
+                    
+                    <div class="filters-container-group">
+                        <div class="search-box <%= (typeof searchQuery !== 'undefined' && searchQuery) ? 'has-value' : '' %>">
+                            <i class="fa-solid fa-magnifying-glass search-icon"></i>
+                            <input type="text" id="searchOrderInput" placeholder="Search Order ID" value="<%= typeof searchQuery !== 'undefined' ? searchQuery : '' %>">
+                            <button class="search-clear-btn" id="searchClearBtn" type="button" title="Clear search">
+                                <i class="fa-solid fa-xmark"></i>
+                            </button>
+                        </div>
+
+                        <div class="custom-select-wrapper filter-select" id="filterStatusSelectWrapper">
+                            <div class="custom-select-trigger">
+                                <span id="filterStatusLabel">
+                                    <% if (statusFilter === 'processing') { %>Processing
+                                    <% } else if (statusFilter === 'packed') { %>Packed
+                                    <% } else if (statusFilter === 'shipped') { %>Shipped
+                                    <% } else if (statusFilter === 'on the way') { %>On the Way
+                                    <% } else if (statusFilter === 'out for delivery') { %>Out for Delivery
+                                    <% } else if (statusFilter === 'delivered') { %>Delivered
+                                    <% } else if (statusFilter === 'cancelled') { %>Cancelled
+                                    <% } else if (statusFilter === 'Return') { %>Return
+                                    <% } else { %>All Status<% } %>
+                                </span>
+                                <i class="fa-solid fa-chevron-down custom-icon"></i>
+                            </div>
+                            <ul class="custom-select-options">
+                                <li class="custom-select-option <%= !statusFilter ? 'selected' : '' %>" data-value="">All Status</li>
+                                <li class="custom-select-option <%= statusFilter === 'processing' ? 'selected' : '' %>" data-value="processing">Processing</li>
+                                <li class="custom-select-option <%= statusFilter === 'packed' ? 'selected' : '' %>" data-value="packed">Packed</li>
+                                <li class="custom-select-option <%= statusFilter === 'shipped' ? 'selected' : '' %>" data-value="shipped">Shipped</li>
+                                <li class="custom-select-option <%= statusFilter === 'on the way' ? 'selected' : '' %>" data-value="on the way">On the Way</li>
+                                <li class="custom-select-option <%= statusFilter === 'out for delivery' ? 'selected' : '' %>" data-value="out for delivery">Out for Delivery</li>
+                                <li class="custom-select-option <%= statusFilter === 'delivered' ? 'selected' : '' %>" data-value="delivered">Delivered</li>
+                                <li class="custom-select-option <%= statusFilter === 'cancelled' ? 'selected' : '' %>" data-value="cancelled">Cancelled</li>
+                                <li class="custom-select-option <%= statusFilter === 'Return' ? 'selected' : '' %>" data-value="Return">Return</li>
+                            </ul>
+                            <input type="hidden" name="filterStatus" id="filterStatusInput" value="<%= statusFilter %>">
+                        </div>
+                    </div>
+                </div>
+
+                <div class="stats-grid stats-grid-4">
+                    <div class="stat-card">
+                        <div class="stat-icon total-orders-icon"><i class="fa-solid fa-cubes"></i></div>
+                        <div class="stat-details">
+                            <p class="stat-label">Total Orders</p>
+                            <h3 class="stat-value"><%= metrics.totalOrdersCount.toLocaleString('en-IN') %></h3>
+                        </div>
+                    </div>
+
+                    <div class="stat-card stat-card-processing">
+                        <div class="stat-icon stat-icon-processing"><i class="fa-solid fa-clock"></i></div>
+                        <div class="stat-details">
+                            <p class="stat-label">Processing</p>
+                            <h3 class="stat-value stat-val-processing"><%= metrics.processingCount.toLocaleString('en-IN') %></h3>
+                        </div>
+                    </div>
+
+                    <div class="stat-card stat-card-packed">
+                        <div class="stat-icon stat-icon-packed"><i class="fa-solid fa-box"></i></div>
+                        <div class="stat-details">
+                            <p class="stat-label">Packed</p>
+                            <h3 class="stat-value stat-val-packed"><%= metrics.packedCount.toLocaleString('en-IN') %></h3>
+                        </div>
+                    </div>
+
+                    <div class="stat-card stat-card-shipped">
+                        <div class="stat-icon stat-icon-shipped"><i class="fa-solid fa-truck"></i></div>
+                        <div class="stat-details">
+                            <p class="stat-label">Shipped</p>
+                            <h3 class="stat-value stat-val-shipped"><%= metrics.shippedCount.toLocaleString('en-IN') %></h3>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="stats-grid stats-grid-5 mb-25">
+                    <div class="stat-card stat-card-ontheway">
+                        <div class="stat-icon transit-icon"><i class="fa-solid fa-truck-fast"></i></div>
+                        <div class="stat-details">
+                            <p class="stat-label">On The Way</p>
+                            <h3 class="stat-value stat-val-ontheway"><%= metrics.onTheWayCount.toLocaleString('en-IN') %></h3>
+                        </div>
+                    </div>
+
+                    <div class="stat-card stat-card-outfordelivery">
+                        <div class="stat-icon stat-icon-outfordelivery"><i class="fa-solid fa-person-biking"></i></div>
+                        <div class="stat-details">
+                            <p class="stat-label">Out For Delivery</p>
+                            <h3 class="stat-value stat-val-outfordelivery"><%= metrics.outForDeliveryCount.toLocaleString('en-IN') %></h3>
+                        </div>
+                    </div>
+
+                    <div class="stat-card stat-card-delivered">
+                        <div class="stat-icon delivered-icon"><i class="fa-solid fa-box-open"></i></div>
+                        <div class="stat-details">
+                            <p class="stat-label">Delivered</p>
+                            <h3 class="stat-value stat-val-delivered"><%= metrics.deliveredCount.toLocaleString('en-IN') %></h3>
+                        </div>
+                    </div>
+
+                    <div class="stat-card stat-card-cancelled">
+                        <div class="stat-icon stat-icon-cancelled"><i class="fa-solid fa-ban"></i></div>
+                        <div class="stat-details">
+                            <p class="stat-label">Cancelled</p>
+                            <h3 class="stat-value stat-val-muted"><%= metrics.cancelledCount.toLocaleString('en-IN') %></h3>
+                        </div>
+                    </div>
+
+                    <div class="stat-card stat-card-return-active">
+                        <div class="stat-icon stat-icon-return-active"><i class="fa-solid fa-arrow-rotate-left"></i></div>
+                        <div class="stat-details">
+                            <p class="stat-label">Return</p>
+                            <h3 class="stat-value stat-val-return-active"><%= metrics.returnCount.toLocaleString('en-IN') %></h3>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="table-container">
+                    <table class="data-table">
+                        <thead>
+                            <tr>
+                                <th>Order ID</th>
+                                <th>Customer Name</th>
+                                <th class="text-center">Total items</th>
+                                <th>Amount</th>
+                                <th>Order Date</th>
+                                <th>Status</th>
+                                <th class="actions-header">Action</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <% if (orders && orders.length > 0) { %>
+                                <% orders.forEach(order => { 
+                                    const totalItems = order.orderItems.reduce((acc, item) => acc + item.quantity, 0);
+                                    const totalAmount = order.orderItems.reduce((acc, item) => acc + (item.currentPrice * item.quantity), 0);
+                                    const formattedDate = new Date(order.createdAt).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' });
+                                    const customerName = order.userId?.fullName || order.shippingAddress?.name || 'Customer';
+                                %>
+                                    <tr>
+                                        <td class="fw-500"><%= order.orderId %></td>
+                                        <td><%= customerName %></td>
+                                        <td class="text-center"><%= totalItems %></td>
+                                        <td class="fw-500">₹<%= totalAmount.toLocaleString('en-IN') %></td>
+                                        <td><%= formattedDate %></td>
+                                        <td>
+                                            <% if (order.returnStatus && order.returnStatus !== 'none') { %>
+                                                <span class="badge badge-return"><i class="fa-solid fa-rotate-left"></i> <%= order.returnStatus.charAt(0).toUpperCase() + order.returnStatus.slice(1) %></span>
+                                            <% } else if (order.status === 'processing') { %>
+                                                <span class="badge badge-processing">Processing</span>
+                                            <% } else if (order.status === 'packed') { %>
+                                                <span class="badge badge-packed">Packed</span>
+                                            <% } else if (order.status === 'shipped') { %>
+                                                <span class="badge badge-shipped">Shipped</span>
+                                            <% } else if (order.status === 'on the way') { %>
+                                                <span class="badge badge-ontheway">On the Way</span>
+                                            <% } else if (order.status === 'out for delivery') { %>
+                                                <span class="badge badge-outfordelivery">Out for Delivery</span>
+                                            <% } else if (order.status === 'delivered') { %>
+                                                <span class="badge badge-delivered">Delivered</span>
+                                            <% } else if (order.status === 'cancelled') { %>
+                                                <span class="badge badge-cancelled">Cancelled</span>
+                                            <% } else { %>
+                                                <span class="badge badge-warning"><%= order.status %></span>
+                                            <% } %>
+                                        </td>
+                                        <td class="actions-td">
+                                            <div class="actions-cell">
+                                                <a href="/admin/orders/<%= order.orderId %>" class="btn-icon view" title="View Order Details">
+                                                    <i class="fa-regular fa-eye"></i>
+                                                </a>
+                                                <button type="button" class="btn-icon edit trigger-update-modal-btn" 
+                                                    data-order-id="<%= order.orderId %>" 
+                                                    data-status="<%= order.status %>" 
+                                                    title="Update Status">
+                                                    <i class="fa-solid fa-pen-to-square"></i>
+                                                </button>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                <% }) %>
+                            <% } else { %>
+                                <tr>
+                                    <td colspan="7" class="empty-table-msg">No matching orders found.</td>
+                                </tr>
+                            <% } %>
+                        </tbody>
+                    </table>
+                </div>
+
+                <% if (typeof totalPages !== 'undefined' && totalPages > 0) { %>
+                    <div class="pagination-container">
+                        <span class="pagination-info">
+                            Showing <%= totalFilteredOrders === 0 ? 0 : ((currentPage - 1) * limit + 1) %> to <%= Math.min(currentPage * limit, totalFilteredOrders) %> of <%= totalFilteredOrders.toLocaleString('en-IN') %> entries
+                        </span>
+                        <div class="pagination-controls">
+                            <% if (currentPage > 1) { %>
+                                <a href="/admin/orders?page=<%= currentPage - 1 %>&search=<%= encodeURIComponent(searchQuery) %>&status=<%= statusFilter %>" class="page-btn"><i class="fa-solid fa-chevron-left"></i></a>
+                            <% } else { %>
+                                <button class="page-btn disabled" disabled><i class="fa-solid fa-chevron-left"></i></button>
+                            <% } %>
+
+                            <% for (let p = 1; p <= totalPages; p++) { %>
+                                <% if (p === 1 || p === totalPages || (p >= currentPage - 1 && p <= currentPage + 1)) { %>
+                                    <a href="/admin/orders?page=<%= p %>&search=<%= encodeURIComponent(searchQuery) %>&status=<%= statusFilter %>" class="page-btn <%= currentPage === p ? 'active' : '' %>"><%= p %></a>
+                                <% } else if (p === currentPage - 2 || p === currentPage + 2) { %>
+                                    <span class="page-dots">...</span>
+                                <% } %>
+                            <% } %>
+
+                            <% if (currentPage < totalPages) { %>
+                                <a href="/admin/orders?page=<%= currentPage + 1 %>&search=<%= encodeURIComponent(searchQuery) %>&status=<%= statusFilter %>" class="page-btn"><i class="fa-solid fa-chevron-right"></i></a>
+                            <% } else { %>
+                                <button class="page-btn disabled" disabled><i class="fa-solid fa-chevron-right"></i></button>
+                            <% } %>
+                        </div>
+                    </div>
+                <% } %>
+
+            </main>
+        </div>
+    </div>
+
+    <div class="modal-overlay" id="updateStatusModal">
+        <div class="modal-content modal-content-sm">
+            <div class="modal-header">
+                <h2>Update Order Status</h2>
+                <button type="button" class="close-modal-btn" id="closeUpdateModalBtn"><i class="fa-solid fa-xmark"></i></button>
+            </div>
+
+            <div class="modal-body">
+                <form id="updateStatusForm">
+                    <input type="hidden" id="modalOrderId" value="">
+
+                    <div class="form-group mb-20">
+                        <label>Status</label>
+                        <div class="custom-select-wrapper" id="modalStatusSelectWrapper">
+                            <div class="custom-select-trigger form-input-style">
+                                <span id="modalStatusText">Processing</span>
+                                <i class="fa-solid fa-chevron-down custom-icon"></i>
+                            </div>
+                            <ul class="custom-select-options">
+                                <li class="custom-select-option" data-value="processing">Processing</li>
+                                <li class="custom-select-option" data-value="packed">Packed</li>
+                                <li class="custom-select-option" data-value="shipped">Shipped</li>
+                                <li class="custom-select-option" data-value="on the way">On the Way</li>
+                                <li class="custom-select-option" data-value="out for delivery">Out for Delivery</li>
+                                <li class="custom-select-option" data-value="delivered">Delivered</li>
+                                <li class="custom-select-option" data-value="cancelled">Cancelled</li>
+                            </ul>
+                            <input type="hidden" name="deliveryStatus" id="modalStatusInput" value="processing">
+                        </div>
+                    </div>
+
+                    <div class="modal-footer pt-20">
+                        <button type="button" class="btn btn-secondary" id="cancelUpdateModalBtn">Cancel</button>
+                        <button type="submit" class="btn btn-primary" id="saveStatusBtn">Update Status</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <script src="/js/admin/orders.js"></script>
+</body>
+
+</html>

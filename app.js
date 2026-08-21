@@ -30,6 +30,7 @@ import adminCategoryRoutes from './routes/admin/adminCategoryRoutes.js';
 import adminProductRoutes from './routes/admin/adminProductRoutes.js';
 import adminDashboardRoutes from './routes/admin/adminDashboardRoutes.js';
 import enquiryRoutes from './routes/admin/enquiryRoutes.js';
+import adminOrderRoutes from './routes/admin/adminOrderRoutes.js';
 
 configurePassport(passport);
 connectDB();
@@ -73,6 +74,7 @@ app.use('/admin', adminCategoryRoutes);
 app.use('/admin', adminProductRoutes);
 app.use('/admin', adminDashboardRoutes);
 app.use('/admin', enquiryRoutes);
+app.use('/admin', adminOrderRoutes);
 
 app.use('/', pageRoutes);
 
