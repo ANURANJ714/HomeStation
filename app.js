@@ -66,7 +66,7 @@ app.use('/user', userRoutes);
 app.use('/user', profileRoutes);
 app.use('/user/addresses', addressRoutes);
 app.use('/user', pageAuthRoutes);
-app.use('/user', checkoutRoutes);
+app.use('/user/checkout', checkoutRoutes);
 
 app.use('/admin', adminAuthRoutes);
 app.use('/admin', adminCategoryRoutes);

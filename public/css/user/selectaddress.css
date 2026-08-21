@@ -884,3 +884,7 @@ textarea.form-control {
   border-radius: 12px;
   color: #666666;
 }
+
+.swal2-container {
+    z-index: 20000 !important;
+}

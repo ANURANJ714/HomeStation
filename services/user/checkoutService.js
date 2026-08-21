@@ -16,7 +16,7 @@ export const validateCartForCheckout = async (userId) => {
                 }
             })
             .lean();
-
+            
         if (!cartItems || cartItems.length === 0) {
             return {
                 isValid: false,

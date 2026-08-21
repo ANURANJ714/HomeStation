@@ -6,7 +6,8 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>HomeStation</title>
     <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&display=swap" rel="stylesheet">
-    <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,600;0,700;1,600&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,600;0,700;1,600&display=swap"
+        rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link rel="icon" type="image/x-icon"
         href="https://res.cloudinary.com/dz7fuqwnr/image/upload/v1778395481/WhatsApp_Image_2026-05-10_at_12.12.36_nra5vk.jpg">
@@ -18,273 +19,310 @@
 <body>
     <input type="hidden" id="csrfToken" value="<%= typeof csrfToken !== 'undefined' ? csrfToken : '' %>">
 
-    <% if (typeof bannerText !== 'undefined' && bannerText) { %>
+    <% if (typeof bannerText !=='undefined' && bannerText) { %>
         <div class="promo-bar">
             <b><%- bannerText %></b>
         </div>
-    <% } %>
+        <% } %>
 
-    <header class="header">
-        <div class="container-fluid header-container">
-            <a href="/home" class="logo">HomeStation</a>
-            <nav class="nav">
-                <ul class="nav-list">
-                    <li><a href="/home" class="nav-link">Home</a></li>
-                    <li><a href="/products" class="nav-link">World of Mattress</a></li>
-                    <li><a href="/deals" class="nav-link">Top Deals</a></li>
-                    <li><a href="/bestsellers" class="nav-link">Best Sellers</a></li>
-                    <li><a href="/contact" class="nav-link">Contact Us</a></li>
-                </ul>
-            </nav>
-            <div class="search-container">
-                <input type="text" placeholder="Search for products, brands and more..." id="searchInput">
-                <button id="searchBtn" type="button"><i class="fa-solid fa-magnifying-glass"></i></button>
-            </div>
-            <div class="header-actions">
-                <a href="/user/wishlist" class="icon-link wishlist-link">
-                    <i class="fa-regular fa-heart"></i>
-                    <span class="action-text">Wishlist</span>
-                    <% if (typeof user !== 'undefined' && user && typeof wishlistCount !== 'undefined' && wishlistCount > 0) { %>
-                        <span class="count-pill-badge wishlist-badge" id="headerWishlistBadge"><%= wishlistCount %></span>
-                    <% } %>
-                </a>
-                <a href="/user/profile" class="icon-link">
-                    <i class="fa-regular fa-user"></i>
-                    <span class="action-text">Profile</span>
-                </a>
-                <a href="/user/cart" class="icon-link cart-link">
-                    <i class="fa-solid fa-cart-shopping"></i>
-                    <span class="action-text">Cart</span>
-                    <% if (typeof user !== 'undefined' && user && typeof cartCount !== 'undefined' && cartCount > 0) { %>
-                        <span class="count-pill-badge cart-badge" id="headerCartBadge"><%= cartCount %></span>
-                    <% } %>
-                </a>
-            </div>
-        </div>
-    </header>
+            <header class="header">
+                <div class="container-fluid header-container">
+                    <a href="/home" class="logo">HomeStation</a>
+                    <nav class="nav">
+                        <ul class="nav-list">
+                            <li><a href="/home" class="nav-link">Home</a></li>
+                            <li><a href="/products" class="nav-link">World of Mattress</a></li>
+                            <li><a href="/deals" class="nav-link">Top Deals</a></li>
+                            <li><a href="/bestsellers" class="nav-link">Best Sellers</a></li>
+                            <li><a href="/contact" class="nav-link">Contact Us</a></li>
+                        </ul>
+                    </nav>
+                    <div class="search-container">
+                        <input type="text" placeholder="Search for products, brands and more..." id="searchInput">
+                        <button id="searchBtn" type="button"><i class="fa-solid fa-magnifying-glass"></i></button>
+                    </div>
+                    <div class="header-actions">
+                        <a href="/user/wishlist" class="icon-link wishlist-link">
+                            <i class="fa-regular fa-heart"></i>
+                            <span class="action-text">Wishlist</span>
+                            <% if (typeof user !=='undefined' && user && typeof wishlistCount !=='undefined' &&
+                                wishlistCount> 0) { %>
+                                <span class="count-pill-badge wishlist-badge" id="headerWishlistBadge">
+                                    <%= wishlistCount %>
+                                </span>
+                                <% } %>
+                        </a>
+                        <a href="/user/profile" class="icon-link">
+                            <i class="fa-regular fa-user"></i>
+                            <span class="action-text">Profile</span>
+                        </a>
+                        <a href="/user/cart" class="icon-link cart-link">
+                            <i class="fa-solid fa-cart-shopping"></i>
+                            <span class="action-text">Cart</span>
+                            <% if (typeof user !=='undefined' && user && typeof cartCount !=='undefined' && cartCount>
+                                0) { %>
+                                <span class="count-pill-badge cart-badge" id="headerCartBadge">
+                                    <%= cartCount %>
+                                </span>
+                                <% } %>
+                        </a>
+                    </div>
+                </div>
+            </header>
 
-    <main class="select-address-main">
-        <div class="container">
-            <div class="checkout-steps">
-                <div class="step completed"><i class="fa-solid fa-circle-check"></i> Cart</div>
-                <div class="step active">2. Address</div>
-                <div class="step">3. Checkout</div>
-                <div class="step">4. Payment</div>
-            </div>
+            <main class="select-address-main">
+                <div class="container">
+                    <div class="checkout-steps">
+                        <div class="step completed"><i class="fa-solid fa-circle-check"></i> Cart</div>
+                        <div class="step active">2. Address</div>
+                        <div class="step">3. Payment</div>
+                        <div class="step">4. Order Review</div>
+                    </div>
 
-            <div class="page-header">
-                <h1 class="page-title">Select Delivery Address</h1>
-                <button type="button" class="btn-manage-link-btn" id="openAddAddressModalBtn">
-                    <i class="fa-solid fa-plus"></i> Add address
-                </button>
-            </div>
+                    <div class="page-header">
+                        <h1 class="page-title">Select Delivery Address</h1>
+                        <button type="button" class="btn-manage-link-btn" id="openAddAddressModalBtn">
+                            <i class="fa-solid fa-plus"></i> Add address
+                        </button>
+                    </div>
 
-            <div class="address-grid" id="addressGridContainer">
-                <% if (typeof addresses !== 'undefined' && addresses.length > 0) { %>
-                    <% addresses.forEach((addr, index) => { %>
-                        <div class="address-selection-card" data-address-id="<%= addr._id %>">
-                            <input type="radio" name="delivery-address" value="<%= addr._id %>" <%= (addr.isDefault || index === 0) ? 'checked' : '' %>>
-                            <div class="card-content">
-                                <div class="address-header">
-                                    <span class="address-type <%= addr.addressType %>">
-                                        <% if (addr.addressType === 'work') { %>
-                                            <i class="fa-solid fa-briefcase"></i> Work
-                                        <% } else if (addr.addressType === 'other') { %>
-                                            <i class="fa-solid fa-location-dot"></i> Other
-                                        <% } else { %>
-                                            <i class="fa-solid fa-house"></i> Home
-                                        <% } %>
-                                    </span>
-                                    <% if (addr.isDefault) { %>
-                                        <span class="default-badge-label">Default</span>
-                                    <% } %>
-                                    <div class="header-right-actions">
-                                        <span class="selection-indicator"></span>
-                                        <div class="address-menu-wrapper">
-                                            <button type="button" class="hamburger-btn" title="Options">
-                                                <i class="fa-solid fa-ellipsis-vertical"></i>
-                                            </button>
-                                            <div class="address-dropdown">
-                                                <button type="button" class="dropdown-item edit-address-trigger-btn"
-                                                    data-id="<%= addr._id %>"
-                                                    data-type="<%= addr.addressType %>"
-                                                    data-name="<%= addr.fullName %>"
-                                                    data-phone="<%= addr.phone %>"
-                                                    data-address="<%= addr.addressLine %>"
-                                                    data-city="<%= addr.city %>"
-                                                    data-state="<%= addr.state %>"
-                                                    data-pincode="<%= addr.pincode %>"
-                                                    data-default="<%= addr.isDefault ? 'true' : 'false' %>">
-                                                    <i class="fa-solid fa-pen"></i> Edit
-                                                </button>
-                                                <button type="button" class="dropdown-item delete delete-address-trigger-btn" data-id="<%= addr._id %>">
-                                                    <i class="fa-solid fa-trash"></i> Delete
-                                                </button>
-                                            </div>
+                    <div class="address-grid" id="addressGridContainer">
+                        <% if (typeof addresses !=='undefined' && addresses.length> 0) { %>
+                            <% addresses.forEach((addr, index)=> { %>
+                                <div class="address-selection-card" data-address-id="<%= addr._id %>">
+                                    <input type="radio" name="delivery-address" value="<%= addr._id %>"
+                                        <%=(addr.isDefault || index===0) ? 'checked' : '' %>>
+                                    <div class="card-content">
+                                        <div class="address-header">
+                                            <span class="address-type <%= addr.addressType %>">
+                                                <% if (addr.addressType==='work' ) { %>
+                                                    <i class="fa-solid fa-briefcase"></i> Work
+                                                    <% } else if (addr.addressType==='other' ) { %>
+                                                        <i class="fa-solid fa-location-dot"></i> Other
+                                                        <% } else { %>
+                                                            <i class="fa-solid fa-house"></i> Home
+                                                            <% } %>
+                                            </span>
+                                            <% if (addr.isDefault) { %>
+                                                <span class="default-badge-label">Default</span>
+                                                <% } %>
+                                                    <div class="header-right-actions">
+                                                        <span class="selection-indicator"></span>
+                                                        <div class="address-menu-wrapper">
+                                                            <button type="button" class="hamburger-btn" title="Options">
+                                                                <i class="fa-solid fa-ellipsis-vertical"></i>
+                                                            </button>
+                                                            <div class="address-dropdown">
+                                                                <button type="button"
+                                                                    class="dropdown-item edit-address-trigger-btn"
+                                                                    data-id="<%= addr._id %>"
+                                                                    data-type="<%= addr.addressType %>"
+                                                                    data-name="<%= addr.name %>"
+                                                                    data-phone="<%= addr.phone %>"
+                                                                    data-address="<%= addr.fullAddress %>"
+                                                                    data-city="<%= addr.city %>"
+                                                                    data-state="<%= addr.state %>"
+                                                                    data-pincode="<%= addr.pincode %>"
+                                                                    data-default="<%= addr.isDefault ? 'true' : 'false' %>">
+                                                                    <i class="fa-solid fa-pen"></i> Edit
+                                                                </button>
+                                                                <button type="button"
+                                                                    class="dropdown-item delete delete-address-trigger-btn"
+                                                                    data-id="<%= addr._id %>">
+                                                                    <i class="fa-solid fa-trash"></i> Delete
+                                                                </button>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                        </div>
+                                        <div class="address-body">
+                                            <p class="name">
+                                                <%= addr.name %>
+                                            </p>
+                                            <p class="line address-main-line">
+                                                <%= addr.fullAddress %>
+                                            </p>
+                                            <p class="line address-city-state">
+                                                <%= addr.city %>, <%= addr.state %> - <%= addr.pincode %>
+                                            </p>
+                                            <p class="phone"><i class="fa-solid fa-phone"></i> <span class="phone-num">
+                                                    <%= addr.phone %>
+                                                </span></p>
                                         </div>
                                     </div>
                                 </div>
-                                <div class="address-body">
-                                    <p class="name"><%= addr.fullName %></p>
-                                    <p class="line address-main-line"><%= addr.addressLine %></p>
-                                    <p class="line address-city-state"><%= addr.city %>, <%= addr.state %> - <%= addr.pincode %></p>
-                                    <p class="phone"><i class="fa-solid fa-phone"></i> <span class="phone-num"><%= addr.phone %></span></p>
+                                <% }) %>
+                                    <% } else { %>
+                                        <div class="empty-address-notice">
+                                            <p>No addresses found. Click "Add address" above to provide your delivery
+                                                details.</p>
+                                        </div>
+                                        <% } %>
+                    </div>
+
+                    <% if (typeof totalPages !=='undefined' && totalPages> 1) { %>
+                        <div class="pagination">
+                            <% if (currentPage> 1) { %>
+                                <a href="/user/checkout/address?page=<%= currentPage - 1 %>" class="page-link"><i
+                                        class="fa-solid fa-chevron-left"></i> Previous</a>
+                                <% } else { %>
+                                    <span class="page-link disabled"><i class="fa-solid fa-chevron-left"></i>
+                                        Previous</span>
+                                    <% } %>
+
+                                        <% for(let i=1; i <=totalPages; i++) { %>
+                                            <a href="/user/checkout/address?page=<%= i %>"
+                                                class="page-link <%= currentPage === i ? 'active' : '' %>">
+                                                <%= i %>
+                                            </a>
+                                            <% } %>
+
+                                                <% if (currentPage < totalPages) { %>
+                                                    <a href="/user/checkout/address?page=<%= currentPage + 1 %>"
+                                                        class="page-link">Next <i
+                                                            class="fa-solid fa-chevron-right"></i></a>
+                                                    <% } else { %>
+                                                        <span class="page-link disabled">Next <i
+                                                                class="fa-solid fa-chevron-right"></i></span>
+                                                        <% } %>
+                        </div>
+                        <% } %>
+
+                            <div class="action-buttons">
+                                <a href="/user/cart" class="btn-back">Back to Cart</a>
+                                <button type="button" class="btn-select" id="proceedToPaymentBtn">Proceed to
+                                    Payment</button>
+                            </div>
+                </div>
+            </main>
+
+            <div class="modal-overlay" id="addressModal">
+                <div class="modal-box">
+                    <div class="modal-header">
+                        <h3 id="modalTitle">Edit Address</h3>
+                        <button type="button" class="modal-close" id="closeAddressModalBtn"><i
+                                class="fa-solid fa-xmark"></i></button>
+                    </div>
+                    <div class="modal-body">
+                        <input type="hidden" id="editAddressTargetId" value="">
+                        <div class="address-type-selector">
+                            <label class="type-option">
+                                <input type="radio" name="addr-type" id="typeHome" value="Home" checked>
+                                <span><i class="fa-solid fa-house"></i> Home</span>
+                            </label>
+                            <label class="type-option">
+                                <input type="radio" name="addr-type" id="typeWork" value="Work">
+                                <span><i class="fa-solid fa-briefcase"></i> Work</span>
+                            </label>
+                            <label class="type-option">
+                                <input type="radio" name="addr-type" id="typeOther" value="Other">
+                                <span><i class="fa-solid fa-location-dot"></i> Other</span>
+                            </label>
+                        </div>
+                        <div class="modal-form">
+                            <div class="modal-form-row">
+                                <div class="modal-form-col">
+                                    <label>Full Name</label>
+                                    <input type="text" id="fieldName" placeholder="Enter full name"
+                                        class="form-control">
+                                </div>
+                                <div class="modal-form-col">
+                                    <label>Phone Number</label>
+                                    <input type="tel" id="fieldPhone" placeholder="10-digit mobile number"
+                                        class="form-control">
                                 </div>
                             </div>
+                            <div class="modal-form-row">
+                                <div class="modal-form-col">
+                                    <label>Pincode</label>
+                                    <input type="text" id="fieldPincode" placeholder="6-digit pincode"
+                                        class="form-control">
+                                </div>
+                                <div class="modal-form-col">
+                                    <label>City</label>
+                                    <input type="text" id="fieldCity" placeholder="Enter city" class="form-control">
+                                </div>
+                            </div>
+                            <div class="modal-form-row">
+                                <div class="modal-form-col">
+                                    <label>State</label>
+                                    <input type="text" id="fieldState" placeholder="Enter state" class="form-control">
+                                </div>
+                            </div>
+                            <div class="modal-form-row">
+                                <div class="modal-form-col full-col">
+                                    <label>Address (House No., Street, Area)</label>
+                                    <textarea id="fieldAddress" placeholder="Enter full address" class="form-control"
+                                        rows="3"></textarea>
+                                </div>
+                            </div>
+                            <div class="modal-form-row">
+                                <div class="modal-form-col checkbox-col">
+                                    <input type="checkbox" id="fieldDefault" class="default-checkbox-input">
+                                    <label for="fieldDefault" class="default-checkbox-label">Set as default address
+                                        (used for Billing Address)</label>
+                                </div>
+                            </div>
+                            <div class="modal-actions">
+                                <button type="button" class="btn-cancel-gray" id="cancelModalBtn">Cancel</button>
+                                <button type="button" class="btn-save" id="modalSaveBtn">Save Changes</button>
+                            </div>
                         </div>
-                    <% }) %>
-                <% } else { %>
-                    <div class="empty-address-notice">
-                        <p>No addresses found. Click "Add address" above to provide your delivery details.</p>
-                    </div>
-                <% } %>
-            </div>
-
-            <% if (typeof totalPages !== 'undefined' && totalPages > 1) { %>
-                <div class="pagination">
-                    <% if (currentPage > 1) { %>
-                        <a href="/user/checkout/address?page=<%= currentPage - 1 %>" class="page-link"><i class="fa-solid fa-chevron-left"></i> Previous</a>
-                    <% } else { %>
-                        <span class="page-link disabled"><i class="fa-solid fa-chevron-left"></i> Previous</span>
-                    <% } %>
-
-                    <% for(let i = 1; i <= totalPages; i++) { %>
-                        <a href="/user/checkout/address?page=<%= i %>" class="page-link <%= currentPage === i ? 'active' : '' %>"><%= i %></a>
-                    <% } %>
-
-                    <% if (currentPage < totalPages) { %>
-                        <a href="/user/checkout/address?page=<%= currentPage + 1 %>" class="page-link">Next <i class="fa-solid fa-chevron-right"></i></a>
-                    <% } else { %>
-                        <span class="page-link disabled">Next <i class="fa-solid fa-chevron-right"></i></span>
-                    <% } %>
-                </div>
-            <% } %>
-
-            <div class="action-buttons">
-                <a href="/user/cart" class="btn-back">Back to Cart</a>
-                <button type="button" class="btn-select" id="proceedToPaymentBtn">Proceed to Payment</button>
-            </div>
-        </div>
-    </main>
-
-    <div class="modal-overlay" id="addressModal">
-        <div class="modal-box">
-            <div class="modal-header">
-                <h3 id="modalTitle">Edit Address</h3>
-                <button type="button" class="modal-close" id="closeAddressModalBtn"><i class="fa-solid fa-xmark"></i></button>
-            </div>
-            <div class="modal-body">
-                <input type="hidden" id="editAddressTargetId" value="">
-                <div class="address-type-selector">
-                    <label class="type-option">
-                        <input type="radio" name="addr-type" id="typeHome" value="home" checked>
-                        <span><i class="fa-solid fa-house"></i> Home</span>
-                    </label>
-                    <label class="type-option">
-                        <input type="radio" name="addr-type" id="typeWork" value="work">
-                        <span><i class="fa-solid fa-briefcase"></i> Work</span>
-                    </label>
-                    <label class="type-option">
-                        <input type="radio" name="addr-type" id="typeOther" value="other">
-                        <span><i class="fa-solid fa-location-dot"></i> Other</span>
-                    </label>
-                </div>
-                <div class="modal-form">
-                    <div class="modal-form-row">
-                        <div class="modal-form-col">
-                            <label>Full Name</label>
-                            <input type="text" id="fieldName" placeholder="Enter full name" class="form-control">
-                        </div>
-                        <div class="modal-form-col">
-                            <label>Phone Number</label>
-                            <input type="tel" id="fieldPhone" placeholder="10-digit mobile number" class="form-control">
-                        </div>
-                    </div>
-                    <div class="modal-form-row">
-                        <div class="modal-form-col">
-                            <label>Pincode</label>
-                            <input type="text" id="fieldPincode" placeholder="6-digit pincode" class="form-control">
-                        </div>
-                        <div class="modal-form-col">
-                            <label>City</label>
-                            <input type="text" id="fieldCity" placeholder="Enter city" class="form-control">
-                        </div>
-                    </div>
-                    <div class="modal-form-row">
-                        <div class="modal-form-col">
-                            <label>State</label>
-                            <input type="text" id="fieldState" placeholder="Enter state" class="form-control">
-                        </div>
-                    </div>
-                    <div class="modal-form-row">
-                        <div class="modal-form-col full-col">
-                            <label>Address (House No., Street, Area)</label>
-                            <textarea id="fieldAddress" placeholder="Enter full address" class="form-control" rows="3"></textarea>
-                        </div>
-                    </div>
-                    <div class="modal-form-row">
-                        <div class="modal-form-col checkbox-col">
-                            <input type="checkbox" id="fieldDefault" class="default-checkbox-input">
-                            <label for="fieldDefault" class="default-checkbox-label">Set as default address (used for Billing Address)</label>
-                        </div>
-                    </div>
-                    <div class="modal-actions">
-                        <button type="button" class="btn-cancel-gray" id="cancelModalBtn">Cancel</button>
-                        <button type="button" class="btn-save" id="modalSaveBtn">Save Changes</button>
                     </div>
                 </div>
             </div>
-        </div>
-    </div>
-
-    <div class="modal-overlay" id="deleteConfirmModal">
-        <div class="modal-box modal-box-sm">
-            <div class="modal-header">
-                <h3 class="delete-modal-title"><i class="fa-solid fa-triangle-exclamation"></i> Delete Address</h3>
-                <button type="button" class="modal-close" id="closeDeleteModalBtn"><i class="fa-solid fa-xmark"></i></button>
-            </div>
-            <div class="modal-body">
-                <input type="hidden" id="deleteAddressTargetId" value="">
-                <p class="delete-confirm-text">Are you sure you want to delete this address?</p>
-                <div class="modal-actions">
-                    <button type="button" class="btn-cancel-gray" id="cancelDeleteModalBtn">Cancel</button>
-                    <button type="button" class="btn-delete-confirm" id="confirmDeleteBtn"><i class="fa-solid fa-trash"></i> Yes, Delete</button>
+            <div class="modal-overlay" id="deleteConfirmModal">
+                <div class="modal-box modal-box-sm">
+                    <div class="modal-header">
+                        <h3 class="delete-modal-title"><i class="fa-solid fa-triangle-exclamation"></i> Delete Address
+                        </h3>
+                        <button type="button" class="modal-close" id="closeDeleteModalBtn"><i
+                                class="fa-solid fa-xmark"></i></button>
+                    </div>
+                    <div class="modal-body">
+                        <input type="hidden" id="deleteAddressTargetId" value="">
+                        <p class="delete-confirm-text">Are you sure you want to delete this address?</p>
+                        <div class="modal-actions">
+                            <button type="button" class="btn-cancel-gray" id="cancelDeleteModalBtn">Cancel</button>
+                            <button type="button" class="btn-delete-confirm" id="confirmDeleteBtn"><i
+                                    class="fa-solid fa-trash"></i> Yes, Delete</button>
+                        </div>
+                    </div>
                 </div>
             </div>
-        </div>
-    </div>
 
-    <footer class="footer">
-        <div class="container-fluid footer-container">
-            <div class="footer-left">
-                <a href="/home" class="logo footer-logo">HomeStation</a>
-                <p>Your premier destination for high-quality mattresses and sleep essentials, crafted to bring cloud-like comfort to every night.</p>
-            </div>
-            <div class="footer-links-wrapper">
-                <div class="footer-column">
-                    <h4>Shop</h4>
-                    <ul>
-                        <li><a href="/products">World of Mattress</a></li>
-                        <li><a href="/deals">Top Deals</a></li>
-                        <li><a href="/bestsellers">Best Sellers</a></li>
-                    </ul>
+            <footer class="footer">
+                <div class="container-fluid footer-container">
+                    <div class="footer-left">
+                        <a href="/home" class="logo footer-logo">HomeStation</a>
+                        <p>Your premier destination for high-quality mattresses and sleep essentials, crafted to bring
+                            cloud-like comfort to every night.</p>
+                    </div>
+                    <div class="footer-links-wrapper">
+                        <div class="footer-column">
+                            <h4>Shop</h4>
+                            <ul>
+                                <li><a href="/products">World of Mattress</a></li>
+                                <li><a href="/deals">Top Deals</a></li>
+                                <li><a href="/bestsellers">Best Sellers</a></li>
+                            </ul>
+                        </div>
+                        <div class="footer-column">
+                            <h4>Support</h4>
+                            <ul>
+                                <li><a href="/user/orders">Track Your Orders</a></li>
+                                <li><a href="/privacy-policy">Privacy Policy</a></li>
+                                <li><a href="/contact">Contact Us</a></li>
+                            </ul>
+                        </div>
+                    </div>
                 </div>
-                <div class="footer-column">
-                    <h4>Support</h4>
-                    <ul>
-                        <li><a href="#">Track Your Orders</a></li>
-                        <li><a href="/privacy-policy">Privacy Policy</a></li>
-                        <li><a href="/contact">Contact Us</a></li>
-                    </ul>
+                <div class="container-fluid copyright">
+                    <p>&copy; 2026 HomeStation Store. All rights reserved.</p>
                 </div>
-            </div>
-        </div>
-        <div class="container-fluid copyright">
-            <p>&copy; 2026 HomeStation Store. All rights reserved.</p>
-        </div>
-    </footer>
+            </footer>
 
-    <script src="/js/user/selectaddress.js"></script>
+            <script src="/js/user/selectaddress.js"></script>
 </body>
 
 </html>

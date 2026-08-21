@@ -53,12 +53,12 @@ export const loadCheckoutAddress = async (req, res) => {
         const limit = 6;
 
         const [addressData, bannerText, headerCounts] = await Promise.all([
-            addressService.getAdressForCheckout(userId, page, limit),
+            addressService.getUserAddressesPaginated(userId, page, limit),
             getActivePromoBanner(),
             badgeService.getUserHeaderCounts(userId)
         ]);
 
-        logger.info(`User (${userEmail}) loaded checkout select address page (Page: ${page}). IP: ${clientIp}`);
+        logger.info(`User (${userEmail}) loaded checkout address page (Page: ${page}). IP: ${clientIp}`);
 
         return res.render('user/selectaddress', {
             pageTitle: 'HomeStation - Select Delivery Address',
@@ -95,14 +95,9 @@ export const postCheckoutAddress = async (req, res) => {
             });
         }
 
-        const defaultBillingAddress = await addressService.getDefaultAddress(userId);
-
         req.session.checkoutOrder = {
-            shippingAddressId: selectedAddressId,
-            billingAddressId: defaultBillingAddress ? defaultBillingAddress._id : selectedAddressId
+            shippingAddressId: selectedAddressId
         };
-
-        logger.info(`Checkout session updated for (${req.user.email}). Shipping: ${selectedAddressId}`);
 
         return res.status(200).json({
             success: true,
