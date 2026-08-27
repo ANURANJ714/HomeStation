@@ -170,7 +170,7 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     });
 
-    const adminLogoutForm = document.getElementById("adminLogoutForm");
+  const adminLogoutForm = document.getElementById("adminLogoutForm");
   if (adminLogoutForm) {
       adminLogoutForm.addEventListener("submit", async function (e) {
           e.preventDefault(); 

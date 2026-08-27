@@ -77,7 +77,7 @@ export const getAdminOrdersPageData = async (page = 1, limit = 5, searchQuery = 
 
 export const updateOrderStatus = async (orderId, newStatus) => {
     try {
-        const validStatuses = ['processing', 'packed', 'shipped', 'on the way', 'out for delivery', 'delivered', 'cancelled'];
+        const validStatuses = ['processing', 'packed', 'shipped', 'on the way', 'out for delivery', 'delivered'];
         
         const updateData = {};
         if (validStatuses.includes(newStatus)) {
@@ -85,11 +85,13 @@ export const updateOrderStatus = async (orderId, newStatus) => {
         } else if (newStatus.startsWith('return:')) {
             updateData.returnStatus = newStatus.replace('return:', '');
         } else {
-            throw new Error('Invalid status provided.');
+            throw new Error('Invalid status update value provided.');
         }
 
+        const formattedOrderId = orderId.startsWith('#') ? orderId : `#${orderId}`;
+
         const updatedOrder = await Order.findOneAndUpdate(
-            { orderId },
+            { $or: [{ orderId: formattedOrderId }, { orderId }] },
             { $set: updateData },
             { new: true }
         );
@@ -101,5 +103,34 @@ export const updateOrderStatus = async (orderId, newStatus) => {
         return updatedOrder;
     } catch (error) {
         throw new Error(`Admin Order Service Status Update Failure: ${error.message}`);
+    }
+};
+
+export const getOrderDetailsByOrderId = async (orderId) => {
+    try {
+        if (!orderId) return null;
+
+        const formattedOrderId = orderId.startsWith('#') ? orderId : `#${orderId}`;
+
+        const order = await Order.findOne({ 
+            $or: [{ orderId: formattedOrderId }, { orderId: orderId }] 
+        })
+            .populate('userId', 'fullName email phone')
+            .populate({
+                path: 'orderItems.productVariantId',
+                populate: {
+                    path: 'productId',
+                    select: 'name images isDeleted'
+                }
+            })
+            .lean();
+
+        if (!order) {
+            return null;
+        }
+
+        return order;
+    } catch (error) {
+        throw new Error(`Admin Order Service Failure while retrieving order details: ${error.message}`);
     }
 };

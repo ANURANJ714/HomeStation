@@ -16,7 +16,6 @@ export const loadOrdersPage = async (req, res) => {
         logger.info(`Admin (${adminEmail}) viewed Orders Page (Page: ${data.safePage}, Search: "${searchQuery}", Filter: "${statusFilter}"). IP: ${clientIp}`);
 
         return res.render('admin/orders', {
-            pageTitle: 'HomeStation - Admin Orders',
             orders: data.orders,
             currentPage: data.safePage,
             totalPages: data.totalPages,
@@ -72,27 +71,52 @@ export const updateOrderStatus = async (req, res) => {
     }
 };
 
-export const handleAdminLogout = async (req, res) => {
+export const loadViewOrderPage = async (req, res) => {
     try {
+        const clientIp = req.ip;
         const adminEmail = req.user?.email || req.session?.admin?.email || 'Unknown Admin';
-        logger.info(`Admin (${adminEmail}) logged out.`);
+        const { orderId } = req.params;
 
-        if (req.logout) {
-            req.logout(() => {});
-        }
-        if (req.session) {
-            delete req.session.admin;
+        const order = await adminOrderService.getOrderDetailsByOrderId(orderId);
+
+        if (!order) {
+            logger.warn(`Admin (${adminEmail}) tried to access non-existing order: ${orderId} | IP: ${clientIp}`);
+            return res.redirect('/admin/orders');
         }
 
-        return res.status(200).json({
-            success: true,
-            redirectUrl: '/admin/login'
+        const subtotal = order.orderItems.reduce((acc, item) => acc + (item.currentPrice * item.quantity), 0);
+        const originalTotal = order.orderItems.reduce((acc, item) => acc + (item.originalPrice * item.quantity), 0);
+        const couponDiscount = Math.max(0, originalTotal - subtotal);
+        const shippingFee = 0;
+        const grandTotal = subtotal + shippingFee;
+
+        let paymentStatus = 'Unpaid';
+        if (order.paymentMode === 'razorpay' || order.paymentMode === 'wallet') {
+            paymentStatus = 'Paid';
+        } else if (order.paymentMode === 'cod' && order.status === 'delivered') {
+            paymentStatus = 'Paid';
+        }
+
+        logger.info(`Admin (${adminEmail}) viewed order details for ${order.orderId} | IP: ${clientIp}`);
+
+        return res.render('admin/vieworder', {
+            pageTitle: `HomeStation - ADMIN`,
+            order,
+            subtotal,
+            couponDiscount,
+            shippingFee,
+            grandTotal,
+            paymentStatus,
+            csrfToken: req.csrfToken ? req.csrfToken() : ''
         });
+
     } catch (error) {
-        logger.error(`Logout error: ${error.message}`);
+        logger.error(`Error loading view order page for ID (${req.params?.orderId}): ${error.message}\nStack: ${error.stack}`);
+        
         return res.status(500).json({
             success: false,
-            message: 'Logout failed.'
+            title: "Server Error",
+            message: "Internal server error occurred while retrieving order details."
         });
     }
 };

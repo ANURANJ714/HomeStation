@@ -10,128 +10,74 @@ document.addEventListener('DOMContentLoaded', () => {
     updateDateTime();
     setInterval(updateDateTime, 60000);
 
-    const searchInput = document.getElementById('searchOrderInput');
-    const searchClearBtn = document.getElementById('searchClearBtn');
-    const searchBox = searchInput ? searchInput.closest('.search-box') : null;
-
-    if (searchInput) {
-        searchInput.addEventListener('input', function () {
-            if (this.value.trim().length > 0) {
-                searchBox?.classList.add('has-value');
-            } else {
-                searchBox?.classList.remove('has-value');
-            }
+    const dropdownWrapper = document.getElementById('mainStatusWrapper');
+    if (dropdownWrapper) {
+        dropdownWrapper.addEventListener('click', (e) => {
+            e.stopPropagation();
+            dropdownWrapper.classList.toggle('open');
         });
 
-        searchInput.addEventListener('keypress', function (e) {
-            if (e.key === 'Enter') {
-                e.preventDefault();
-                const query = this.value.trim();
-                const currentStatus = document.getElementById('filterStatusInput')?.value || '';
-                window.location.href = `/admin/orders?page=1&search=${encodeURIComponent(query)}&status=${currentStatus}`;
-            }
+        document.querySelectorAll('.custom-select-option').forEach(option => {
+            option.addEventListener('click', (e) => {
+                e.stopPropagation();
+                document.querySelectorAll('.custom-select-option').forEach(opt => opt.classList.remove('selected'));
+                option.classList.add('selected');
+
+                const textElem = document.getElementById('mainStatusText');
+                if (textElem) textElem.textContent = option.textContent.trim();
+
+                const inputElem = document.getElementById('mainStatusInput');
+                if (inputElem) inputElem.value = option.dataset.value;
+
+                dropdownWrapper.classList.remove('open');
+            });
+        });
+
+        window.addEventListener('click', () => {
+            dropdownWrapper.classList.remove('open');
         });
     }
-
-    if (searchClearBtn && searchInput) {
-        searchClearBtn.addEventListener('click', function () {
-            searchInput.value = '';
-            searchBox?.classList.remove('has-value');
-            const currentStatus = document.getElementById('filterStatusInput')?.value || '';
-            window.location.href = `/admin/orders?page=1&search=&status=${currentStatus}`;
-        });
-    }
-
-    function closeAllDropdowns() {
-        document.querySelectorAll('.custom-select-wrapper.open').forEach(w => w.classList.remove('open'));
-    }
-
-    document.addEventListener('click', (e) => {
-        const trigger = e.target.closest('.custom-select-trigger');
-        if (trigger) {
-            const wrapper = trigger.closest('.custom-select-wrapper');
-            const isOpen = wrapper.classList.contains('open');
-            closeAllDropdowns();
-            if (!isOpen) wrapper.classList.add('open');
-            return;
-        }
-
-        const option = e.target.closest('.custom-select-option');
-        if (option) {
-            const wrapper = option.closest('.custom-select-wrapper');
-            wrapper.querySelectorAll('.custom-select-option').forEach(opt => opt.classList.remove('selected'));
-            option.classList.add('selected');
-
-            const textDisplay = wrapper.querySelector('.custom-select-trigger span');
-            if (textDisplay) textDisplay.textContent = option.textContent.trim();
-
-            const hiddenInput = wrapper.querySelector('input[type="hidden"]');
-            if (hiddenInput) hiddenInput.value = option.dataset.value;
-
-            wrapper.classList.remove('open');
-
-            if (wrapper.id === 'filterStatusSelectWrapper') {
-                const query = searchInput ? searchInput.value.trim() : '';
-                window.location.href = `/admin/orders?page=1&search=${encodeURIComponent(query)}&status=${option.dataset.value}`;
-            }
-            return;
-        }
-
-        if (!e.target.closest('.custom-select-wrapper')) {
-            closeAllDropdowns();
-        }
-    });
 
     const updateModal = document.getElementById('updateStatusModal');
-    const modalOrderId = document.getElementById('modalOrderId');
-    const modalStatusText = document.getElementById('modalStatusText');
-    const modalStatusInput = document.getElementById('modalStatusInput');
-    const updateStatusForm = document.getElementById('updateStatusForm');
+    const openModalBtn = document.getElementById('openStatusModalBtn');
+    const closeModalBtn = document.getElementById('closeModalBtn');
+    const cancelModalBtn = document.getElementById('cancelModalBtn');
 
-    document.addEventListener('click', (e) => {
-        const editBtn = e.target.closest('.trigger-update-modal-btn');
-        if (!editBtn) return;
+    function openModal() {
+        if (updateModal) updateModal.style.display = 'flex';
+    }
 
-        const orderId = editBtn.dataset.orderId;
-        const currentStatus = editBtn.dataset.status || 'processing';
-
-        modalOrderId.value = orderId;
-        modalStatusInput.value = currentStatus;
-
-        const matchingOption = updateModal.querySelector(`.custom-select-option[data-value="${currentStatus}"]`);
-        if (matchingOption) {
-            updateModal.querySelectorAll('.custom-select-option').forEach(opt => opt.classList.remove('selected'));
-            matchingOption.classList.add('selected');
-            modalStatusText.textContent = matchingOption.textContent.trim();
-        } else {
-            const firstOption = updateModal.querySelector('.custom-select-option');
-            if (firstOption) {
-                modalStatusText.textContent = firstOption.textContent.trim();
-                modalStatusInput.value = firstOption.dataset.value;
-            }
-        }
-
-        updateModal.style.display = 'flex';
-    });
-
-    function closeStatusModal() {
+    function closeModal() {
         if (updateModal) updateModal.style.display = 'none';
     }
 
-    document.getElementById('closeUpdateModalBtn')?.addEventListener('click', closeStatusModal);
-    document.getElementById('cancelUpdateModalBtn')?.addEventListener('click', closeStatusModal);
+    if (openModalBtn) openModalBtn.addEventListener('click', openModal);
+    if (closeModalBtn) closeModalBtn.addEventListener('click', closeModal);
+    if (cancelModalBtn) cancelModalBtn.addEventListener('click', closeModal);
 
     window.addEventListener('click', (e) => {
-        if (e.target === updateModal) closeStatusModal();
+        if (e.target === updateModal) closeModal();
     });
 
+    const updateStatusForm = document.getElementById('updateStatusForm');
     if (updateStatusForm) {
         updateStatusForm.addEventListener('submit', async (e) => {
             e.preventDefault();
-            const orderId = modalOrderId.value;
-            const status = modalStatusInput.value;
 
+            const orderId = document.getElementById('modalOrderId')?.value;
+            const status = document.getElementById('mainStatusInput')?.value;
             const saveBtn = document.getElementById('saveStatusBtn');
+
+            if (!orderId || !status) {
+                return Swal.fire({
+                    icon: 'warning',
+                    title: 'Incomplete Field',
+                    text: 'Please choose an order status.',
+                    confirmButtonColor: '#1a1a1a',
+                    heightAuto: false
+                });
+            }
+
             saveBtn.disabled = true;
             saveBtn.textContent = 'Updating...';
 
@@ -149,10 +95,10 @@ document.addEventListener('DOMContentLoaded', () => {
                 const data = await response.json();
 
                 if (data.success) {
-                    closeStatusModal();
+                    closeModal();
                     Swal.fire({
                         icon: 'success',
-                        title: 'Updated',
+                        title: 'Status Updated',
                         text: data.message,
                         timer: 1500,
                         showConfirmButton: false,

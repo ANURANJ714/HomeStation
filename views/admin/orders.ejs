@@ -4,7 +4,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title><%= typeof pageTitle !== 'undefined' ? pageTitle : 'HomeStation - ADMIN' %></title>
+    <title>HomeStation - ADMIN</title>
     <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&display=swap" rel="stylesheet">
     <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,600;0,700;1,600&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
@@ -77,9 +77,11 @@
 
                 <ul class="nav-list logout-section">
                     <li class="nav-item">
-                        <a href="javascript:void(0)" class="nav-link logout-link" id="adminLogoutBtn">
-                            <i class="fa-solid fa-right-from-bracket nav-icon"></i> Logout
-                        </a>
+                        <form id="adminLogoutForm" action="/admin/logout" method="POST">
+                            <button type="submit" class="nav-link logout-link">
+                                <i class="fa-solid fa-right-from-bracket nav-icon"></i> Logout
+                            </button>
+                        </form>
                     </li>
                 </ul>
             </nav>
@@ -242,6 +244,7 @@
                                     const totalAmount = order.orderItems.reduce((acc, item) => acc + (item.currentPrice * item.quantity), 0);
                                     const formattedDate = new Date(order.createdAt).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' });
                                     const customerName = order.userId?.fullName || order.shippingAddress?.name || 'Customer';
+                                    const rawOrderId = order.orderId ? order.orderId.replace(/^#/, '') : '';
                                 %>
                                     <tr>
                                         <td class="fw-500"><%= order.orderId %></td>
@@ -272,7 +275,7 @@
                                         </td>
                                         <td class="actions-td">
                                             <div class="actions-cell">
-                                                <a href="/admin/orders/<%= order.orderId %>" class="btn-icon view" title="View Order Details">
+                                                <a href="/admin/orders/<%= rawOrderId %>" class="btn-icon view" title="View Order Details">
                                                     <i class="fa-regular fa-eye"></i>
                                                 </a>
                                                 <button type="button" class="btn-icon edit trigger-update-modal-btn" 
@@ -352,7 +355,6 @@
                                 <li class="custom-select-option" data-value="on the way">On the Way</li>
                                 <li class="custom-select-option" data-value="out for delivery">Out for Delivery</li>
                                 <li class="custom-select-option" data-value="delivered">Delivered</li>
-                                <li class="custom-select-option" data-value="cancelled">Cancelled</li>
                             </ul>
                             <input type="hidden" name="deliveryStatus" id="modalStatusInput" value="processing">
                         </div>

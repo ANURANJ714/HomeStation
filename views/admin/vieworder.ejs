@@ -1,0 +1,341 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>HomeStation - ADMIN</title>
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,600;0,700;1,600&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="icon" type="image/x-icon" href="https://res.cloudinary.com/dz7fuqwnr/image/upload/v1778395481/WhatsApp_Image_2026-05-10_at_12.12.36_nra5vk.jpg">
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <link rel="stylesheet" href="/css/admin/vieworder.css">
+</head>
+
+<body>
+    <input type="hidden" id="csrfToken" value="<%= typeof csrfToken !== 'undefined' ? csrfToken : '' %>">
+
+    <div class="dashboard-layout">
+
+        <aside class="sidebar">
+            <div class="sidebar-header">
+                <h2 class="brand-title">HomeStation</h2>
+                <button class="close-sidebar" id="closeSidebar" type="button">
+                    <i class="fa-solid fa-xmark"></i>
+                </button>
+            </div>
+            <nav class="sidebar-nav">
+                <ul class="nav-list">
+                    <li class="nav-item">
+                        <a href="/admin/dashboard" class="nav-link">
+                            <i class="fa-solid fa-chart-pie nav-icon"></i> Dashboard
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a href="/admin/products" class="nav-link">
+                            <i class="fa-solid fa-box nav-icon"></i> Products
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a href="/admin/categories" class="nav-link">
+                            <i class="fa-solid fa-tags nav-icon"></i> Categories
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a href="/admin/orders" class="nav-link active">
+                            <i class="fa-solid fa-cart-shopping nav-icon"></i> Orders
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a href="/admin/users" class="nav-link">
+                            <i class="fa-solid fa-users nav-icon"></i> User Management
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a href="/admin/sales-report" class="nav-link">
+                            <i class="fa-solid fa-file-invoice-dollar nav-icon"></i> Sales Report
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a href="/admin/coupons" class="nav-link">
+                            <i class="fa-solid fa-ticket nav-icon"></i> Manage Coupons
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a href="/admin/enquiries" class="nav-link">
+                            <i class="fa-solid fa-envelope nav-icon"></i> Enquiry
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a href="/admin/offers" class="nav-link">
+                            <i class="fa-solid fa-gift nav-icon"></i> Offers
+                        </a>
+                    </li>
+                </ul>
+                <ul class="nav-list logout-section">
+                    <li class="nav-item">
+                        <form id="adminLogoutForm" action="/admin/logout" method="POST">
+                            <button type="submit" class="nav-link logout-link">
+                                <i class="fa-solid fa-right-from-bracket nav-icon"></i> Logout
+                            </button>
+                        </form>
+                    </li>
+                </ul>
+            </nav>
+        </aside>
+
+        <div class="main-panel">
+            <header class="top-header">
+                <div class="header-left">
+                    <button class="hamburger-menu" id="hamburgerMenu" type="button">
+                        <i class="fa-solid fa-bars"></i>
+                    </button>
+                </div>
+                <div class="header-right">
+                    <div class="datetime-display" id="datetimeDisplay"></div>
+                    <div class="admin-badge">
+                        <i class="fa-solid fa-user-shield"></i> Admin
+                    </div>
+                </div>
+            </header>
+
+            <main class="content-wrapper">
+                <div class="page-header-row">
+                    <div>
+                        <h1 class="page-title">Order <%= order.orderId %></h1>
+                        <% const orderFormattedDate = new Date(order.createdAt).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' }); %>
+                        <p class="text-muted">Order Date: <%= orderFormattedDate %></p>
+                    </div>
+                    <a href="/admin/orders" class="btn btn-secondary">
+                        <i class="fa-solid fa-arrow-left"></i> Back to Orders
+                    </a>
+                </div>
+
+                <div class="info-cards-grid">
+                    <div class="info-card">
+                        <div class="info-card-header">
+                            <i class="fa-solid fa-user"></i>
+                            <h3>Customer Info</h3>
+                        </div>
+                        <div class="info-card-body">
+                            <p><strong>Name:</strong> <%= order.userId?.fullName || order.shippingAddress?.name || 'Customer' %></p>
+                            <p><strong>Email:</strong> <%= order.userId?.email || 'N/A' %></p>
+                            <p><strong>Phone:</strong> <%= order.userId?.phone || order.shippingAddress?.phone || 'N/A' %></p>
+                        </div>
+                    </div>
+
+                    <div class="info-card">
+                        <div class="info-card-header">
+                            <i class="fa-solid fa-truck-fast"></i>
+                            <h3>Shipping Address</h3>
+                        </div>
+                        <div class="info-card-body">
+                            <p><strong><%= order.shippingAddress.name %></strong></p>
+                            <p><%= order.shippingAddress.fullAddress %></p>
+                            <p><%= order.shippingAddress.city %>, <%= order.shippingAddress.state %></p>
+                            <p><%= order.shippingAddress.pincode %>, India</p>
+                            <p class="text-muted">Phone: <%= order.shippingAddress.phone %></p>
+                        </div>
+                    </div>
+
+                    <div class="info-card">
+                        <div class="info-card-header">
+                            <i class="fa-solid fa-file-invoice"></i>
+                            <h3>Billing Address</h3>
+                        </div>
+                        <div class="info-card-body">
+                            <p><strong><%= order.billingAddress.name %></strong></p>
+                            <p><%= order.billingAddress.fullAddress %></p>
+                            <p><%= order.billingAddress.city %>, <%= order.billingAddress.state %></p>
+                            <p><%= order.billingAddress.pincode %>, India</p>
+                            <p class="text-muted">Phone: <%= order.billingAddress.phone %></p>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="view-order-layout">
+                    <div class="main-section">
+                        <div class="card">
+                            <div class="card-header">
+                                <h2>Order Items</h2>
+                            </div>
+                            <div class="card-body card-body-table">
+                                <table class="data-table">
+                                    <thead>
+                                        <tr>
+                                            <th>Product Details</th>
+                                            <th>Price</th>
+                                            <th>Quantity</th>
+                                            <th>Total</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        <% if (order.orderItems && order.orderItems.length > 0) { %>
+                                            <% order.orderItems.forEach(item => { 
+                                                const variant = item.productVariantId;
+                                                const product = variant?.productId;
+                                                const itemTotal = item.currentPrice * item.quantity;
+                                            %>
+                                                <tr>
+                                                    <td>
+                                                        <div class="product-cell">
+                                                            <img src="<%= (product?.images && product.images[0]) ? product.images[0] : 'https://placehold.co/150x150?text=Product' %>" alt="Product Image" class="product-thumb">
+                                                            <div class="product-details">
+                                                                <p class="product-name"><%= product?.name || 'Item Name Unavailable' %></p>
+                                                                <p class="product-variant text-muted">Variant: <%= variant?.variantName || 'Standard' %></p>
+                                                            </div>
+                                                        </div>
+                                                    </td>
+                                                    <td class="fw-500">₹<%= item.currentPrice.toLocaleString('en-IN') %></td>
+                                                    <td><%= item.quantity %></td>
+                                                    <td class="fw-500">₹<%= itemTotal.toLocaleString('en-IN') %></td>
+                                                </tr>
+                                            <% }) %>
+                                        <% } %>
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="sidebar-section">
+                        <div class="card">
+                            <div class="card-header">
+                                <h2>Order Summary</h2>
+                            </div>
+                            <div class="card-body">
+                                <ul class="summary-list">
+                                    <li>
+                                        <span>Subtotal</span>
+                                        <span class="fw-500">₹<%= subtotal.toLocaleString('en-IN') %>.00</span>
+                                    </li>
+                                    <li>
+                                        <span>Shipping Fee</span>
+                                        <span class="fw-500">₹0.00</span>
+                                    </li>
+                                    <hr class="divider">
+                                    <li>
+                                        <span class="grand-total">Grand Total</span>
+                                        <span class="grand-total grand-total-price">₹<%= grandTotal.toLocaleString('en-IN') %>.00</span>
+                                    </li>
+                                </ul>
+                            </div>
+                        </div>
+
+                        <div class="card">
+                            <div class="card-header">
+                                <h2>Payment Mode</h2>
+                            </div>
+                            <div class="card-body">
+                                <ul class="summary-list">
+                                    <li>
+                                        <span class="text-muted">Method</span>
+                                        <span class="fw-500">
+                                            <% if (order.paymentMode === 'razorpay') { %>
+                                                <i class="fa-solid fa-credit-card payment-method-icon"></i> Razorpay Online
+                                            <% } else if (order.paymentMode === 'wallet') { %>
+                                                <i class="fa-solid fa-wallet payment-method-icon"></i> HomeStation Wallet
+                                            <% } else { %>
+                                                <i class="fa-solid fa-hand-holding-dollar payment-method-icon"></i> Cash On Delivery (COD)
+                                            <% } %>
+                                        </span>
+                                    </li>
+                                    <li>
+                                        <span class="text-muted">Status</span>
+                                        <% if (paymentStatus === 'Paid') { %>
+                                            <span class="badge badge-success">Paid</span>
+                                        <% } else { %>
+                                            <span class="badge badge-warning">Unpaid</span>
+                                        <% } %>
+                                    </li>
+                                </ul>
+                            </div>
+                        </div>
+
+                        <div class="card">
+                            <div class="card-header card-header-flex">
+                                <h2>Order Status</h2>
+                                <button type="button" class="btn btn-secondary btn-sm" id="openStatusModalBtn"
+                                    data-order-id="<%= order.orderId %>" 
+                                    data-status="<%= order.status %>">
+                                    <i class="fa-solid fa-pen-to-square"></i> Update
+                                </button>
+                            </div>
+                            <div class="card-body">
+                                <ul class="summary-list">
+                                    <li>
+                                        <span class="text-muted">Status</span>
+                                        <% if (order.returnStatus && order.returnStatus !== 'none') { %>
+                                            <span class="badge badge-orange"><%= order.returnStatus.charAt(0).toUpperCase() + order.returnStatus.slice(1) %></span>
+                                        <% } else if (order.status === 'processing') { %>
+                                            <span class="badge badge-info">Processing</span>
+                                        <% } else if (order.status === 'packed') { %>
+                                            <span class="badge badge-warning">Packed</span>
+                                        <% } else if (order.status === 'shipped') { %>
+                                            <span class="badge badge-info">Shipped</span>
+                                        <% } else if (order.status === 'on the way') { %>
+                                            <span class="badge badge-info">On the Way</span>
+                                        <% } else if (order.status === 'out for delivery') { %>
+                                            <span class="badge badge-warning">Out for Delivery</span>
+                                        <% } else if (order.status === 'delivered') { %>
+                                            <span class="badge badge-success">Delivered</span>
+                                        <% } else { %>
+                                            <span class="badge badge-danger"><%= order.status %></span>
+                                        <% } %>
+                                    </li>
+                                </ul>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+            </main>
+        </div>
+    </div>
+
+    <div class="modal-overlay" id="updateStatusModal">
+        <div class="modal-content modal-content-sm">
+            <div class="modal-header">
+                <h2>Update Order Status</h2>
+                <button type="button" class="close-modal-btn" id="closeModalBtn"><i class="fa-solid fa-xmark"></i></button>
+            </div>
+
+            <div class="modal-body">
+                <form id="updateStatusForm">
+                    <input type="hidden" id="modalOrderId" value="<%= order.orderId %>">
+
+                    <div class="form-group mb-20">
+                        <label class="form-label-styled">Status</label>
+                        <div class="custom-select-wrapper" id="mainStatusWrapper">
+                            <div class="custom-select-trigger form-input-style">
+                                <span id="mainStatusText">
+                                    <%= order.status.charAt(0).toUpperCase() + order.status.slice(1) %>
+                                </span>
+                                <i class="fa-solid fa-chevron-down custom-icon"></i>
+                            </div>
+                            <ul class="custom-select-options">
+                                <li class="custom-select-option <%= order.status === 'processing' ? 'selected' : '' %>" data-value="processing">Processing</li>
+                                <li class="custom-select-option <%= order.status === 'packed' ? 'selected' : '' %>" data-value="packed">Packed</li>
+                                <li class="custom-select-option <%= order.status === 'shipped' ? 'selected' : '' %>" data-value="shipped">Shipped</li>
+                                <li class="custom-select-option <%= order.status === 'on the way' ? 'selected' : '' %>" data-value="on the way">On the Way</li>
+                                <li class="custom-select-option <%= order.status === 'out for delivery' ? 'selected' : '' %>" data-value="out for delivery">Out for Delivery</li>
+                                <li class="custom-select-option <%= order.status === 'delivered' ? 'selected' : '' %>" data-value="delivered">Delivered</li>
+                            </ul>
+                            <input type="hidden" name="deliveryStatus" id="mainStatusInput" value="<%= order.status %>">
+                        </div>
+                    </div>
+
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" id="cancelModalBtn">Cancel</button>
+                        <button type="submit" class="btn btn-primary" id="saveStatusBtn">Update Status</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <script src="/js/admin/vieworder.js"></script>
+</body>
+
+</html>

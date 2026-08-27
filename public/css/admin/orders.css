@@ -127,6 +127,14 @@ body {
   padding-top: 20px;
 }
 
+.logout-link {
+  background: none;
+  border: none;
+  width: 100%;
+  text-align: left;
+  cursor: pointer;
+}
+
 .logout-link:hover {
   background-color: rgba(220, 53, 69, 0.1);
   color: #ff6b6b;

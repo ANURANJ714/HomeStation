@@ -106,3 +106,27 @@ export const createNewOrder = async (userId, checkoutSessionData, shippingAddr, 
         throw new Error(`Order Service failure: ${error.message}`);
     }
 };
+
+export const getOrderDetailsByOrderId = async (orderId) => {
+    try {
+        const order = await Order.findOne({ orderId })
+            .populate('userId', 'fullName email phone')
+            .populate({
+                path: 'orderItems.productVariantId',
+                populate: {
+                    path: 'productId',
+                    select: 'name images isDeleted'
+                }
+            })
+            .lean();
+
+        if (!order) {
+            return null;
+        }
+
+        return order;
+    } catch (error) {
+        throw new Error(`Admin Order Service Failure while retrieving order details: ${error.message}`);
+    }
+};
+
