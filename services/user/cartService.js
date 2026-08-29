@@ -108,36 +108,34 @@ export const getCartItems = async (userId) => {
 
         let subtotal = 0;
         let totalQuantity = 0;
-        let flags = { outOfStockRemoved: false, productRemoved: false, categoryRemoved: false };
+        const flags = { outOfStockRemoved: false, productRemoved: false, categoryRemoved: false };
         const validCartItems = [];
         const invalidCartItemIds = [];
 
         for (const item of cartItems) {
             const variant = item.productVariantId;
             
-            if (!variant || !variant.productId) {
-                flags.productRemoved = true;
+            if (!variant) {
                 invalidCartItemIds.push(item._id);
                 continue; 
             }
 
             const product = variant.productId;
+            
+            if (!product || product.isDeleted === true || product.isDeleted === 'true') {
+                invalidCartItemIds.push(item._id);
+                continue; 
+            }
+
             const category = product.categoryId;
 
-            if (variant.stock <= 0) {
+            if (category && (category.isDeleted === true || category.isDeleted === 'true')) {
+                invalidCartItemIds.push(item._id);
+                continue; 
+            }
+
+            if (typeof variant.stock === 'number' && variant.stock <= 0) {
                 flags.outOfStockRemoved = true;
-                invalidCartItemIds.push(item._id);
-                continue; 
-            }
-
-            if (product.isDeleted === true) {
-                flags.productRemoved = true;
-                invalidCartItemIds.push(item._id);
-                continue; 
-            }
-
-            if (category && category.isDeleted === true) {
-                flags.categoryRemoved = true;
                 invalidCartItemIds.push(item._id);
                 continue; 
             }
@@ -161,6 +159,19 @@ export const getCartItems = async (userId) => {
 
     } catch (error) {
         throw new Error(`Database error while fetching cart items: ${error.message}`);
+    }
+};
+
+export const updateItemExactQuantity = async (userId, cartItemId, newQuantity) => {
+    try {
+        const updatedCartItem = await Cart.findOneAndUpdate(
+            { _id: cartItemId, userId },
+            { $set: { quantity: newQuantity } },
+            { new: true }
+        );
+        return updatedCartItem;
+    } catch (error) {
+        throw new Error(`Failed to adjust cart item quantity: ${error.message}`);
     }
 };
 

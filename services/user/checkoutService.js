@@ -60,7 +60,10 @@ export const validateCartForCheckout = async (userId) => {
                 return {
                     isValid: false,
                     reason: 'STOCK_EXCEEDED',
-                    message: `Only ${variant.stock} units available for "${product.name} (${variant.variantName})". Please adjust quantity.`
+                    cartItemId: item._id,
+                    availableStock: variant.stock,
+                    productName: `${product.name} (${variant.variantName})`,
+                    message: `Only ${variant.stock} units available for "${product.name} (${variant.variantName})".`
                 };
             }
         }

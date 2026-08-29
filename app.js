@@ -24,6 +24,7 @@ import pageRoutes from './routes/user/pageRoutes.js';
 import addressRoutes from './routes/user/addressRoutes.js';
 import pageAuthRoutes from './routes/user/pageAuthRoutes.js';
 import checkoutRoutes from './routes/user/checkoutRoutes.js';
+import orderRoutes from './routes/user/orderRoutes.js';
 
 import adminAuthRoutes from './routes/admin/adminAuthRoutes.js';
 import adminCategoryRoutes from './routes/admin/adminCategoryRoutes.js';
@@ -68,6 +69,7 @@ app.use('/user', profileRoutes);
 app.use('/user/addresses', addressRoutes);
 app.use('/user', pageAuthRoutes);
 app.use('/user/checkout', checkoutRoutes);
+app.use('/user', orderRoutes);
 
 app.use('/admin', adminAuthRoutes);
 app.use('/admin', adminCategoryRoutes);

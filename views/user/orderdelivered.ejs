@@ -1,0 +1,266 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>HomeStation</title>
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,600;0,700;1,600&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <link rel="icon" type="image/x-icon" href="https://res.cloudinary.com/dz7fuqwnr/image/upload/v1778395481/WhatsApp_Image_2026-05-10_at_12.12.36_nra5vk.jpg">
+    <link rel="stylesheet" href="/css/user/orderdelivered.css">
+</head>
+
+<body>
+    <input type="hidden" id="csrfToken" value="<%= typeof csrfToken !== 'undefined' ? csrfToken : '' %>">
+    <input type="hidden" id="currentOrderId" value="<%= order.orderId %>">
+
+    <% if (typeof bannerText !== 'undefined' && bannerText) { %>
+        <div class="promo-bar">
+            <b><%- bannerText %></b>
+        </div>
+    <% } %>
+
+    <header class="header">
+        <div class="container-fluid header-container">
+            <a href="/home" class="logo">HomeStation</a>
+            <nav class="nav">
+                <ul class="nav-list">
+                    <li><a href="/home" class="nav-link">Home</a></li>
+                    <li><a href="/products" class="nav-link">World of Mattress</a></li>
+                    <li><a href="/deals" class="nav-link">Top Deals</a></li>
+                    <li><a href="/bestsellers" class="nav-link">Best Sellers</a></li>
+                    <li><a href="/contact" class="nav-link">Contact Us</a></li>
+                </ul>
+            </nav>
+            <div class="search-container">
+                <input type="text" placeholder="Search for products..." id="searchInput">
+                <button id="searchBtn" type="button"><i class="fa-solid fa-magnifying-glass"></i></button>
+            </div>
+            <div class="header-actions">
+                <a href="/user/wishlist" class="icon-link wishlist-link"><i class="fa-regular fa-heart"></i> Wishlist</a>
+                <a href="/user/profile" class="icon-link"><i class="fa-solid fa-user"></i> Profile</a>
+                <a href="/user/cart" class="icon-link"><i class="fa-solid fa-cart-shopping"></i> Cart</a>
+            </div>
+        </div>
+    </header>
+
+    <div class="container breadcrumb-section">
+        <a href="/user/orders" class="back-link"><i class="fa-solid fa-arrow-left"></i> Back to Orders</a>
+    </div>
+
+    <section class="order-detail-wrapper">
+        <div class="container">
+            <div class="order-detail-box">
+
+                <% if (order.returnStatus && order.returnStatus !== 'none') { %>
+                    <div class="detail-header-banner banner-returned">
+                        <i class="fa-solid fa-rotate-left"></i>
+                        <div>
+                            <h2><%= order.returnStatus.charAt(0).toUpperCase() + order.returnStatus.slice(1) %></h2>
+                            <p>Return has been updated on <%= formattedUpdatedDate %>.</p>
+                        </div>
+                    </div>
+                <% } else if (order.status === 'delivered') { %>
+                    <div class="detail-header-banner banner-delivered">
+                        <i class="fa-solid fa-circle-check"></i>
+                        <div>
+                            <h2>Delivered</h2>
+                            <p>Your items were delivered successfully on <%= formattedUpdatedDate %>.</p>
+                        </div>
+                    </div>
+                <% } else if (order.status === 'cancelled') { %>
+                    <div class="detail-header-banner banner-cancelled">
+                        <i class="fa-solid fa-circle-xmark"></i>
+                        <div>
+                            <h2>Cancelled</h2>
+                            <p>This order was cancelled on <%= formattedUpdatedDate %>.</p>
+                        </div>
+                    </div>
+                <% } else { %>
+                    <div class="detail-header-banner banner-ontheway">
+                        <i class="fa-solid fa-truck"></i>
+                        <div>
+                            <h2><%= order.status.charAt(0).toUpperCase() + order.status.slice(1) %></h2>
+                            <p>Expected delivery by <%= formattedExpectedDate %>.</p>
+                        </div>
+                    </div>
+                <% } %>
+
+                <div class="detail-content">
+                    <div class="detail-grid">
+                        <div class="detail-item">
+                            <span class="detail-label">Order ID</span>
+                            <span class="detail-value"><%= order.orderId %></span>
+                        </div>
+                        <div class="detail-item">
+                            <span class="detail-label">Order Date</span>
+                            <span class="detail-value"><%= formattedOrderDate %></span>
+                        </div>
+                        <div class="detail-item">
+                            <span class="detail-label">
+                                <% if (order.status === 'delivered') { %>
+                                    Delivered Date
+                                <% } else if (order.status === 'cancelled') { %>
+                                    Cancelled Date
+                                <% } else { %>
+                                    Expected Date
+                                <% } %>
+                            </span>
+                            <span class="detail-value">
+                                <% if (order.status === 'delivered' || order.status === 'cancelled') { %>
+                                    <%= formattedUpdatedDate %>
+                                <% } else { %>
+                                    <%= formattedExpectedDate %>
+                                <% } %>
+                            </span>
+                        </div>
+                        <div class="detail-item">
+                            <span class="detail-label">Payment Mode</span>
+                            <span class="detail-value"><%= paymentModeLabel %> · <%= paymentStatusText %></span>
+                        </div>
+
+                        <% if (order.orderItems && order.orderItems.length > 0) { %>
+                            <% order.orderItems.forEach(item => { 
+                                const variant = item.productVariantId;
+                                const product = variant?.productId;
+                                const categoryName = product?.categoryId?.name || 'Sleep Essentials';
+                                const firstImage = (product?.images && product.images.length > 0) ? product.images[0] : 'https://placehold.co/280x160';
+                                const productId = product?._id || '';
+                            %>
+                                <div class="detail-item full-width product-main-info">
+                                    <div class="product-text-details">
+                                        <div class="info-group">
+                                            <span class="detail-label">Product Name</span>
+                                            <span class="detail-value product-name-large">
+                                                <%= product?.name || 'Product Name Unavailable' %> (<%= variant?.variantName || 'Standard' %>)
+                                            </span>
+                                        </div>
+                                        <div class="info-group">
+                                            <span class="detail-label">Category</span>
+                                            <span class="detail-value"><%= categoryName %></span>
+                                        </div>
+                                        <div class="info-group">
+                                            <span class="detail-label">Price & Quantity</span>
+                                            <span class="detail-value">₹<%= item.currentPrice.toLocaleString('en-IN') %> × <%= item.quantity %> = <strong>₹<%= (item.currentPrice * item.quantity).toLocaleString('en-IN') %></strong></span>
+                                        </div>
+                                    </div>
+                                    <div class="product-image-box">
+                                        <a href="/products/<%= productId %>" title="View Product Details">
+                                            <img src="<%= firstImage %>" alt="<%= product?.name || 'Product Image' %>" class="product-hero-img">
+                                        </a>
+                                    </div>
+                                </div>
+                            <% }) %>
+                        <% } %>
+
+                        <div class="detail-item full-width">
+                            <span class="detail-label">Delivery Address</span>
+                            <div class="detail-value address-block">
+                                <p class="address-name"><%= order.shippingAddress.name %></p>
+                                <p class="address-line"><%= order.shippingAddress.fullAddress %></p>
+                                <p class="address-line"><%= order.shippingAddress.city %>, <%= order.shippingAddress.state %> - <%= order.shippingAddress.pincode %></p>
+                                <p class="address-phone"><i class="fa-solid fa-phone"></i> <%= order.shippingAddress.phone %></p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="action-buttons-row">
+                        <% if (order.status === 'delivered') { %>
+                            <% if (order.returnStatus === 'none') { %>
+                                <button type="button" class="btn-modal-action btn-review" id="openReviewBtn">
+                                    <i class="fa-solid fa-star"></i> Write a Review
+                                </button>
+                                <button type="button" class="btn-modal-action btn-return" id="openReturnBtn">
+                                    <i class="fa-solid fa-rotate-left"></i> Return Item
+                                </button>
+                            <% } %>
+                            <% const cleanOrderId = order.orderId ? order.orderId.replace(/^#/, '') : ''; %>
+                            <a href="/user/orders/invoice/<%= cleanOrderId %>" class="btn-modal-action btn-invoice">
+                                <i class="fa-solid fa-file-invoice"></i> Download Invoice
+                            </a>
+                        <% } %>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <div class="modal-overlay" id="reviewModal">
+        <div class="modal-box modal-box-sm">
+            <div class="modal-header">
+                <h3 class="modal-title"><i class="fa-solid fa-star"></i> Write a Review</h3>
+                <button type="button" class="modal-close-btn" id="closeReviewModalBtn"><i class="fa-solid fa-xmark"></i></button>
+            </div>
+            <div class="modal-body">
+                <p>How was your experience with this product?</p>
+                <div class="star-rating" id="starRating">
+                    <i class="fa-solid fa-star rating-star" data-rating="1"></i>
+                    <i class="fa-solid fa-star rating-star" data-rating="2"></i>
+                    <i class="fa-solid fa-star rating-star" data-rating="3"></i>
+                    <i class="fa-solid fa-star rating-star" data-rating="4"></i>
+                    <i class="fa-solid fa-star rating-star" data-rating="5"></i>
+                </div>
+                <textarea class="review-textarea" id="reviewText" placeholder="Write your honest review here..."></textarea>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn-modal-action btn-primary" id="submitReviewBtn">Submit Review</button>
+                <button type="button" class="btn-modal-action btn-secondary" id="cancelReviewBtn">Cancel</button>
+            </div>
+        </div>
+    </div>
+
+    <div class="modal-overlay" id="returnModal">
+        <div class="modal-box modal-box-sm">
+            <div class="modal-header">
+                <h3 class="modal-title"><i class="fa-solid fa-rotate-left"></i> Return Item</h3>
+                <button type="button" class="modal-close-btn" id="closeReturnModalBtn"><i class="fa-solid fa-xmark"></i></button>
+            </div>
+            <div class="modal-body text-center">
+                <i class="fa-solid fa-rotate-left modal-icon-large return-color"></i>
+                <p class="modal-confirm-text">Are you sure you want to return this item?</p>
+                <p class="modal-sub-text">A pickup will be scheduled. Refund will process after inspection.</p>
+            </div>
+            <div class="modal-footer center-btns">
+                <button type="button" class="btn-modal-action btn-danger" id="confirmReturnBtn">Confirm Return</button>
+                <button type="button" class="btn-modal-action btn-secondary" id="cancelReturnBtn">Cancel</button>
+            </div>
+        </div>
+    </div>
+
+    <footer class="footer">
+        <div class="container-fluid footer-container">
+            <div class="footer-left">
+                <a href="/home" class="logo footer-logo">HomeStation</a>
+                <p>Your premier destination for high-quality mattresses and sleep essentials, crafted to bring cloud-like comfort to every night.</p>
+            </div>
+            <div class="footer-links-wrapper">
+                <div class="footer-column">
+                    <h4>Shop</h4>
+                    <ul>
+                        <li><a href="/products">World of Mattress</a></li>
+                        <li><a href="/deals">Top Deals</a></li>
+                        <li><a href="/bestsellers">Best Sellers</a></li>
+                    </ul>
+                </div>
+                <div class="footer-column">
+                    <h4>Support</h4>
+                    <ul>
+                        <li><a href="/user/orders">Track Your Orders</a></li>
+                        <li><a href="/privacy-policy">Privacy Policy</a></li>
+                        <li><a href="/contact">Contact Us</a></li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+        <div class="container-fluid copyright">
+            <p>&copy; 2026 HomeStation Store. All rights reserved.</p>
+        </div>
+    </footer>
+
+    <script src="/js/user/orderdelivered.js"></script>
+</body>
+
+</html>

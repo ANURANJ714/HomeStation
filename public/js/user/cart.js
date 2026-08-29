@@ -105,33 +105,12 @@ document.addEventListener("DOMContentLoaded", () => {
           updateSummaryInvoiceUI(data.totalQuantity, data.subtotal);
         }
       } else {
-        if (data.reason === "PRODUCT_REMOVED") {
-          Swal.fire({
-            icon: "error",
-            title: "Product Unavailable",
-            text: data.message,
-            heightAuto: false,
-          }).then(() => {
-            containerItemCard.style.opacity = "0";
-            setTimeout(() => {
-              containerItemCard.remove();
-              if (document.querySelectorAll(".cart-item").length === 0)
-                window.location.reload();
-              else
-                updateSummaryInvoiceUI(
-                  data.totalQuantity || 0,
-                  data.subtotal || 0,
-                );
-            }, 300);
-          });
-        } else {
-          Swal.fire({
-            icon: "warning",
-            title: "Stock Constraint",
-            text: data.message,
-            heightAuto: false,
-          });
-        }
+        Swal.fire({
+          icon: "warning",
+          title: "Stock Constraint",
+          text: data.message,
+          heightAuto: false,
+        });
       }
     } catch (error) {
       console.error("Fetch error on quantity change:", error);
@@ -164,36 +143,7 @@ document.addEventListener("DOMContentLoaded", () => {
         const data = await response.json();
 
         if (data.success) {
-          const itemElement = document.querySelector(
-            `.cart-item[data-cart-id="${targetCartId}"]`,
-          );
-          if (itemElement) {
-            itemElement.style.opacity = "0";
-            itemElement.style.transform = "scale(0.9)";
-            itemElement.style.transition = "all 0.3s ease";
-
-            setTimeout(() => {
-              itemElement.remove();
-              if (document.querySelectorAll(".cart-item").length === 0) {
-                window.location.reload();
-              } else {
-                updateSummaryInvoiceUI(data.totalQuantity, data.subtotal);
-              }
-            }, 300);
-          }
-
-          const alertContent = data.countMessage
-            ? `${data.message}<br>${data.countMessage}`
-            : data.message || "Item removed from cart.";
-
-          Swal.fire({
-            icon: "success",
-            title: "Removed!",
-            html: alertContent,
-            timer: 1500,
-            showConfirmButton: false,
-            heightAuto: false,
-          });
+          window.location.reload();
         } else {
           Swal.fire({
             icon: "error",
@@ -204,12 +154,7 @@ document.addEventListener("DOMContentLoaded", () => {
         }
       } catch (error) {
         console.error("Cart deletion exception:", error);
-        Swal.fire({
-          icon: "error",
-          title: "Error",
-          text: "Failed to remove the item safely.",
-          heightAuto: false,
-        });
+        window.location.reload();
       }
     });
   }
@@ -262,12 +207,58 @@ document.addEventListener("DOMContentLoaded", () => {
 
         if (data.success && data.redirectUrl) {
           window.location.href = data.redirectUrl;
+        } else if (data.reason === "STOCK_EXCEEDED") {
+          Swal.fire({
+            icon: "warning",
+            title: "Limited Stock Available",
+            html: `This product variant is only available in <b>${data.availableStock}</b> quantity.<br><br>Do you want to remove item from cart or proceed with this quantity?`,
+            showCancelButton: true,
+            confirmButtonText: "Proceed",
+            cancelButtonText: "Remove",
+            confirmButtonColor: "#222",
+            cancelButtonColor: "#8b0000",
+            heightAuto: false,
+          }).then(async (result) => {
+            if (result.isConfirmed) {
+              try {
+                await fetch("/user/cart/change-quantity", {
+                  method: "POST",
+                  headers: {
+                    "Content-Type": "application/json",
+                    "CSRF-Token": csrfToken,
+                  },
+                  body: JSON.stringify({
+                    cartItemId: data.cartItemId,
+                    action: "set",
+                    targetQuantity: data.availableStock
+                  }),
+                });
+                window.location.reload();
+              } catch (err) {
+                window.location.reload();
+              }
+            } else if (result.dismiss === Swal.DismissReason.cancel) {
+              try {
+                await fetch("/user/cart/remove-item", {
+                  method: "POST",
+                  headers: {
+                    "Content-Type": "application/json",
+                    "CSRF-Token": csrfToken,
+                  },
+                  body: JSON.stringify({ cartItemId: data.cartItemId }),
+                });
+                window.location.reload();
+              } catch (err) {
+                window.location.reload();
+              }
+            }
+          });
+
+          proceedCheckoutBtn.disabled = false;
+          proceedCheckoutBtn.innerText = originalText;
         } else {
           Swal.fire({
-            icon:
-              data.reason === "OUT_OF_STOCK" || data.reason === "SOFT_DELETED"
-                ? "error"
-                : "warning",
+            icon: "error",
             title: "Checkout Notice",
             text: data.message || "Unable to proceed to checkout.",
             confirmButtonColor: "#222",

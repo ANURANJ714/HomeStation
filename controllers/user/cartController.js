@@ -65,9 +65,7 @@ export const loadCartPage = async (req, res) => {
         ]);
 
         let alertMessage = null;
-        if (cartData.flags.productRemoved || cartData.flags.categoryRemoved) {
-            alertMessage = "Some products in your cart are no longer available and have been removed.";
-        } else if (cartData.flags.outOfStockRemoved) {
+        if (cartData.flags.outOfStockRemoved) {
             alertMessage = "Items that went out of stock have been cleared from your cart.";
         }
 
@@ -77,12 +75,16 @@ export const loadCartPage = async (req, res) => {
             subtotal: cartData.subtotal,
             totalQuantity: cartData.totalQuantity,
             bannerText,
-            cartAlertMessage: alertMessage 
+            cartAlertMessage: alertMessage,
+            csrfToken: req.csrfToken ? req.csrfToken() : ''
         });
 
     } catch (error) {
         logger.error(`Error loading Cart Page (IP: ${req.ip}): ${error.message}`);
-        return res.status(500).json({ success: false, message: "Server error occurred while loading the cart page." });
+        return res.status(500).json({ 
+            success: false, 
+            message: "Server error occurred while loading the cart page." 
+        });
     }
 };
 
@@ -160,5 +162,31 @@ export const removeCartItemController = async (req, res) => {
     } catch (error) {
         logger.error(`Critical crash intercept inside removeCartItemController: ${error.message}`);
         return res.status(500).json({ success: false, message: "Server error occurred during drop action." });
+    }
+};
+
+export const setExactCartQuantity = async (req, res) => {
+    try {
+        const userId = req.user._id;
+        const { cartItemId, quantity } = req.body;
+
+        if (!cartItemId || !quantity || quantity <= 0) {
+            return res.status(400).json({
+                success: false,
+                message: 'Invalid item or quantity parameters.'
+            });
+        }
+
+        await cartService.updateItemExactQuantity(userId, cartItemId, quantity);
+
+        return res.status(200).json({
+            success: true,
+            message: 'Quantity adjusted to available stock.'
+        });
+    } catch (error) {
+        return res.status(500).json({
+            success: false,
+            message: 'Failed to adjust quantity.'
+        });
     }
 };

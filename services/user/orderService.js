@@ -130,3 +130,146 @@ export const getOrderDetailsByOrderId = async (orderId) => {
     }
 };
 
+export const getUserOrdersPageData = async (userId, page = 1, limit = 4, searchQuery = '', statusFilters = [], timeFilter = '') => {
+    try {
+        const query = { userId };
+
+        if (searchQuery && searchQuery.trim() !== '') {
+            const matchingProducts = await Product.find({
+                name: { $regex: searchQuery.trim(), $options: 'i' }
+            }).select('_id').lean();
+
+            const productIds = matchingProducts.map(p => p._id);
+
+            const matchingVariants = await ProductVariant.find({
+                productId: { $in: productIds }
+            }).select('_id').lean();
+
+            const variantIds = matchingVariants.map(v => v._id);
+
+            query['orderItems.productVariantId'] = { $in: variantIds };
+        }
+
+        if (statusFilters && statusFilters.length > 0) {
+            const statusQueries = [];
+            statusFilters.forEach(stat => {
+                if (stat === 'on-the-way') {
+                    statusQueries.push({ status: { $in: ['processing', 'packed', 'shipped', 'on the way', 'out for delivery'] } });
+                } else if (stat === 'delivered') {
+                    statusQueries.push({ status: 'delivered', returnStatus: 'none' });
+                } else if (stat === 'cancelled') {
+                    statusQueries.push({ status: 'cancelled' });
+                } else if (stat === 'returned') {
+                    statusQueries.push({ returnStatus: { $ne: 'none' } });
+                }
+            });
+            if (statusQueries.length > 0) {
+                query.$or = statusQueries;
+            }
+        }
+
+        if (timeFilter) {
+            const now = new Date();
+            if (timeFilter === '30days') {
+                const thirtyDaysAgo = new Date();
+                thirtyDaysAgo.setDate(now.getDate() - 30);
+                query.createdAt = { $gte: thirtyDaysAgo };
+            } else if (timeFilter === 'lastyear') {
+                const threeHundredSixtyFiveDaysAgo = new Date();
+                threeHundredSixtyFiveDaysAgo.setDate(now.getDate() - 365);
+                query.createdAt = { $gte: threeHundredSixtyFiveDaysAgo };
+            }
+        }
+
+        const skip = (page - 1) * limit;
+
+        const [orders, totalFilteredOrders] = await Promise.all([
+            Order.find(query)
+                .populate({
+                    path: 'orderItems.productVariantId',
+                    populate: {
+                        path: 'productId',
+                        select: 'name images categoryId',
+                        populate: { path: 'categoryId', select: 'name' }
+                    }
+                })
+                .sort({ createdAt: -1 })
+                .skip(skip)
+                .limit(limit)
+                .lean(),
+            Order.countDocuments(query)
+        ]);
+
+        const totalPages = Math.ceil(totalFilteredOrders / limit) || 1;
+        const safePage = Math.min(page, totalPages);
+
+        return {
+            orders,
+            totalFilteredOrders,
+            totalPages,
+            safePage,
+            limit
+        };
+    } catch (error) {
+        throw new Error(`User Order Service Failure: ${error.message}`);
+    }
+};
+
+export const getUserOrderDetails = async (userId, orderId) => {
+    try {
+        if (!orderId) return null;
+
+        const formattedOrderId = orderId.startsWith('#') ? orderId : `#${orderId}`;
+
+        const order = await Order.findOne({
+            userId,
+            $or: [{ orderId: formattedOrderId }, { orderId }]
+        })
+            .populate({
+                path: 'orderItems.productVariantId',
+                populate: {
+                    path: 'productId',
+                    select: 'name images categoryId',
+                    populate: {
+                        path: 'categoryId',
+                        select: 'name'
+                    }
+                }
+            })
+            .lean();
+
+        return order;
+    } catch (error) {
+        throw new Error(`Service Layer failure fetching order details: ${error.message}`);
+    }
+};
+
+export const getUserDeliveredOrderInvoice = async (userId, orderId) => {
+    try {
+        if (!orderId) return null;
+
+        const formattedOrderId = orderId.startsWith('#') ? orderId : `#${orderId}`;
+
+        const order = await Order.findOne({
+            userId,
+            $or: [{ orderId: formattedOrderId }, { orderId }]
+        })
+            .populate('userId', 'fullName email phone')
+            .populate({
+                path: 'orderItems.productVariantId',
+                populate: {
+                    path: 'productId',
+                    select: 'name categoryId',
+                    populate: {
+                        path: 'categoryId',
+                        select: 'name'
+                    }
+                }
+            })
+            .lean();
+
+        return order;
+    } catch (error) {
+        throw new Error(`Service Layer failure fetching invoice details: ${error.message}`);
+    }
+};

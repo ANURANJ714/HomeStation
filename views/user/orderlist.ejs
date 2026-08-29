@@ -1,0 +1,269 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>HomeStation</title>
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,600;0,700;1,600&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <link rel="icon" type="image/x-icon" href="https://res.cloudinary.com/dz7fuqwnr/image/upload/v1778395481/WhatsApp_Image_2026-05-10_at_12.12.36_nra5vk.jpg">
+    <link rel="stylesheet" href="/css/user/orderlist.css">
+</head>
+
+<body>
+    <input type="hidden" id="csrfToken" value="<%= typeof csrfToken !== 'undefined' ? csrfToken : '' %>">
+
+    <% if (typeof bannerText !== 'undefined' && bannerText) { %>
+        <div class="promo-bar">
+            <b><%- bannerText %></b>
+        </div>
+    <% } %>
+
+    <header class="header">
+        <div class="container-fluid header-container">
+            <a href="/home" class="logo">HomeStation</a>
+            <nav class="nav">
+                <ul class="nav-list">
+                    <li><a href="/home" class="nav-link">Home</a></li>
+                    <li><a href="/products" class="nav-link">World of Mattress</a></li>
+                    <li><a href="/deals" class="nav-link">Top Deals</a></li>
+                    <li><a href="/bestsellers" class="nav-link">Best Sellers</a></li>
+                    <li><a href="/contact" class="nav-link">Contact Us</a></li>
+                </ul>
+            </nav>
+            <div class="search-container">
+                <input type="text" placeholder="Search for products..." id="searchInput">
+                <button id="searchBtn" type="button"><i class="fa-solid fa-magnifying-glass"></i></button>
+            </div>
+            <div class="header-actions">
+                <a href="/user/wishlist" class="icon-link wishlist-link"><i class="fa-regular fa-heart"></i> Wishlist</a>
+                <a href="/user/profile" class="icon-link"><i class="fa-solid fa-user"></i> Profile</a>
+                <a href="/user/cart" class="icon-link"><i class="fa-solid fa-cart-shopping"></i> Cart</a>
+            </div>
+        </div>
+    </header>
+
+    <section class="orders-section">
+        <div class="container orders-layout">
+
+            <aside class="orders-sidebar">
+                <h2 class="filters-title"><i class="fa-solid fa-sliders"></i> Filters</h2>
+                <hr class="filter-divider">
+                <div class="filter-group">
+                    <h4 class="filter-subtitle">Order Status</h4>
+                    <ul class="filter-list">
+                        <li>
+                            <label class="filter-option">
+                                <input type="checkbox" name="status" value="on-the-way" <%= (statusFilters && statusFilters.includes('on-the-way')) ? 'checked' : '' %>>
+                                <span class="checkmark"></span>
+                                <i class="fa-solid fa-truck filter-icon on-way"></i> On the way
+                            </label>
+                        </li>
+                        <li>
+                            <label class="filter-option">
+                                <input type="checkbox" name="status" value="delivered" <%= (statusFilters && statusFilters.includes('delivered')) ? 'checked' : '' %>>
+                                <span class="checkmark"></span>
+                                <i class="fa-solid fa-circle-check filter-icon delivered"></i> Delivered
+                            </label>
+                        </li>
+                        <li>
+                            <label class="filter-option">
+                                <input type="checkbox" name="status" value="cancelled" <%= (statusFilters && statusFilters.includes('cancelled')) ? 'checked' : '' %>>
+                                <span class="checkmark"></span>
+                                <i class="fa-solid fa-circle-xmark filter-icon cancelled"></i> Cancelled
+                            </label>
+                        </li>
+                        <li>
+                            <label class="filter-option">
+                                <input type="checkbox" name="status" value="returned" <%= (statusFilters && statusFilters.includes('returned')) ? 'checked' : '' %>>
+                                <span class="checkmark"></span>
+                                <i class="fa-solid fa-rotate-left filter-icon returned"></i> Returned
+                            </label>
+                        </li>
+                    </ul>
+                </div>
+                <hr class="filter-divider">
+                <div class="filter-group">
+                    <h4 class="filter-subtitle">Order Time</h4>
+                    <ul class="filter-list">
+                        <li>
+                            <label class="filter-option">
+                                <input type="radio" name="time" value="30days" <%= timeFilter === '30days' ? 'checked' : '' %>>
+                                <span class="checkmark radio-mark"></span> Last 30 Days
+                            </label>
+                        </li>
+                        <li>
+                            <label class="filter-option">
+                                <input type="radio" name="time" value="lastyear" <%= timeFilter === 'lastyear' ? 'checked' : '' %>>
+                                <span class="checkmark radio-mark"></span> Last Year
+                            </label>
+                        </li>
+                        <li>
+                            <label class="filter-option">
+                                <input type="radio" name="time" value="older" <%= timeFilter === 'older' ? 'checked' : '' %>>
+                                <span class="checkmark radio-mark"></span> Older
+                            </label>
+                        </li>
+                    </ul>
+                </div>
+                <hr class="filter-divider">
+                <button type="button" class="btn-clear-filters" id="clearFiltersBtn">
+                    <i class="fa-solid fa-xmark"></i> Clear Filters
+                </button>
+            </aside>
+
+            <main class="orders-content">
+                <div class="orders-header">
+                    <h2 class="orders-title">My Orders</h2>
+                    <div class="orders-search-bar" id="ordersSearchBar">
+                        <i class="fa-solid fa-magnifying-glass search-icon"></i>
+                        <input type="text" id="orderSearchInput" placeholder="Search by product name..." value="<%= typeof searchQuery !== 'undefined' ? searchQuery : '' %>">
+                        <button type="button" class="search-action-btn" id="searchActionBtn" title="Search / Clear">
+                            <i class="fa-solid fa-magnifying-glass" id="searchActionIcon"></i>
+                        </button>
+                    </div>
+                </div>
+
+                <div class="order-list" id="orderList">
+                    <% if (orders && orders.length > 0) { %>
+                        <% orders.forEach(order => { 
+                            order.orderItems.forEach(item => {
+                                const variant = item.productVariantId;
+                                const product = variant?.productId;
+                                const categoryName = product?.categoryId?.name || 'HomeStation';
+                                const imageUrl = (product?.images && product.images[0]) ? product.images[0] : 'https://placehold.co/120';
+                                const itemTotal = item.currentPrice * item.quantity;
+                                const orderedDate = new Date(order.createdAt);
+                                const formattedOrderDate = orderedDate.toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' });
+                                
+                                const expectedDateObj = new Date(orderedDate);
+                                expectedDateObj.setDate(expectedDateObj.getDate() + 4);
+                                const formattedExpectedDate = expectedDateObj.toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' });
+                                
+                                const updatedDateObj = new Date(order.updatedAt || order.createdAt);
+                                const formattedUpdatedDate = updatedDateObj.toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' });
+                                const cleanOrderId = order.orderId ? order.orderId.replace(/^#/, '') : '';
+                        %>
+                            <div class="order-card">
+                                <div class="order-card-summary">
+                                    <div class="order-card-left">
+                                        <img src="<%= imageUrl %>" alt="<%= product?.name || 'Product' %>" class="order-img">
+                                        <div class="order-info">
+                                            <p class="order-product-name"><%= product?.name || 'Product Name Unavailable' %> (<%= variant?.variantName || 'Standard' %>)</p>
+                                            <p class="order-category"><%= categoryName %></p>
+                                            <p class="order-meta">Order ID: <%= order.orderId %> &nbsp;|&nbsp; Qty: <%= item.quantity %></p>
+                                            <p class="order-date"><i class="fa-regular fa-calendar"></i> Ordered on <%= formattedOrderDate %></p>
+                                        </div>
+                                    </div>
+                                    <div class="order-card-right">
+                                        <p class="order-price">₹<%= itemTotal.toLocaleString('en-IN') %></p>
+
+                                        <% if (order.returnStatus && order.returnStatus !== 'none') { %>
+                                            <span class="status-badge returned">
+                                                <i class="fa-solid fa-rotate-left"></i> <%= order.returnStatus.charAt(0).toUpperCase() + order.returnStatus.slice(1) %>
+                                            </span>
+                                            <p class="order-delivery-note"><%= order.returnStatus.charAt(0).toUpperCase() + order.returnStatus.slice(1) %> on <%= formattedUpdatedDate %></p>
+                                        <% } else if (order.status === 'delivered') { %>
+                                            <span class="status-badge delivered">
+                                                <i class="fa-solid fa-circle-check"></i> Delivered
+                                            </span>
+                                            <p class="order-delivery-note">Delivered on <%= formattedUpdatedDate %></p>
+                                        <% } else if (order.status === 'cancelled') { %>
+                                            <span class="status-badge cancelled">
+                                                <i class="fa-solid fa-circle-xmark"></i> Cancelled
+                                            </span>
+                                            <p class="order-delivery-note">Cancelled on <%= formattedUpdatedDate %></p>
+                                        <% } else { %>
+                                            <span class="status-badge on-the-way">
+                                                <i class="fa-solid fa-truck"></i> <%= order.status.charAt(0).toUpperCase() + order.status.slice(1) %>
+                                            </span>
+                                            <p class="order-delivery-note">Expected by <%= formattedExpectedDate %></p>
+                                        <% } %>
+
+                                        <a href="/user/orders/detail/<%= cleanOrderId %>" class="btn-order-details">
+                                            <i class="fa-solid fa-receipt"></i> Order Details
+                                        </a>
+                                    </div>
+                                </div>
+                            </div>
+                        <% }) %>
+                    <% }) %>
+                    <% } else { %>
+                        <div class="orders-empty" id="ordersEmpty">
+                            <i class="fa-solid fa-box-open"></i>
+                            <p>No orders found matching your filters.</p>
+                        </div>
+                    <% } %>
+                </div>
+
+                <% if (typeof totalPages !== 'undefined' && totalPages > 0) { %>
+                    <% 
+                        const buildPageUrl = (p) => {
+                            let url = `/user/orders?page=${p}`;
+                            if (searchQuery) url += `&search=${encodeURIComponent(searchQuery)}`;
+                            if (statusFilters && statusFilters.length > 0) {
+                                statusFilters.forEach(s => { url += `&status=${encodeURIComponent(s)}`; });
+                            }
+                            if (timeFilter) url += `&time=${encodeURIComponent(timeFilter)}`;
+                            return url;
+                        };
+                    %>
+                    <div class="pagination" id="paginationBar">
+                        <% if (currentPage > 1) { %>
+                            <a href="<%= buildPageUrl(currentPage - 1) %>" class="page-btn flex-center"><i class="fa-solid fa-chevron-left"></i></a>
+                        <% } else { %>
+                            <button type="button" class="page-btn" disabled><i class="fa-solid fa-chevron-left"></i></button>
+                        <% } %>
+
+                        <% for (let p = 1; p <= totalPages; p++) { %>
+                            <a href="<%= buildPageUrl(p) %>" class="page-btn flex-center <%= currentPage === p ? 'active' : '' %>"><%= p %></a>
+                        <% } %>
+
+                        <% if (currentPage < totalPages) { %>
+                            <a href="<%= buildPageUrl(currentPage + 1) %>" class="page-btn flex-center"><i class="fa-solid fa-chevron-right"></i></a>
+                        <% } else { %>
+                            <button type="button" class="page-btn" disabled><i class="fa-solid fa-chevron-right"></i></button>
+                        <% } %>
+                    </div>
+                <% } %>
+            </main>
+        </div>
+    </section>
+
+    <footer class="footer">
+        <div class="container-fluid footer-container">
+            <div class="footer-left">
+                <a href="/home" class="logo footer-logo">HomeStation</a>
+                <p>Your premier destination for high-quality mattresses and sleep essentials, crafted to bring cloud-like comfort to every night.</p>
+            </div>
+            <div class="footer-links-wrapper">
+                <div class="footer-column">
+                    <h4>Shop</h4>
+                    <ul>
+                        <li><a href="/products">World of Mattress</a></li>
+                        <li><a href="/deals">Top Deals</a></li>
+                        <li><a href="/bestsellers">Best Sellers</a></li>
+                    </ul>
+                </div>
+                <div class="footer-column">
+                    <h4>Support</h4>
+                    <ul>
+                        <li><a href="/user/orders">Track Your Orders</a></li>
+                        <li><a href="/privacy-policy">Privacy Policy</a></li>
+                        <li><a href="/contact">Contact Us</a></li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+        <div class="container-fluid copyright">
+            <p>&copy; 2026 HomeStation Store. All rights reserved.</p>
+        </div>
+    </footer>
+
+    <script src="/js/user/orderlist.js"></script>
+</body>
+
+</html>

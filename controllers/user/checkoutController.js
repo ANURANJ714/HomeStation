@@ -20,22 +20,25 @@ export const postCartItems = async (req, res) => {
             return res.status(400).json({
                 success: false,
                 reason: result.reason,
-                message: result.message
+                message: result.message,
+                cartItemId: result.cartItemId || null,
+                availableStock: result.availableStock || null,
+                productName: result.productName || null
             });
         }
 
         req.session.checkoutActive = true;
         req.session.checkoutOrder = {
-        cartItems: result.cartItems,
-        totalQuantity: result.cartItems.reduce((acc, item) => acc + item.quantity, 0),
-        subtotal: result.cartItems.reduce((acc, item) => {
-            const variant = item.productVariantId;
-            const price = Math.round(variant.originalPrice * (1 - (variant.discount || 0) / 100));
-            return acc + (price * item.quantity);
-        }, 0),
-        offerDiscount: 0,
-        couponDiscount: 0,
-        shippingCharges: 0
+            cartItems: result.cartItems,
+            totalQuantity: result.cartItems.reduce((acc, item) => acc + item.quantity, 0),
+            subtotal: result.cartItems.reduce((acc, item) => {
+                const variant = item.productVariantId;
+                const price = Math.round(variant.originalPrice * (1 - (variant.discount || 0) / 100));
+                return acc + (price * item.quantity);
+            }, 0),
+            offerDiscount: 0,
+            couponDiscount: 0,
+            shippingCharges: 0
         };
 
         logger.info(`Cart validated successfully for (${userEmail}). Proceeding to address selection.`);

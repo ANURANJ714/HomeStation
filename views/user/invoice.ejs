@@ -1,0 +1,135 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title><%= typeof pageTitle !== 'undefined' ? pageTitle : 'HomeStation - Invoice' %></title>
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700&display=swap" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <link rel="icon" type="image/x-icon" href="https://res.cloudinary.com/dz7fuqwnr/image/upload/v1778395481/WhatsApp_Image_2026-05-10_at_12.12.36_nra5vk.jpg">
+    <link rel="stylesheet" href="/css/user/invoice.css">
+</head>
+
+<body>
+
+    <div class="action-buttons">
+        <button type="button" class="btn btn-back" id="backBtn">Back</button>
+        <button type="button" class="btn btn-print" id="printInvoiceBtn">Print Invoice</button>
+    </div>
+
+    <div class="invoice-wrapper">
+        <header class="invoice-header">
+            <div class="brand-section">
+                <h1>HomeStation</h1>
+                <p>Premium Home Comfort & Sleep Essentials</p>
+            </div>
+            <div class="invoice-title-box">
+                <h2>Invoice</h2>
+                <div class="invoice-meta">
+                    <p><span>Order ID:</span> <%= order.orderId %></p>
+                    <p><span>Order Date:</span> <%= formattedOrderDate %></p>
+                    <p><span>Payment Method:</span> <%= paymentMethodName %></p>
+                </div>
+            </div>
+        </header>
+
+        <section class="address-grid">
+            <div class="address-column">
+                <h3>Shipping Address:</h3>
+                <div class="address-details">
+                    <strong><%= order.shippingAddress.name %></strong>
+                    <p><%= order.shippingAddress.fullAddress %></p>
+                    <p><%= order.shippingAddress.city %>, <%= order.shippingAddress.state %> - <%= order.shippingAddress.pincode %></p>
+                    <p>Phone: <%= order.shippingAddress.phone %></p>
+                </div>
+            </div>
+
+            <div class="address-column">
+                <h3>Billing Address:</h3>
+                <div class="address-details">
+                    <strong><%= order.billingAddress.name || order.userId?.fullName %></strong>
+                    <p><%= order.billingAddress.fullAddress %></p>
+                    <p><%= order.billingAddress.city %>, <%= order.billingAddress.state %> - <%= order.billingAddress.pincode %></p>
+                    <p>Phone: <%= order.billingAddress.phone || order.userId?.phone %></p>
+                    <p>Email: <%= order.userId?.email %></p>
+                </div>
+            </div>
+
+            <div class="address-column">
+                <h3>Sold by:</h3>
+                <div class="address-details">
+                    <strong>HomeStation Store</strong>
+                    <p>123 Luxury Lane, Greenfield</p>
+                    <p>Bangalore, Karnataka - 560034</p>
+                    <p>GSTIN: 29AAAAA0000A1Z5</p>
+                    <p>Email: store@homestation.com</p>
+                </div>
+            </div>
+        </section>
+
+        <section class="invoice-table-container">
+            <table class="invoice-table">
+                <thead>
+                    <tr>
+                        <th>Item Description</th>
+                        <th class="price">Unit Price</th>
+                        <th class="qty">Qty</th>
+                        <th class="total">Total</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <% if (order.orderItems && order.orderItems.length > 0) { %>
+                        <% order.orderItems.forEach(item => { 
+                            const variant = item.productVariantId;
+                            const product = variant?.productId;
+                            const categoryName = product?.categoryId?.name || 'Orthopedic';
+                            const itemTotal = item.currentPrice * item.quantity;
+                        %>
+                            <tr>
+                                <td>
+                                    <strong><%= product?.name || 'Item' %> (<%= variant?.variantName || 'Standard' %>)</strong><br>
+                                    <small>Category : <%= categoryName %></small>
+                                </td>
+                                <td class="price">₹<%= item.currentPrice.toLocaleString('en-IN') %>.00</td>
+                                <td class="qty"><%= item.quantity %></td>
+                                <td class="total">₹<%= itemTotal.toLocaleString('en-IN') %>.00</td>
+                            </tr>
+                        <% }) %>
+                    <% } %>
+                </tbody>
+            </table>
+        </section>
+
+        <section class="invoice-summary">
+            <div class="summary-box">
+                <div class="summary-row">
+                    <span>Subtotal</span>
+                    <span>₹<%= subtotal.toLocaleString('en-IN') %>.00</span>
+                </div>
+                <div class="summary-row">
+                    <span>Shipping Charges</span>
+                    <span>₹0.00 (Free)</span>
+                </div>
+                <div class="summary-row grand-total">
+                    <span>Total Amount</span>
+                    <span>₹<%= totalAmount.toLocaleString('en-IN') %>.00</span>
+                </div>
+                <div class="summary-row gst-note">
+                    <span>(Inclusive of 18% GST)</span>
+                </div>
+            </div>
+        </section>
+
+        <footer class="invoice-footer">
+            <p><strong>Note:</strong> This is a computer-generated invoice and doesn't require a physical signature.</p>
+            <p>Returns are accepted within 15 days from the date of delivery. For more details, visit our website's <a href="/privacy-policy" class="return-policy-link">Return Policy</a>.</p>
+            <p class="thank-you-msg">Thank you for shopping with HomeStation!</p>
+        </footer>
+    </div>
+
+    <script src="/js/user/invoice.js"></script>
+</body>
+
+</html>
