@@ -244,6 +244,43 @@ export const getUserOrderDetails = async (userId, orderId) => {
     }
 };
 
+export const cancelUserOrder = async (userId, orderId, reason) => {
+    try {
+        if (!orderId || !reason || reason.trim() === '') {
+            throw new Error('Order ID and cancellation reason are required.');
+        }
+
+        const formattedOrderId = orderId.startsWith('#') ? orderId : `#${orderId}`;
+
+        const order = await Order.findOne({
+            userId,
+            $or: [{ orderId: formattedOrderId }, { orderId }]
+        });
+
+        if (!order) {
+            throw new Error('Order not found.');
+        }
+
+        if (order.status === 'delivered' || order.status === 'cancelled') {
+            throw new Error(`Cannot cancel an order that is already ${order.status}.`);
+        }
+
+        order.status = 'cancelled';
+        order.cancellationReason = reason.trim();
+        await order.save();
+
+        for (const item of order.orderItems) {
+            await ProductVariant.findByIdAndUpdate(item.productVariantId, {
+                $inc: { stock: item.quantity }
+            });
+        }
+
+        return order;
+    } catch (error) {
+        throw new Error(`Service Layer failure cancelling order: ${error.message}`);
+    }
+};
+
 export const getUserDeliveredOrderInvoice = async (userId, orderId) => {
     try {
         if (!orderId) return null;

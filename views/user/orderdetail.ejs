@@ -10,7 +10,7 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
     <link rel="icon" type="image/x-icon" href="https://res.cloudinary.com/dz7fuqwnr/image/upload/v1778395481/WhatsApp_Image_2026-05-10_at_12.12.36_nra5vk.jpg">
-    <link rel="stylesheet" href="/css/user/orderdelivered.css">
+    <link rel="stylesheet" href="/css/user/orderdetail.css">
 </head>
 
 <body>
@@ -85,6 +85,37 @@
                         <div>
                             <h2><%= order.status.charAt(0).toUpperCase() + order.status.slice(1) %></h2>
                             <p>Expected delivery by <%= formattedExpectedDate %>.</p>
+                        </div>
+                    </div>
+                <% } %>
+
+                <% if (order.status !== 'cancelled' && (!order.returnStatus || order.returnStatus === 'none')) { %>
+                    <div class="status-tracker-container">
+                        <div class="status-tracker-bar">
+                            <% 
+                                const steps = [
+                                    { label: 'Processing', key: 'processing', icon: 'fa-clock' },
+                                    { label: 'Packed', key: 'packed', icon: 'fa-box' },
+                                    { label: 'Shipped', key: 'shipped', icon: 'fa-truck' },
+                                    { label: 'On The Way', key: 'on the way', icon: 'fa-truck-fast' },
+                                    { label: 'Out for Delivery', key: 'out for delivery', icon: 'fa-person-biking' },
+                                    { label: 'Delivered', key: 'delivered', icon: 'fa-box-open' }
+                                ];
+                            %>
+                            <% steps.forEach((step, idx) => { 
+                                const isCompleted = idx <= currentStepIndex;
+                                const isActive = idx === currentStepIndex;
+                            %>
+                                <div class="tracker-step <%= isCompleted ? 'completed' : '' %> <%= isActive ? 'active' : '' %>">
+                                    <div class="tracker-node">
+                                        <i class="fa-solid <%= step.icon %>"></i>
+                                    </div>
+                                    <span class="tracker-label"><%= step.label %></span>
+                                </div>
+                                <% if (idx < steps.length - 1) { %>
+                                    <div class="tracker-line <%= idx < currentStepIndex ? 'completed-line' : '' %>"></div>
+                                <% } %>
+                            <% }) %>
                         </div>
                     </div>
                 <% } %>
@@ -169,7 +200,7 @@
 
                     <div class="action-buttons-row">
                         <% if (order.status === 'delivered') { %>
-                            <% if (order.returnStatus === 'none') { %>
+                            <% if (!order.returnStatus || order.returnStatus === 'none') { %>
                                 <button type="button" class="btn-modal-action btn-review" id="openReviewBtn">
                                     <i class="fa-solid fa-star"></i> Write a Review
                                 </button>
@@ -181,6 +212,10 @@
                             <a href="/user/orders/invoice/<%= cleanOrderId %>" class="btn-modal-action btn-invoice">
                                 <i class="fa-solid fa-file-invoice"></i> Download Invoice
                             </a>
+                        <% } else if (order.status !== 'cancelled') { %>
+                            <button type="button" class="btn-modal-action btn-cancel" id="openCancelOrderBtn">
+                                <i class="fa-solid fa-ban"></i> Cancel Order
+                            </button>
                         <% } %>
                     </div>
                 </div>
@@ -230,6 +265,41 @@
         </div>
     </div>
 
+    <div class="modal-overlay" id="cancelOrderModal">
+        <div class="modal-box modal-box-sm">
+            <div class="modal-header">
+                <h3 class="modal-title"><i class="fa-solid fa-ban"></i> Cancel Order</h3>
+                <button type="button" class="modal-close-btn" id="closeCancelOrderModalBtn"><i class="fa-solid fa-xmark"></i></button>
+            </div>
+            <div class="modal-body">
+                <p class="modal-confirm-text">Please select or provide a reason for cancellation:</p>
+                <div class="cancel-reasons-list">
+                    <label class="reason-option">
+                        <input type="radio" name="cancelReasonRadio" value="Ordered by mistake">
+                        <span>Ordered by mistake</span>
+                    </label>
+                    <label class="reason-option">
+                        <input type="radio" name="cancelReasonRadio" value="Found cheaper elsewhere">
+                        <span>Found cheaper elsewhere</span>
+                    </label>
+                    <label class="reason-option">
+                        <input type="radio" name="cancelReasonRadio" value="Delivery time is too long">
+                        <span>Delivery time is too long</span>
+                    </label>
+                    <label class="reason-option">
+                        <input type="radio" name="cancelReasonRadio" value="other">
+                        <span>Other reason</span>
+                    </label>
+                </div>
+                <textarea class="review-textarea cancel-custom-textarea" id="customCancelReason" placeholder="Please specify your reason for cancelling..."></textarea>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn-modal-action btn-danger" id="submitCancelOrderBtn">Confirm Cancellation</button>
+                <button type="button" class="btn-modal-action btn-secondary" id="cancelCancelOrderBtn">Keep Order</button>
+            </div>
+        </div>
+    </div>
+
     <footer class="footer">
         <div class="container-fluid footer-container">
             <div class="footer-left">
@@ -260,7 +330,7 @@
         </div>
     </footer>
 
-    <script src="/js/user/orderdelivered.js"></script>
+    <script src="/js/user/orderdetail.js"></script>
 </body>
 
 </html>

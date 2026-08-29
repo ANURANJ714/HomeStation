@@ -217,6 +217,86 @@ ul {
     opacity: 0.9;
 }
 
+.status-tracker-container {
+    padding: 30px 40px 20px;
+    background-color: #fcfcfc;
+    border-bottom: 1px solid #eaeaea;
+    overflow-x: auto;
+}
+
+.status-tracker-bar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    min-width: 600px;
+}
+
+.tracker-step {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 8px;
+    z-index: 2;
+    position: relative;
+}
+
+.tracker-node {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    background-color: #f0f0f0;
+    color: #999;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 16px;
+    border: 2px solid #e0e0e0;
+    transition: all 0.3s ease;
+}
+
+.tracker-label {
+    font-size: 12px;
+    font-weight: 600;
+    color: #888;
+    text-align: center;
+    white-space: nowrap;
+}
+
+.tracker-step.completed .tracker-node {
+    background-color: #e8f5e9;
+    color: #2e7d32;
+    border-color: #2e7d32;
+}
+
+.tracker-step.completed .tracker-label {
+    color: #2e7d32;
+}
+
+.tracker-step.active .tracker-node {
+    background-color: #1a1a1a;
+    color: #fff;
+    border-color: #1a1a1a;
+    box-shadow: 0 0 0 4px rgba(0, 0, 0, 0.1);
+}
+
+.tracker-step.active .tracker-label {
+    color: #1a1a1a;
+    font-weight: 700;
+}
+
+.tracker-line {
+    flex: 1;
+    height: 3px;
+    background-color: #e0e0e0;
+    margin: 0 5px;
+    position: relative;
+    top: -14px;
+}
+
+.tracker-line.completed-line {
+    background-color: #2e7d32;
+}
+
 .detail-content {
     padding: 30px;
 }
@@ -371,6 +451,15 @@ ul {
     color: #fff;
 }
 
+.btn-cancel {
+    background-color: #c0392b;
+    color: #fff;
+}
+
+.btn-cancel:hover {
+    background-color: #a93226;
+}
+
 .btn-review {
     background-color: #f5a623;
     color: #fff;
@@ -432,6 +521,26 @@ ul {
     padding: 20px 24px;
 }
 
+.cancel-reasons-list {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    margin: 15px 0;
+}
+
+.reason-option {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-size: 14px;
+    cursor: pointer;
+}
+
+.cancel-custom-textarea {
+    display: none;
+    margin-top: 10px;
+}
+
 .modal-footer {
     display: flex;
     gap: 10px;
@@ -458,8 +567,8 @@ ul {
 }
 
 .modal-confirm-text {
-    font-size: 16px;
-    font-weight: 700;
+    font-size: 15px;
+    font-weight: 600;
     color: #222;
 }
 
@@ -603,6 +712,10 @@ ul {
 
 @media (max-width: 600px) {
     .detail-header-banner {
+        padding: 20px;
+    }
+
+    .status-tracker-container {
         padding: 20px;
     }
 

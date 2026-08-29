@@ -93,10 +93,12 @@ export const loadUserOrderDetailPage = async (req, res) => {
         expectedDateObj.setDate(expectedDateObj.getDate() + 4);
         const formattedExpectedDate = expectedDateObj.toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' });
 
+        const statusSteps = ['processing', 'packed', 'shipped', 'on the way', 'out for delivery', 'delivered'];
+        const currentStepIndex = statusSteps.indexOf(order.status.toLowerCase());
+
         logger.info(`User (${userEmail}) viewed details for order ${order.orderId} | IP: ${clientIp}`);
 
-        return res.render('user/orderdelivered', {
-            pageTitle: `HomeStation - Order Details (${order.orderId})`,
+        return res.render('user/orderdetail', {
             user: req.user,
             order,
             paymentModeLabel,
@@ -104,6 +106,8 @@ export const loadUserOrderDetailPage = async (req, res) => {
             formattedOrderDate,
             formattedUpdatedDate,
             formattedExpectedDate,
+            statusSteps,
+            currentStepIndex,
             bannerText,
             csrfToken: req.csrfToken ? req.csrfToken() : ''
         });
@@ -113,6 +117,38 @@ export const loadUserOrderDetailPage = async (req, res) => {
         return res.status(500).json({
             success: false,
             message: 'An internal server error occurred while retrieving order details.'
+        });
+    }
+};
+
+export const postCancelOrder = async (req, res) => {
+    try {
+        const clientIp = req.ip;
+        const userEmail = req.user?.email || 'Unknown User';
+        const userId = req.user._id;
+        const { orderId, reason } = req.body;
+
+        if (!reason || reason.trim() === '') {
+            return res.status(400).json({
+                success: false,
+                message: 'Please provide a valid cancellation reason.'
+            });
+        }
+
+        await orderService.cancelUserOrder(userId, orderId, reason);
+
+        logger.info(`User (${userEmail}) successfully cancelled order [${orderId}]. Reason: "${reason}" | IP: ${clientIp}`);
+
+        return res.status(200).json({
+            success: true,
+            message: 'Your order has been cancelled successfully.'
+        });
+
+    } catch (error) {
+        logger.error(`Error cancelling order for (${req.user?.email || 'Unknown'}): ${error.message}`);
+        return res.status(500).json({
+            success: false,
+            message: error.message || 'An error occurred while cancelling the order.'
         });
     }
 };
