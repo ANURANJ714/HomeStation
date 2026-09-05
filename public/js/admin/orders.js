@@ -62,8 +62,8 @@ document.addEventListener('DOMContentLoaded', () => {
             wrapper.querySelectorAll('.custom-select-option').forEach(opt => opt.classList.remove('selected'));
             option.classList.add('selected');
 
-            const textDisplay = wrapper.querySelector('.custom-select-trigger span');
-            if (textDisplay) textDisplay.textContent = option.textContent.trim();
+            const textElem = wrapper.querySelector('.custom-select-trigger span');
+            if (textElem) textElem.textContent = option.textContent.trim();
 
             const hiddenInput = wrapper.querySelector('input[type="hidden"]');
             if (hiddenInput) hiddenInput.value = option.dataset.value;
@@ -82,112 +82,10 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     });
 
-    const updateModal = document.getElementById('updateStatusModal');
-    const modalOrderId = document.getElementById('modalOrderId');
-    const modalStatusText = document.getElementById('modalStatusText');
-    const modalStatusInput = document.getElementById('modalStatusInput');
-    const updateStatusForm = document.getElementById('updateStatusForm');
-
-    document.addEventListener('click', (e) => {
-        const editBtn = e.target.closest('.trigger-update-modal-btn');
-        if (!editBtn) return;
-
-        const orderId = editBtn.dataset.orderId;
-        const currentStatus = editBtn.dataset.status || 'processing';
-
-        modalOrderId.value = orderId;
-        modalStatusInput.value = currentStatus;
-
-        const matchingOption = updateModal.querySelector(`.custom-select-option[data-value="${currentStatus}"]`);
-        if (matchingOption) {
-            updateModal.querySelectorAll('.custom-select-option').forEach(opt => opt.classList.remove('selected'));
-            matchingOption.classList.add('selected');
-            modalStatusText.textContent = matchingOption.textContent.trim();
-        } else {
-            const firstOption = updateModal.querySelector('.custom-select-option');
-            if (firstOption) {
-                modalStatusText.textContent = firstOption.textContent.trim();
-                modalStatusInput.value = firstOption.dataset.value;
-            }
-        }
-
-        updateModal.style.display = 'flex';
-    });
-
-    function closeStatusModal() {
-        if (updateModal) updateModal.style.display = 'none';
-    }
-
-    document.getElementById('closeUpdateModalBtn')?.addEventListener('click', closeStatusModal);
-    document.getElementById('cancelUpdateModalBtn')?.addEventListener('click', closeStatusModal);
-
-    window.addEventListener('click', (e) => {
-        if (e.target === updateModal) closeStatusModal();
-    });
-
-    if (updateStatusForm) {
-        updateStatusForm.addEventListener('submit', async (e) => {
-            e.preventDefault();
-            const orderId = modalOrderId.value;
-            const status = modalStatusInput.value;
-
-            const saveBtn = document.getElementById('saveStatusBtn');
-            saveBtn.disabled = true;
-            saveBtn.textContent = 'Updating...';
-
-            try {
-                const response = await fetch('/admin/orders/status', {
-                    method: 'PATCH',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        'CSRF-Token': csrfToken,
-                        'x-csrf-token': csrfToken
-                    },
-                    body: JSON.stringify({ orderId, status })
-                });
-
-                const data = await response.json();
-
-                if (data.success) {
-                    closeStatusModal();
-                    Swal.fire({
-                        icon: 'success',
-                        title: 'Updated',
-                        text: data.message,
-                        timer: 1500,
-                        showConfirmButton: false,
-                        heightAuto: false
-                    }).then(() => window.location.reload());
-                } else {
-                    Swal.fire({
-                        icon: 'error',
-                        title: 'Update Failed',
-                        text: data.message || 'Could not update status.',
-                        confirmButtonColor: '#1a1a1a',
-                        heightAuto: false
-                    });
-                }
-            } catch (err) {
-                console.error(err);
-                Swal.fire({
-                    icon: 'error',
-                    title: 'Network Error',
-                    text: 'Unable to reach the server. Please try again.',
-                    confirmButtonColor: '#1a1a1a',
-                    heightAuto: false
-                });
-            } finally {
-                saveBtn.disabled = false;
-                saveBtn.textContent = 'Update Status';
-            }
-        });
-    }
-
     const adminLogoutForm = document.getElementById("adminLogoutForm");
     if (adminLogoutForm) {
         adminLogoutForm.addEventListener("submit", async function (e) {
             e.preventDefault();
-
             try {
                 const response = await fetch("/admin/logout", {
                     method: "POST",
@@ -203,12 +101,11 @@ document.addEventListener('DOMContentLoaded', () => {
                 }
 
                 const data = await response.json();
-
                 if (data.success || response.ok) {
                     Swal.fire({
                         icon: "success",
                         title: "Logged Out",
-                        text: data.message || "Redirecting to authentication login window...",
+                        text: data.message || "Redirecting...",
                         timer: 1500,
                         showConfirmButton: false,
                         heightAuto: false
@@ -219,7 +116,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     Swal.fire({
                         icon: "error",
                         title: "Logout Failed",
-                        text: data.message || "An unexpected issue occurred.",
+                        text: data.message || "An error occurred.",
                         confirmButtonColor: "#222",
                         heightAuto: false
                     });

@@ -158,73 +158,155 @@ const generateProductId = async () => {
     return `PRD-${nextIdNumber.toString().padStart(4, '0')}`;
 };
 
-export const createProductWithVariants = async (productData, variantDataStr, imageUrls) => {
+export const validateProductInput = async (productData, variantData, imageUrls) => {
     try {
-        const newProductId = await generateProductId();
+        const errorMessages = [];
+
+        const pName = productData.name ? productData.name.trim() : '';
+        const pCat = productData.categoryId ? productData.categoryId.trim() : '';
+        const pDesc = productData.description ? productData.description.trim() : '';
+        const pBrand = productData.brand ? productData.brand.trim() : '';
+        const pMat = productData.material ? productData.material.trim() : '';
+        const pWarr = productData.warranty ? productData.warranty.trim() : '';
+        const pSpecs = productData.specifications ? productData.specifications.trim() : '';
+
+        if (!pName) errorMessages.push('Product name is required.');
+        if (!pCat) errorMessages.push('Please select a category.');
+        if (!pDesc) errorMessages.push('Product description is required.');
+        if (!pBrand) errorMessages.push('Brand name is required.');
+        if (!pMat) errorMessages.push('Material type is required.');
+        if (!pWarr) errorMessages.push('Warranty detail is required.');
+        if (!pSpecs) errorMessages.push('Product specifications are required.');
+
+        if (pCat) {
+            const category = await Category.findById(pCat).lean();
+            if (!category || category.isDeleted) {
+                errorMessages.push('Selected category is invalid or unavailable.');
+            }
+        }
+
+        if (!imageUrls || imageUrls.length < 3) {
+            errorMessages.push('All 3 product images (Main Image, Side Image 1, and Side Image 2) are required.');
+        }
 
         let parsedVariants = [];
-        if (variantDataStr) {
+        if (typeof variantData === 'string') {
             try {
-                parsedVariants = typeof variantDataStr === 'string' ? JSON.parse(variantDataStr) : variantDataStr;
-            } catch (error) {
-                const err = new Error('Failed to parse variant data.');
-                err.statusCode = 400;
-                throw err;
+                parsedVariants = JSON.parse(variantData);
+            } catch (err) {
+                errorMessages.push('Invalid format for variant details.');
             }
+        } else if (Array.isArray(variantData)) {
+            parsedVariants = variantData;
         }
 
-        if (Array.isArray(parsedVariants) && parsedVariants.length > 0) {
-            const incomingNamesSet = new Set();
+        if (!Array.isArray(parsedVariants) || parsedVariants.length === 0) {
+            errorMessages.push('At least one variant must be added.');
+        } else {
+            const variantNamesSet = new Set();
 
-            for (const variant of parsedVariants) {
-                if (!variant.variantName || variant.variantName.trim() === '') {
-                    const err = new Error('Variant name cannot be empty.');
-                    err.statusCode = 400;
-                    throw err;
+            parsedVariants.forEach((v, index) => {
+                const variantNumber = index + 1;
+                const vName = v.variantName ? v.variantName.trim() : '';
+                const vPrice = parseFloat(v.originalPrice);
+                const vDiscount = v.discount !== '' && v.discount !== undefined && v.discount !== null ? parseFloat(v.discount) : 0;
+                const vStock = parseInt(v.stock, 10);
+
+                if (!vName || isNaN(vPrice) || isNaN(vStock)) {
+                    errorMessages.push(`Variant #${variantNumber} is missing required fields (Name, Price, or Stock).`);
                 }
 
-                const normalizedName = variant.variantName.trim().toLowerCase();
-
-                if (incomingNamesSet.has(normalizedName)) {
-                    const err = new Error(`Duplicate variant name detected in your submission: "${variant.variantName.trim()}". Each variant name must be unique.`);
-                    err.statusCode = 400;
-                    throw err;
+                if (!isNaN(vPrice) && vPrice < 0) {
+                    errorMessages.push(`Variant #${variantNumber} price cannot be negative.`);
                 }
-                incomingNamesSet.add(normalizedName);
-            }
+
+                if (!isNaN(vStock) && vStock < 0) {
+                    errorMessages.push(`Variant #${variantNumber} stock cannot be negative.`);
+                }
+
+                if (!isNaN(vDiscount) && (vDiscount < 0 || vDiscount > 100)) {
+                    errorMessages.push(`Variant #${variantNumber} discount must be between 0% and 100%.`);
+                }
+
+                if (v.length !== null && v.length !== undefined && v.length !== '') {
+                    const vLen = parseFloat(v.length);
+                    if (isNaN(vLen) || vLen < 0) {
+                        errorMessages.push(`Variant #${variantNumber} length cannot be negative.`);
+                    }
+                }
+
+                if (v.width !== null && v.width !== undefined && v.width !== '') {
+                    const vWid = parseFloat(v.width);
+                    if (isNaN(vWid) || vWid < 0) {
+                        errorMessages.push(`Variant #${variantNumber} width cannot be negative.`);
+                    }
+                }
+
+                if (v.height !== null && v.height !== undefined && v.height !== '') {
+                    const vHei = parseFloat(v.height);
+                    if (isNaN(vHei) || vHei < 0) {
+                        errorMessages.push(`Variant #${variantNumber} height cannot be negative.`);
+                    }
+                }
+
+                if (vName) {
+                    const normalized = vName.toLowerCase();
+                    if (variantNamesSet.has(normalized)) {
+                        errorMessages.push(`Duplicate variant name detected: "${vName}". Each variant name must be unique.`);
+                    } else {
+                        variantNamesSet.add(normalized);
+                    }
+                }
+            });
         }
+
+        if (errorMessages.length > 0) {
+            const err = new Error(errorMessages.join(' '));
+            err.statusCode = 400;
+            err.errorList = errorMessages;
+            throw err;
+        }
+
+        return parsedVariants;
+    } catch (error) {
+        throw error;
+    }
+};
+
+export const createProductWithVariants = async (productData, variantDataStr, imageUrls) => {
+    try {
+        const parsedVariants = await validateProductInput(productData, variantDataStr, imageUrls);
+
+        const newProductId = await generateProductId();
 
         const newProduct = new Product({
             productId: newProductId,
-            name: productData.name,
-            categoryId: productData.categoryId,
-            description: productData.description,
+            name: productData.name.trim(),
+            categoryId: productData.categoryId.trim(),
+            description: productData.description.trim(),
             brand: productData.brand.trim(),
-            material: productData.material,
-            warranty: productData.warranty,  
-            specifications: productData.specifications,
+            material: productData.material.trim(),
+            warranty: productData.warranty.trim(),
+            specifications: productData.specifications.trim(),
             images: imageUrls
         });
 
         const savedProduct = await newProduct.save();
 
-        if (Array.isArray(parsedVariants) && parsedVariants.length > 0) {
-            const variantDocuments = parsedVariants.map(variant => ({
-                productId: savedProduct._id,
-                variantName: variant.variantName.trim(), 
-                originalPrice: variant.originalPrice,
-                discount: variant.discount || 0,
-                stock: variant.stock,
-                length: variant.length || null,
-                width: variant.width || null,
-                height: variant.height || null
-            }));
+        const variantDocuments = parsedVariants.map(variant => ({
+            productId: savedProduct._id,
+            variantName: variant.variantName.trim(),
+            originalPrice: parseFloat(variant.originalPrice),
+            discount: variant.discount ? parseFloat(variant.discount) : 0,
+            stock: parseInt(variant.stock, 10),
+            length: variant.length !== null && variant.length !== undefined && variant.length !== '' ? parseFloat(variant.length) : null,
+            width: variant.width !== null && variant.width !== undefined && variant.width !== '' ? parseFloat(variant.width) : null,
+            height: variant.height !== null && variant.height !== undefined && variant.height !== '' ? parseFloat(variant.height) : null
+        }));
 
-            await ProductVariant.insertMany(variantDocuments);
-        }
+        await ProductVariant.insertMany(variantDocuments);
 
         return savedProduct;
-        
     } catch (error) {
         throw error;
     }
@@ -362,6 +444,122 @@ export const getProductDetailsForEdit = async (productIdStr) => {
     }
 };
 
+export const validateEditProductInput = async (productData, variantData, finalImages) => {
+    try {
+        const errorMessages = [];
+
+        const pName = productData.name ? productData.name.trim() : '';
+        const pCat = productData.categoryId ? productData.categoryId.trim() : '';
+        const pDesc = productData.description ? productData.description.trim() : '';
+        const pBrand = productData.brand ? productData.brand.trim() : '';
+        const pMat = productData.material ? productData.material.trim() : '';
+        const pWarr = productData.warranty ? productData.warranty.trim() : '';
+        const pSpecs = productData.specifications ? productData.specifications.trim() : '';
+
+        if (!pName) errorMessages.push('Product name is required.');
+        if (!pCat) errorMessages.push('Please select a category.');
+        if (!pDesc) errorMessages.push('Product description is required.');
+        if (!pBrand) errorMessages.push('Brand name is required.');
+        if (!pMat) errorMessages.push('Material type is required.');
+        if (!pWarr) errorMessages.push('Warranty detail is required.');
+        if (!pSpecs) errorMessages.push('Product specifications are required.');
+
+        if (pCat) {
+            const category = await Category.findById(pCat).lean();
+            if (!category || category.isDeleted) {
+                errorMessages.push('Selected category is invalid or unavailable.');
+            }
+        }
+
+        const validImages = finalImages.filter(img => typeof img === 'string' && img.trim() !== '');
+        if (validImages.length < 3) {
+            errorMessages.push('All 3 product image slots must contain a valid image.');
+        }
+
+        let parsedVariants = [];
+        if (typeof variantData === 'string') {
+            try {
+                parsedVariants = JSON.parse(variantData);
+            } catch (err) {
+                errorMessages.push('Invalid format for variant details.');
+            }
+        } else if (Array.isArray(variantData)) {
+            parsedVariants = variantData;
+        }
+
+        if (!Array.isArray(parsedVariants) || parsedVariants.length === 0) {
+            errorMessages.push('At least one variant must be added.');
+        } else {
+            const variantNamesSet = new Set();
+
+            parsedVariants.forEach((v, index) => {
+                const variantNumber = index + 1;
+                const vName = v.variantName ? v.variantName.trim() : '';
+                const vPrice = parseFloat(v.originalPrice);
+                const vDiscount = v.discount !== '' && v.discount !== undefined && v.discount !== null ? parseFloat(v.discount) : 0;
+                const vStock = parseInt(v.stock, 10);
+
+                if (!vName || isNaN(vPrice) || isNaN(vStock)) {
+                    errorMessages.push(`Variant #${variantNumber} is missing required fields (Name, Price, or Stock).`);
+                }
+
+                if (!isNaN(vPrice) && vPrice < 0) {
+                    errorMessages.push(`Variant #${variantNumber} price cannot be negative or invalid.`);
+                }
+
+                if (!isNaN(vStock) && vStock < 0) {
+                    errorMessages.push(`Variant #${variantNumber} stock cannot be negative or invalid.`);
+                }
+
+                if (!isNaN(vDiscount) && (vDiscount < 0 || vDiscount > 100)) {
+                    errorMessages.push(`Variant #${variantNumber} discount must be between 0% and 100%.`);
+                }
+
+                if (v.length !== null && v.length !== undefined && v.length !== '') {
+                    const vLen = parseFloat(v.length);
+                    if (isNaN(vLen) || vLen < 0) {
+                        errorMessages.push(`Variant #${variantNumber} length cannot be negative.`);
+                    }
+                }
+
+                if (v.width !== null && v.width !== undefined && v.width !== '') {
+                    const vWid = parseFloat(v.width);
+                    if (isNaN(vWid) || vWid < 0) {
+                        errorMessages.push(`Variant #${variantNumber} width cannot be negative.`);
+                    }
+                }
+
+                if (v.height !== null && v.height !== undefined && v.height !== '') {
+                    const vHei = parseFloat(v.height);
+                    if (isNaN(vHei) || vHei < 0) {
+                        errorMessages.push(`Variant #${variantNumber} height cannot be negative.`);
+                    }
+                }
+
+                if (vName) {
+                    const normalized = vName.toLowerCase();
+                    if (variantNamesSet.has(normalized)) {
+                        errorMessages.push(`Duplicate variant name detected: "${vName}". Each variant name must be unique.`);
+                    } else {
+                        variantNamesSet.add(normalized);
+                    }
+                }
+            });
+        }
+
+        if (errorMessages.length > 0) {
+            const err = new Error(errorMessages.join(' '));
+            err.statusCode = 400;
+            err.errorList = errorMessages;
+            throw err;
+        }
+
+        return parsedVariants;
+    } catch (error) {
+        throw error;
+    }
+};
+
 export const updateExistingProduct = async (productIdStr, productData, newFiles, variantDataStr) => {
     try {
         const product = await Product.findOne({ productId: productIdStr });
@@ -370,19 +568,11 @@ export const updateExistingProduct = async (productIdStr, productData, newFiles,
             return { isUpdated: false, isNotFound: true };
         }
 
-        product.name = productData.name;
-        product.categoryId = productData.categoryId;
-        product.description = productData.description;
-        product.brand = productData.brand;
-        product.material = productData.material;
-        product.warranty = productData.warranty;
-        product.specifications = productData.specifications;
-
         let existingImages = [];
         if (productData.existingImages) {
             try {
-                existingImages = typeof productData.existingImages === 'string' 
-                    ? JSON.parse(productData.existingImages) 
+                existingImages = typeof productData.existingImages === 'string'
+                    ? JSON.parse(productData.existingImages)
                     : productData.existingImages;
             } catch (e) {
                 existingImages = product.images || [];
@@ -408,45 +598,43 @@ export const updateExistingProduct = async (productIdStr, productData, newFiles,
             newFiles.forEach((file, fileIdx) => {
                 const targetSlotIndex = updatedSlotIndices[fileIdx];
                 if (targetSlotIndex !== undefined && targetSlotIndex !== null) {
-                    finalImages[targetSlotIndex] = file.path; // Replace ONLY the updated slot
+                    finalImages[targetSlotIndex] = file.path;
                 } else if (file.path) {
                     finalImages.push(file.path);
                 }
             });
         }
 
+        const parsedVariants = await validateEditProductInput(productData, variantDataStr, finalImages);
+
+        product.name = productData.name.trim();
+        product.categoryId = productData.categoryId.trim();
+        product.description = productData.description.trim();
+        product.brand = productData.brand.trim();
+        product.material = productData.material.trim();
+        product.warranty = productData.warranty.trim();
+        product.specifications = productData.specifications.trim();
         product.images = finalImages.filter(img => typeof img === 'string' && img.trim() !== '');
 
         await product.save();
 
-        if (variantDataStr) {
-            let parsedVariants;
-            try {
-                parsedVariants = typeof variantDataStr === 'string' ? JSON.parse(variantDataStr) : variantDataStr;
-            } catch (error) {
-                throw new Error('Failed to parse variant data.');
-            }
+        await ProductVariant.deleteMany({ productId: product._id });
 
-            await ProductVariant.deleteMany({ productId: product._id });
+        const variantDocs = parsedVariants.map((variant) => ({
+            productId: product._id,
+            variantName: variant.variantName.trim(),
+            originalPrice: parseFloat(variant.originalPrice),
+            discount: variant.discount ? parseFloat(variant.discount) : 0,
+            stock: parseInt(variant.stock, 10),
+            length: variant.length !== null && variant.length !== undefined && variant.length !== '' ? parseFloat(variant.length) : null,
+            width: variant.width !== null && variant.width !== undefined && variant.width !== '' ? parseFloat(variant.width) : null,
+            height: variant.height !== null && variant.height !== undefined && variant.height !== '' ? parseFloat(variant.height) : null
+        }));
 
-            if (Array.isArray(parsedVariants) && parsedVariants.length > 0) {
-                const variantDocs = parsedVariants.map((variant) => ({
-                    productId: product._id,
-                    variantName: variant.variantName,
-                    originalPrice: variant.originalPrice,
-                    discount: variant.discount || 0,
-                    stock: variant.stock,
-                    length: variant.length || null,
-                    width: variant.width || null,
-                    height: variant.height || null,
-                }));
-
-                await ProductVariant.insertMany(variantDocs);
-            }
-        }
+        await ProductVariant.insertMany(variantDocs);
 
         return { isUpdated: true, product };
-        
+
     } catch (error) {
         throw error;
     }

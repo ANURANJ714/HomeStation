@@ -13,7 +13,7 @@ export const loadOrdersPage = async (req, res) => {
 
         const data = await adminOrderService.getAdminOrdersPageData(page, limit, searchQuery, statusFilter);
 
-        logger.info(`Admin (${adminEmail}) viewed Orders Page (Page: ${data.safePage}, Search: "${searchQuery}", Filter: "${statusFilter}"). IP: ${clientIp}`);
+        logger.info(`Admin (${adminEmail}) viewed Orders list (Page: ${data.safePage}, Search: "${searchQuery}") | IP: ${clientIp}`);
 
         return res.render('admin/orders', {
             orders: data.orders,
@@ -28,45 +28,10 @@ export const loadOrdersPage = async (req, res) => {
         });
 
     } catch (error) {
-        logger.error(`Error loading admin orders: ${error.message}\nStack: ${error.stack}`);
-        
+        logger.error(`Error loading admin orders page: ${error.message}\nStack: ${error.stack}`);
         return res.status(500).json({
             success: false,
-            title: "Server Error",
-            message: "Internal server error occurred while retrieving orders."
-        });
-    }
-};
-
-export const updateOrderStatus = async (req, res) => {
-    try {
-        const clientIp = req.ip;
-        const adminEmail = req.user?.email || req.session?.admin?.email || 'Unknown Admin';
-        const { orderId, status } = req.body;
-
-        if (!orderId || !status) {
-            return res.status(400).json({
-                success: false,
-                message: 'Order ID and status are required.'
-            });
-        }
-
-        const updatedOrder = await adminOrderService.updateOrderStatus(orderId, status);
-
-        logger.info(`Admin (${adminEmail}) updated Order [${orderId}] status to [${status}]. IP: ${clientIp}`);
-
-        return res.status(200).json({
-            success: true,
-            message: `Order status updated to "${status}" successfully.`,
-            order: updatedOrder
-        });
-
-    } catch (error) {
-        logger.error(`Error updating status for Order (${req.body?.orderId}): ${error.message}`);
-
-        return res.status(500).json({
-            success: false,
-            message: error.message || 'Failed to update order status.'
+            message: 'Internal server error occurred while retrieving orders.'
         });
     }
 };
@@ -76,32 +41,42 @@ export const loadViewOrderPage = async (req, res) => {
         const clientIp = req.ip;
         const adminEmail = req.user?.email || req.session?.admin?.email || 'Unknown Admin';
         const { orderId } = req.params;
+        const orderItemId = req.query._id || req.query.itemId || null;
 
-        const order = await adminOrderService.getOrderDetailsByOrderId(orderId);
+        const result = await adminOrderService.getOrderDetailsByOrderIdAndItemId(orderId, orderItemId);
 
-        if (!order) {
-            logger.warn(`Admin (${adminEmail}) tried to access non-existing order: ${orderId} | IP: ${clientIp}`);
+        if (!result || !result.order || !result.item) {
+            logger.warn(`Admin (${adminEmail}) tried to view non-existing order/item: ${orderId} | IP: ${clientIp}`);
             return res.redirect('/admin/orders');
         }
 
-        const subtotal = order.orderItems.reduce((acc, item) => acc + (item.currentPrice * item.quantity), 0);
-        const originalTotal = order.orderItems.reduce((acc, item) => acc + (item.originalPrice * item.quantity), 0);
+        const { order, item } = result;
+
+        const subtotal = item.currentPrice * item.quantity;
+        const originalTotal = item.originalPrice * item.quantity;
         const couponDiscount = Math.max(0, originalTotal - subtotal);
         const shippingFee = 0;
         const grandTotal = subtotal + shippingFee;
 
         let paymentStatus = 'Unpaid';
-        if (order.paymentMode === 'razorpay' || order.paymentMode === 'wallet') {
+        const isOnline = order.paymentMode === 'razorpay' || order.paymentMode === 'wallet';
+
+        if (item.returnStatus === 'item reached') {
+            paymentStatus = 'Refunded';
+        } else if (item.itemStatus === 'cancelled') {
+            paymentStatus = isOnline ? 'Refunded' : 'Unpaid';
+        } else if (isOnline) {
             paymentStatus = 'Paid';
-        } else if (order.paymentMode === 'cod' && order.status === 'delivered') {
-            paymentStatus = 'Paid';
+        } else if (order.paymentMode === 'cod') {
+            paymentStatus = item.itemStatus === 'delivered' ? 'Paid' : 'Unpaid';
         }
 
-        logger.info(`Admin (${adminEmail}) viewed order details for ${order.orderId} | IP: ${clientIp}`);
+        logger.info(`Admin (${adminEmail}) viewed item [${item._id}] in Order [${order.orderId}] | IP: ${clientIp}`);
 
         return res.render('admin/vieworder', {
-            pageTitle: `HomeStation - ADMIN`,
+            pageTitle: 'HomeStation - ADMIN',
             order,
+            item,
             subtotal,
             couponDiscount,
             shippingFee,
@@ -111,12 +86,51 @@ export const loadViewOrderPage = async (req, res) => {
         });
 
     } catch (error) {
-        logger.error(`Error loading view order page for ID (${req.params?.orderId}): ${error.message}\nStack: ${error.stack}`);
-        
+        logger.error(`Error loading view order page for Order (${req.params?.orderId}): ${error.message}\nStack: ${error.stack}`);
         return res.status(500).json({
             success: false,
-            title: "Server Error",
-            message: "Internal server error occurred while retrieving order details."
+            message: 'Internal server error occurred while retrieving order details.'
+        });
+    }
+};
+
+export const updateOrderStatus = async (req, res) => {
+    try {
+        const clientIp = req.ip;
+        const adminEmail = req.user?.email || req.session?.admin?.email || 'Unknown Admin';
+        const { orderId, orderItemId, status } = req.body;
+
+        if (!orderId || !orderItemId || !status) {
+            return res.status(400).json({
+                success: false,
+                message: 'Order ID, Item ID, and status are required.'
+            });
+        }
+
+        const result = await adminOrderService.updateOrderItemStatus(orderId, orderItemId, status);
+
+        if (result.isUnchanged) {
+            logger.info(`Admin (${adminEmail}) submitted unchanged status for item [${orderItemId}] in Order [${orderId}] | IP: ${clientIp}`);
+            return res.status(200).json({
+                success: false,
+                isUnchanged: true,
+                message: 'No change made in status.'
+            });
+        }
+
+        logger.info(`Admin (${adminEmail}) updated status of item [${orderItemId}] in Order [${orderId}] to [${status}] | IP: ${clientIp}`);
+
+        return res.status(200).json({
+            success: true,
+            isUnchanged: false,
+            message: `Status updated to "${status}" successfully.`
+        });
+
+    } catch (error) {
+        logger.error(`Error updating item status in Order (${req.body?.orderId}): ${error.message}\nStack: ${error.stack}`);
+        return res.status(error.statusCode || 500).json({
+            success: false,
+            message: error.message || 'Failed to update item status.'
         });
     }
 };

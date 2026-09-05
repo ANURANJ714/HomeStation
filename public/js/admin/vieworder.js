@@ -1,5 +1,7 @@
 document.addEventListener('DOMContentLoaded', () => {
     const csrfToken = document.getElementById('csrfToken')?.value || '';
+    const pageOrderId = document.getElementById('pageOrderId')?.value || '';
+    const pageOrderItemId = document.getElementById('pageOrderItemId')?.value || '';
 
     function updateDateTime() {
         const now = new Date();
@@ -10,48 +12,99 @@ document.addEventListener('DOMContentLoaded', () => {
     updateDateTime();
     setInterval(updateDateTime, 60000);
 
-    const dropdownWrapper = document.getElementById('mainStatusWrapper');
-    if (dropdownWrapper) {
-        dropdownWrapper.addEventListener('click', (e) => {
-            e.stopPropagation();
-            dropdownWrapper.classList.toggle('open');
-        });
-
-        document.querySelectorAll('.custom-select-option').forEach(option => {
-            option.addEventListener('click', (e) => {
-                e.stopPropagation();
-                document.querySelectorAll('.custom-select-option').forEach(opt => opt.classList.remove('selected'));
-                option.classList.add('selected');
-
-                const textElem = document.getElementById('mainStatusText');
-                if (textElem) textElem.textContent = option.textContent.trim();
-
-                const inputElem = document.getElementById('mainStatusInput');
-                if (inputElem) inputElem.value = option.dataset.value;
-
-                dropdownWrapper.classList.remove('open');
-            });
-        });
-
-        window.addEventListener('click', () => {
-            dropdownWrapper.classList.remove('open');
-        });
+    function closeAllDropdowns() {
+        document.querySelectorAll('.custom-select-wrapper.open').forEach(w => w.classList.remove('open'));
     }
 
+    document.addEventListener('click', (e) => {
+        const trigger = e.target.closest('.custom-select-trigger');
+        if (trigger) {
+            const wrapper = trigger.closest('.custom-select-wrapper');
+            const isOpen = wrapper.classList.contains('open');
+            closeAllDropdowns();
+            if (!isOpen) wrapper.classList.add('open');
+            return;
+        }
+
+        const option = e.target.closest('.custom-select-option');
+        if (option) {
+            const wrapper = option.closest('.custom-select-wrapper');
+            wrapper.querySelectorAll('.custom-select-option').forEach(opt => opt.classList.remove('selected'));
+            option.classList.add('selected');
+
+            const textElem = wrapper.querySelector('.custom-select-trigger span');
+            if (textElem) textElem.textContent = option.textContent.trim();
+
+            const inputElem = wrapper.querySelector('input[type="hidden"]');
+            if (inputElem) inputElem.value = option.dataset.value;
+
+            wrapper.classList.remove('open');
+            return;
+        }
+
+        if (!e.target.closest('.custom-select-wrapper')) {
+            closeAllDropdowns();
+        }
+    });
+
     const updateModal = document.getElementById('updateStatusModal');
-    const openModalBtn = document.getElementById('openStatusModalBtn');
+    const openStatusModalBtn = document.getElementById('openStatusModalBtn');
     const closeModalBtn = document.getElementById('closeModalBtn');
     const cancelModalBtn = document.getElementById('cancelModalBtn');
+    const modalTitleText = document.getElementById('modalTitleText');
+    const modalLabelText = document.getElementById('modalLabelText');
+    const modalStatusOptionsList = document.getElementById('modalStatusOptionsList');
+    const mainStatusText = document.getElementById('mainStatusText');
+    const mainStatusInput = document.getElementById('mainStatusInput');
+
+    const deliveryStages = [
+        { label: 'Processing', value: 'processing' },
+        { label: 'Packed', value: 'packed' },
+        { label: 'Shipped', value: 'shipped' },
+        { label: 'On the Way', value: 'on the way' },
+        { label: 'Out for Delivery', value: 'out for delivery' },
+        { label: 'Delivered', value: 'delivered' }
+    ];
+
+    const returnStages = [
+        { label: 'Return Initiated', value: 'return initiated' },
+        { label: 'Pickup Assigned', value: 'pickup assigned' },
+        { label: 'Item Picked Up', value: 'item picked up' },
+        { label: 'In Transit', value: 'in transit' },
+        { label: 'Item Reached', value: 'item reached' }
+    ];
 
     function openModal() {
-        if (updateModal) updateModal.style.display = 'flex';
+        if (!openStatusModalBtn) return;
+        const isReturn = openStatusModalBtn.dataset.isReturn === 'true';
+        const currentStatus = openStatusModalBtn.dataset.currentStatus || 'processing';
+
+        modalTitleText.textContent = isReturn ? 'Update Return Stage' : 'Update Item Status';
+        modalLabelText.textContent = isReturn ? 'Return Stage' : 'Delivery Status';
+
+        const stages = isReturn ? returnStages : deliveryStages;
+        modalStatusOptionsList.innerHTML = '';
+
+        stages.forEach(stage => {
+            const li = document.createElement('li');
+            li.className = `custom-select-option ${stage.value === currentStatus ? 'selected' : ''}`;
+            li.dataset.value = stage.value;
+            li.textContent = stage.label;
+            modalStatusOptionsList.appendChild(li);
+        });
+
+        const selectedStage = stages.find(s => s.value === currentStatus) || stages[0];
+        mainStatusText.textContent = selectedStage.label;
+        mainStatusInput.value = selectedStage.value;
+
+        updateModal.style.display = 'flex';
     }
 
     function closeModal() {
         if (updateModal) updateModal.style.display = 'none';
     }
 
-    if (openModalBtn) openModalBtn.addEventListener('click', openModal);
+    if (openStatusModalBtn) openStatusModalBtn.addEventListener('click', openModal);
     if (closeModalBtn) closeModalBtn.addEventListener('click', closeModal);
     if (cancelModalBtn) cancelModalBtn.addEventListener('click', closeModal);
 
@@ -64,22 +117,23 @@ document.addEventListener('DOMContentLoaded', () => {
         updateStatusForm.addEventListener('submit', async (e) => {
             e.preventDefault();
 
-            const orderId = document.getElementById('modalOrderId')?.value;
-            const status = document.getElementById('mainStatusInput')?.value;
+            const orderId = document.getElementById('modalOrderId')?.value || pageOrderId;
+            const orderItemId = document.getElementById('modalOrderItemId')?.value || pageOrderItemId;
+            const status = mainStatusInput?.value;
             const saveBtn = document.getElementById('saveStatusBtn');
 
-            if (!orderId || !status) {
+            if (!orderId || !orderItemId || !status) {
                 return Swal.fire({
                     icon: 'warning',
                     title: 'Incomplete Field',
-                    text: 'Please choose an order status.',
+                    text: 'Please select a status.',
                     confirmButtonColor: '#1a1a1a',
                     heightAuto: false
                 });
             }
 
             saveBtn.disabled = true;
-            saveBtn.textContent = 'Updating...';
+            saveBtn.textContent = 'Saving...';
 
             try {
                 const response = await fetch('/admin/orders/status', {
@@ -89,16 +143,25 @@ document.addEventListener('DOMContentLoaded', () => {
                         'CSRF-Token': csrfToken,
                         'x-csrf-token': csrfToken
                     },
-                    body: JSON.stringify({ orderId, status })
+                    body: JSON.stringify({ orderId, orderItemId, status })
                 });
 
                 const data = await response.json();
 
-                if (data.success) {
+                if (data.isUnchanged) {
+                    closeModal();
+                    Swal.fire({
+                        icon: 'info',
+                        title: 'No Change',
+                        text: data.message || 'No change made in status.',
+                        confirmButtonColor: '#1a1a1a',
+                        heightAuto: false
+                    });
+                } else if (data.success) {
                     closeModal();
                     Swal.fire({
                         icon: 'success',
-                        title: 'Status Updated',
+                        title: 'Updated',
                         text: data.message,
                         timer: 1500,
                         showConfirmButton: false,
@@ -124,7 +187,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 });
             } finally {
                 saveBtn.disabled = false;
-                saveBtn.textContent = 'Update Status';
+                saveBtn.textContent = 'Save Status';
             }
         });
     }
@@ -133,7 +196,6 @@ document.addEventListener('DOMContentLoaded', () => {
     if (adminLogoutForm) {
         adminLogoutForm.addEventListener("submit", async function (e) {
             e.preventDefault();
-
             try {
                 const response = await fetch("/admin/logout", {
                     method: "POST",
@@ -149,12 +211,11 @@ document.addEventListener('DOMContentLoaded', () => {
                 }
 
                 const data = await response.json();
-
                 if (data.success || response.ok) {
                     Swal.fire({
                         icon: "success",
                         title: "Logged Out",
-                        text: data.message || "Redirecting to authentication login window...",
+                        text: data.message || "Redirecting...",
                         timer: 1500,
                         showConfirmButton: false,
                         heightAuto: false
@@ -165,7 +226,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     Swal.fire({
                         icon: "error",
                         title: "Logout Failed",
-                        text: data.message || "An unexpected issue occurred.",
+                        text: data.message || "An error occurred.",
                         confirmButtonColor: "#222",
                         heightAuto: false
                     });

@@ -120,3 +120,12 @@ export const updateUserPassword = async (email, rawPassword) => {
         throw new Error(`Database error while updating user password: ${error.message}`);
     }
 };
+
+export const getUserById = async (userId) => {
+    try {
+        if (!userId) return null;
+        return await User.findById(userId).lean();
+    } catch (error) {
+        throw new Error(`Database error while fetching user profile: ${error.message}`);
+    }
+};

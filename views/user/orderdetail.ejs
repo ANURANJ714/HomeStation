@@ -4,7 +4,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>HomeStation</title>
+    <title><%= typeof pageTitle !== 'undefined' ? pageTitle : 'HomeStation - Order Details' %></title>
     <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&display=swap" rel="stylesheet">
     <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,600;0,700;1,600&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
@@ -57,39 +57,73 @@
 
                 <% if (order.returnStatus && order.returnStatus !== 'none') { %>
                     <div class="detail-header-banner banner-returned">
-                        <i class="fa-solid fa-rotate-left"></i>
-                        <div>
+                        <i class="fa-solid fa-rotate-left banner-main-icon"></i>
+                        <div class="detail-header-text">
                             <h2><%= order.returnStatus.charAt(0).toUpperCase() + order.returnStatus.slice(1) %></h2>
-                            <p>Return has been updated on <%= formattedUpdatedDate %>.</p>
+                            <p class="banner-subtext">Return status was updated on <%= formattedUpdatedDate %>.</p>
                         </div>
                     </div>
                 <% } else if (order.status === 'delivered') { %>
                     <div class="detail-header-banner banner-delivered">
-                        <i class="fa-solid fa-circle-check"></i>
-                        <div>
+                        <i class="fa-solid fa-circle-check banner-main-icon"></i>
+                        <div class="detail-header-text">
                             <h2>Delivered</h2>
-                            <p>Your items were delivered successfully on <%= formattedUpdatedDate %>.</p>
+                            <p class="banner-subtext">Your order was delivered successfully on <%= formattedUpdatedDate %>.</p>
+                            <% if (isReturnEligible) { %>
+                                <p class="return-window-note">
+                                    <i class="fa-solid fa-clock-rotate-left return-note-icon"></i>
+                                    <span>You can return eligible items until <strong><%= formattedReturnDeadline %></strong>.</span>
+                                </p>
+                            <% } %>
                         </div>
                     </div>
                 <% } else if (order.status === 'cancelled') { %>
                     <div class="detail-header-banner banner-cancelled">
-                        <i class="fa-solid fa-circle-xmark"></i>
-                        <div>
+                        <i class="fa-solid fa-circle-xmark banner-main-icon"></i>
+                        <div class="detail-header-text">
                             <h2>Cancelled</h2>
-                            <p>This order was cancelled on <%= formattedUpdatedDate %>.</p>
+                            <p class="banner-subtext">This order was cancelled on <%= formattedUpdatedDate %>.</p>
                         </div>
                     </div>
                 <% } else { %>
                     <div class="detail-header-banner banner-ontheway">
-                        <i class="fa-solid fa-truck"></i>
-                        <div>
+                        <i class="fa-solid fa-truck banner-main-icon"></i>
+                        <div class="detail-header-text">
                             <h2><%= order.status.charAt(0).toUpperCase() + order.status.slice(1) %></h2>
-                            <p>Expected delivery by <%= formattedExpectedDate %>.</p>
+                            <p class="banner-subtext">Expected delivery by <%= formattedExpectedDate %>.</p>
                         </div>
                     </div>
                 <% } %>
 
-                <% if (order.status !== 'cancelled' && (!order.returnStatus || order.returnStatus === 'none')) { %>
+                <% if (order.returnStatus && order.returnStatus !== 'none') { %>
+                    <div class="status-tracker-container return-tracker-bg">
+                        <div class="status-tracker-bar">
+                            <% 
+                                const rSteps = [
+                                    { label: 'Return Initiated', key: 'return initiated', icon: 'fa-rotate-left' },
+                                    { label: 'Pickup Assigned', key: 'pickup assigned', icon: 'fa-user-check' },
+                                    { label: 'Item Picked Up', key: 'item picked up', icon: 'fa-box' },
+                                    { label: 'In Transit', key: 'in transit', icon: 'fa-truck-fast' },
+                                    { label: 'Item Reached', key: 'item reached', icon: 'fa-warehouse' }
+                                ];
+                            %>
+                            <% rSteps.forEach((step, idx) => { 
+                                const isCompleted = idx <= currentReturnStepIndex;
+                                const isActive = idx === currentReturnStepIndex;
+                            %>
+                                <div class="tracker-step return-step <%= isCompleted ? 'completed-return' : '' %> <%= isActive ? 'active-return' : '' %>">
+                                    <div class="tracker-node">
+                                        <i class="fa-solid <%= step.icon %>"></i>
+                                    </div>
+                                    <span class="tracker-label"><%= step.label %></span>
+                                </div>
+                                <% if (idx < rSteps.length - 1) { %>
+                                    <div class="tracker-line <%= idx < currentReturnStepIndex ? 'completed-return-line' : '' %>"></div>
+                                <% } %>
+                            <% }) %>
+                        </div>
+                    </div>
+                <% } else if (order.status !== 'cancelled') { %>
                     <div class="status-tracker-container">
                         <div class="status-tracker-bar">
                             <% 
@@ -132,20 +166,10 @@
                         </div>
                         <div class="detail-item">
                             <span class="detail-label">
-                                <% if (order.status === 'delivered') { %>
-                                    Delivered Date
-                                <% } else if (order.status === 'cancelled') { %>
-                                    Cancelled Date
-                                <% } else { %>
-                                    Expected Date
-                                <% } %>
+                                <%= order.status === 'delivered' ? 'Delivered Date' : (order.status === 'cancelled' ? 'Cancelled Date' : 'Expected Date') %>
                             </span>
                             <span class="detail-value">
-                                <% if (order.status === 'delivered' || order.status === 'cancelled') { %>
-                                    <%= formattedUpdatedDate %>
-                                <% } else { %>
-                                    <%= formattedExpectedDate %>
-                                <% } %>
+                                <%= (order.status === 'delivered' || order.status === 'cancelled') ? formattedUpdatedDate : formattedExpectedDate %>
                             </span>
                         </div>
                         <div class="detail-item">
@@ -159,7 +183,8 @@
                                 const product = variant?.productId;
                                 const categoryName = product?.categoryId?.name || 'Sleep Essentials';
                                 const firstImage = (product?.images && product.images.length > 0) ? product.images[0] : 'https://placehold.co/280x160';
-                                const productId = product?._id || '';
+                                const productId = product?._id ? product._id.toString() : '';
+                                const existingReview = (typeof userReviews !== 'undefined' && userReviews && userReviews[productId]) ? userReviews[productId] : null;
                             %>
                                 <div class="detail-item full-width product-main-info">
                                     <div class="product-text-details">
@@ -176,6 +201,42 @@
                                         <div class="info-group">
                                             <span class="detail-label">Price & Quantity</span>
                                             <span class="detail-value">₹<%= item.currentPrice.toLocaleString('en-IN') %> × <%= item.quantity %> = <strong>₹<%= (item.currentPrice * item.quantity).toLocaleString('en-IN') %></strong></span>
+                                        </div>
+                                        <div class="info-group">
+                                            <span class="detail-label">Item Status</span>
+                                            <span class="detail-value item-status-badge <%= item.itemStatus %>">
+                                                <% if (item.returnStatus && item.returnStatus !== 'none') { %>
+                                                    <%= item.returnStatus.charAt(0).toUpperCase() + item.returnStatus.slice(1) %>
+                                                <% } else { %>
+                                                    <%= item.itemStatus.charAt(0).toUpperCase() + item.itemStatus.slice(1) %>
+                                                <% } %>
+                                            </span>
+                                        </div>
+
+                                        <div class="item-actions-row">
+                                            <% if (item.itemStatus === 'delivered') { %>
+                                                <button type="button" class="btn-modal-action btn-review trigger-review-modal-btn"
+                                                    data-product-id="<%= productId %>"
+                                                    data-product-name="<%= product?.name || 'Product' %>"
+                                                    data-existing-rating="<%= existingReview ? existingReview.rating : 5 %>"
+                                                    data-existing-comment="<%= existingReview ? existingReview.comment : '' %>">
+                                                    <% if (existingReview) { %>
+                                                        <i class="fa-solid fa-pen-to-square"></i> Edit Review
+                                                    <% } else { %>
+                                                        <i class="fa-solid fa-star"></i> Write a Review
+                                                    <% } %>
+                                                </button>
+
+                                                <% if (isReturnEligible && (!item.returnStatus || item.returnStatus === 'none')) { %>
+                                                    <button type="button" class="btn-modal-action btn-return trigger-item-return-btn" data-item-id="<%= item._id %>">
+                                                        <i class="fa-solid fa-rotate-left"></i> Return Item
+                                                    </button>
+                                                <% } %>
+                                            <% } else if (item.itemStatus !== 'cancelled') { %>
+                                                <button type="button" class="btn-modal-action btn-cancel trigger-item-cancel-btn" data-item-id="<%= item._id %>">
+                                                    <i class="fa-solid fa-ban"></i> Cancel Item
+                                                </button>
+                                            <% } %>
                                         </div>
                                     </div>
                                     <div class="product-image-box">
@@ -199,23 +260,23 @@
                     </div>
 
                     <div class="action-buttons-row">
-                        <% if (order.status === 'delivered') { %>
-                            <% if (!order.returnStatus || order.returnStatus === 'none') { %>
-                                <button type="button" class="btn-modal-action btn-review" id="openReviewBtn">
-                                    <i class="fa-solid fa-star"></i> Write a Review
-                                </button>
-                                <button type="button" class="btn-modal-action btn-return" id="openReturnBtn">
-                                    <i class="fa-solid fa-rotate-left"></i> Return Item
+                        <% if (order.returnStatus === 'return initiated' || order.returnStatus === 'returned') { %>
+                        <% } else { %>
+                            <% if (order.status === 'delivered') { %>
+                                <% if (isReturnEligible && hasReturnableItems) { %>
+                                    <button type="button" class="btn-modal-action btn-return" id="openFullOrderReturnBtn">
+                                        <i class="fa-solid fa-rotate-left"></i> Return Entire Order
+                                    </button>
+                                <% } %>
+                                <% const cleanOrderId = order.orderId ? order.orderId.replace(/^#/, '') : ''; %>
+                                <a href="/user/orders/invoice/<%= cleanOrderId %>" class="btn-modal-action btn-invoice">
+                                    <i class="fa-solid fa-file-invoice"></i> Download Invoice
+                                </a>
+                            <% } else if (order.status !== 'cancelled' && hasCancellableItems) { %>
+                                <button type="button" class="btn-modal-action btn-cancel" id="openFullOrderCancelBtn">
+                                    <i class="fa-solid fa-ban"></i> Cancel Entire Order
                                 </button>
                             <% } %>
-                            <% const cleanOrderId = order.orderId ? order.orderId.replace(/^#/, '') : ''; %>
-                            <a href="/user/orders/invoice/<%= cleanOrderId %>" class="btn-modal-action btn-invoice">
-                                <i class="fa-solid fa-file-invoice"></i> Download Invoice
-                            </a>
-                        <% } else if (order.status !== 'cancelled') { %>
-                            <button type="button" class="btn-modal-action btn-cancel" id="openCancelOrderBtn">
-                                <i class="fa-solid fa-ban"></i> Cancel Order
-                            </button>
                         <% } %>
                     </div>
                 </div>
@@ -226,19 +287,21 @@
     <div class="modal-overlay" id="reviewModal">
         <div class="modal-box modal-box-sm">
             <div class="modal-header">
-                <h3 class="modal-title"><i class="fa-solid fa-star"></i> Write a Review</h3>
+                <h3 class="modal-title" id="reviewModalTitle"><i class="fa-solid fa-star"></i> Write a Review</h3>
                 <button type="button" class="modal-close-btn" id="closeReviewModalBtn"><i class="fa-solid fa-xmark"></i></button>
             </div>
             <div class="modal-body">
-                <p>How was your experience with this product?</p>
+                <input type="hidden" id="modalReviewProductId" value="">
+                <p id="reviewProductNameLabel">How was your experience with this product?</p>
                 <div class="star-rating" id="starRating">
-                    <i class="fa-solid fa-star rating-star" data-rating="1"></i>
-                    <i class="fa-solid fa-star rating-star" data-rating="2"></i>
-                    <i class="fa-solid fa-star rating-star" data-rating="3"></i>
-                    <i class="fa-solid fa-star rating-star" data-rating="4"></i>
-                    <i class="fa-solid fa-star rating-star" data-rating="5"></i>
+                    <i class="fa-solid fa-star rating-star active" data-rating="1"></i>
+                    <i class="fa-solid fa-star rating-star active" data-rating="2"></i>
+                    <i class="fa-solid fa-star rating-star active" data-rating="3"></i>
+                    <i class="fa-solid fa-star rating-star active" data-rating="4"></i>
+                    <i class="fa-solid fa-star rating-star active" data-rating="5"></i>
                 </div>
-                <textarea class="review-textarea" id="reviewText" placeholder="Write your honest review here..."></textarea>
+                <textarea class="review-textarea" id="reviewText" placeholder="Write your review (minimum 10 characters)..."></textarea>
+                <small class="field-error-msg" id="reviewErrorMsg"></small>
             </div>
             <div class="modal-footer">
                 <button type="button" class="btn-modal-action btn-primary" id="submitReviewBtn">Submit Review</button>
@@ -250,13 +313,35 @@
     <div class="modal-overlay" id="returnModal">
         <div class="modal-box modal-box-sm">
             <div class="modal-header">
-                <h3 class="modal-title"><i class="fa-solid fa-rotate-left"></i> Return Item</h3>
+                <h3 class="modal-title" id="returnModalTitle"><i class="fa-solid fa-rotate-left"></i> Return Product</h3>
                 <button type="button" class="modal-close-btn" id="closeReturnModalBtn"><i class="fa-solid fa-xmark"></i></button>
             </div>
-            <div class="modal-body text-center">
-                <i class="fa-solid fa-rotate-left modal-icon-large return-color"></i>
-                <p class="modal-confirm-text">Are you sure you want to return this item?</p>
-                <p class="modal-sub-text">A pickup will be scheduled. Refund will process after inspection.</p>
+            <div class="modal-body">
+                <input type="hidden" id="modalTargetReturnItemId" value="">
+                <p class="modal-confirm-text">Please select a reason for returning:</p>
+                <div class="reasons-list">
+                    <label class="reason-option">
+                        <input type="radio" name="returnReasonRadio" value="Product Damaged">
+                        <span>Product Damaged</span>
+                    </label>
+                    <label class="reason-option">
+                        <input type="radio" name="returnReasonRadio" value="Don't need this product anymore">
+                        <span>Don't need this product anymore</span>
+                    </label>
+                    <label class="reason-option">
+                        <input type="radio" name="returnReasonRadio" value="Item arrived too late">
+                        <span>Item arrived too late</span>
+                    </label>
+                    <label class="reason-option">
+                        <input type="radio" name="returnReasonRadio" value="Product does not match description">
+                        <span>Product does not match description</span>
+                    </label>
+                    <label class="reason-option">
+                        <input type="radio" name="returnReasonRadio" value="other">
+                        <span>Other reason</span>
+                    </label>
+                </div>
+                <textarea class="review-textarea custom-reason-textarea" id="customReturnReason" placeholder="Please specify your reason for returning..."></textarea>
             </div>
             <div class="modal-footer center-btns">
                 <button type="button" class="btn-modal-action btn-danger" id="confirmReturnBtn">Confirm Return</button>
@@ -268,12 +353,13 @@
     <div class="modal-overlay" id="cancelOrderModal">
         <div class="modal-box modal-box-sm">
             <div class="modal-header">
-                <h3 class="modal-title"><i class="fa-solid fa-ban"></i> Cancel Order</h3>
+                <h3 class="modal-title" id="cancelModalTitle"><i class="fa-solid fa-ban"></i> Cancel Product</h3>
                 <button type="button" class="modal-close-btn" id="closeCancelOrderModalBtn"><i class="fa-solid fa-xmark"></i></button>
             </div>
             <div class="modal-body">
+                <input type="hidden" id="modalTargetCancelItemId" value="">
                 <p class="modal-confirm-text">Please select or provide a reason for cancellation:</p>
-                <div class="cancel-reasons-list">
+                <div class="reasons-list">
                     <label class="reason-option">
                         <input type="radio" name="cancelReasonRadio" value="Ordered by mistake">
                         <span>Ordered by mistake</span>
@@ -291,11 +377,11 @@
                         <span>Other reason</span>
                     </label>
                 </div>
-                <textarea class="review-textarea cancel-custom-textarea" id="customCancelReason" placeholder="Please specify your reason for cancelling..."></textarea>
+                <textarea class="review-textarea custom-reason-textarea" id="customCancelReason" placeholder="Please specify your reason for cancelling..."></textarea>
             </div>
             <div class="modal-footer">
                 <button type="button" class="btn-modal-action btn-danger" id="submitCancelOrderBtn">Confirm Cancellation</button>
-                <button type="button" class="btn-modal-action btn-secondary" id="cancelCancelOrderBtn">Keep Order</button>
+                <button type="button" class="btn-modal-action btn-secondary" id="cancelCancelOrderBtn">Keep Item</button>
             </div>
         </div>
     </div>

@@ -4,22 +4,10 @@ import Product from '../../models/Products.js';
 import Category from '../../models/Category.js';
 import Cart from '../../models/Cart.js';
 
-export const generateNextOrderId = async () => {
-    try {
-        const lastOrder = await Order.findOne().sort({ createdAt: -1 });
-        let nextIdNum = 1;
-        
-        if (lastOrder && lastOrder.orderId && lastOrder.orderId.startsWith('#ORD-')) {
-            const lastNum = parseInt(lastOrder.orderId.split('-')[1], 10);
-            if (!isNaN(lastNum)) {
-                nextIdNum = lastNum + 1;
-            }
-        }
-
-        return `#ORD-${String(nextIdNum).padStart(5, '0')}`;
-    } catch (error) {
-        throw new Error(`Database error while generating custom Order ID: ${error.message}`);
-    }
+const generateNextOrderId = async () => {
+    const totalOrders = await Order.countDocuments();
+    const nextNum = totalOrders + 1;
+    return `#ORD-${nextNum.toString().padStart(5, '0')}`;
 };
 
 export const createNewOrder = async (userId, checkoutSessionData, shippingAddr, billingAddr) => {
@@ -33,7 +21,7 @@ export const createNewOrder = async (userId, checkoutSessionData, shippingAddr, 
         const formattedOrderItems = [];
 
         for (const item of cartItems) {
-            const variantId = item.productVariantId._id || item.productVariantId;
+            const variantId = item.productVariantId?._id || item.productVariantId;
             const variant = await ProductVariant.findById(variantId).populate({
                 path: 'productId',
                 populate: { path: 'categoryId' }
@@ -61,7 +49,13 @@ export const createNewOrder = async (userId, checkoutSessionData, shippingAddr, 
                 quantity: item.quantity,
                 currentPrice,
                 originalPrice: variant.originalPrice,
-                discount: variant.discount || 0
+                discount: variant.discount || 0,
+                itemStatus: 'processing',
+                returnStatus: 'none',
+                cancellationReason: null,
+                returnReason: null,
+                cancelledAt: null,
+                returnedAt: null
             });
         }
 
@@ -96,7 +90,8 @@ export const createNewOrder = async (userId, checkoutSessionData, shippingAddr, 
                 addressType: billingAddr.addressType || 'Home'
             },
             paymentMode: checkoutSessionData.paymentMode,
-            status: 'processing'
+            status: 'processing',
+            returnStatus: 'none'
         });
 
         await Cart.deleteMany({ userId });
@@ -215,7 +210,7 @@ export const getUserOrdersPageData = async (userId, page = 1, limit = 4, searchQ
     }
 };
 
-export const getUserOrderDetails = async (userId, orderId) => {
+export const getUserOrderFullDetails = async (userId, orderId) => {
     try {
         if (!orderId) return null;
 
@@ -240,14 +235,16 @@ export const getUserOrderDetails = async (userId, orderId) => {
 
         return order;
     } catch (error) {
-        throw new Error(`Service Layer failure fetching order details: ${error.message}`);
+        throw new Error(`Service failure fetching order details: ${error.message}`);
     }
 };
 
-export const cancelUserOrder = async (userId, orderId, reason) => {
+export const cancelOrderOrItem = async (userId, orderId, orderItemId, reason) => {
     try {
         if (!orderId || !reason || reason.trim() === '') {
-            throw new Error('Order ID and cancellation reason are required.');
+            const err = new Error('Order ID and a valid cancellation reason are required.');
+            err.statusCode = 400;
+            throw err;
         }
 
         const formattedOrderId = orderId.startsWith('#') ? orderId : `#${orderId}`;
@@ -258,26 +255,69 @@ export const cancelUserOrder = async (userId, orderId, reason) => {
         });
 
         if (!order) {
-            throw new Error('Order not found.');
+            const err = new Error('Order not found.');
+            err.statusCode = 404;
+            throw err;
         }
 
-        if (order.status === 'delivered' || order.status === 'cancelled') {
-            throw new Error(`Cannot cancel an order that is already ${order.status}.`);
-        }
+        const trimmedReason = reason.trim();
+        const now = new Date();
 
-        order.status = 'cancelled';
-        order.cancellationReason = reason.trim();
-        await order.save();
+        if (orderItemId) {
+            const item = order.orderItems.id(orderItemId);
+            if (!item) {
+                const err = new Error('Item not found in this order.');
+                err.statusCode = 404;
+                throw err;
+            }
 
-        for (const item of order.orderItems) {
+            if (item.itemStatus === 'delivered' || item.itemStatus === 'cancelled') {
+                const err = new Error(`Cannot cancel an item that is already ${item.itemStatus}.`);
+                err.statusCode = 400;
+                throw err;
+            }
+
+            item.itemStatus = 'cancelled';
+            item.cancellationReason = trimmedReason;
+            item.cancelledAt = now;
+
+            const allCancelled = order.orderItems.every(i => i.itemStatus === 'cancelled');
+            order.status = allCancelled ? 'cancelled' : 'partially cancelled';
+
+            await order.save();
+
             await ProductVariant.findByIdAndUpdate(item.productVariantId, {
                 $inc: { stock: item.quantity }
             });
+
+            return { isEntireOrder: false, order };
         }
 
-        return order;
+        if (order.status === 'delivered' || order.status === 'cancelled') {
+            const err = new Error(`Cannot cancel an order that is already ${order.status}.`);
+            err.statusCode = 400;
+            throw err;
+        }
+
+        order.status = 'cancelled';
+
+        for (const item of order.orderItems) {
+            if (item.itemStatus !== 'cancelled') {
+                item.itemStatus = 'cancelled';
+                item.cancellationReason = trimmedReason;
+                item.cancelledAt = now;
+
+                await ProductVariant.findByIdAndUpdate(item.productVariantId, {
+                    $inc: { stock: item.quantity }
+                });
+            }
+        }
+
+        await order.save();
+        return { isEntireOrder: true, order };
+
     } catch (error) {
-        throw new Error(`Service Layer failure cancelling order: ${error.message}`);
+        throw error;
     }
 };
 
@@ -308,5 +348,99 @@ export const getUserDeliveredOrderInvoice = async (userId, orderId) => {
         return order;
     } catch (error) {
         throw new Error(`Service Layer failure fetching invoice details: ${error.message}`);
+    }
+};
+
+export const returnOrderOrItem = async (userId, orderId, orderItemId, reason) => {
+    try {
+        if (!orderId || !reason || reason.trim() === '') {
+            const err = new Error('Order ID and a valid return reason are required.');
+            err.statusCode = 400;
+            throw err;
+        }
+
+        const formattedOrderId = orderId.startsWith('#') ? orderId : `#${orderId}`;
+
+        const order = await Order.findOne({
+            userId,
+            $or: [{ orderId: formattedOrderId }, { orderId }]
+        });
+
+        if (!order) {
+            const err = new Error('Order not found.');
+            err.statusCode = 404;
+            throw err;
+        }
+
+        const deliveredDate = new Date(order.updatedAt || order.createdAt);
+        const differenceInDays = (new Date() - deliveredDate) / (1000 * 60 * 60 * 24);
+
+        if (differenceInDays > 15) {
+            const err = new Error('Return window expired. Items can only be returned within 15 days of delivery.');
+            err.statusCode = 400;
+            throw err;
+        }
+
+        const trimmedReason = reason.trim();
+        const now = new Date();
+
+        if (orderItemId) {
+            const item = order.orderItems.id(orderItemId);
+            if (!item) {
+                const err = new Error('Item not found in this order.');
+                err.statusCode = 404;
+                throw err;
+            }
+
+            if (item.itemStatus !== 'delivered') {
+                const err = new Error('Only delivered items are eligible for return.');
+                err.statusCode = 400;
+                throw err;
+            }
+
+            if (item.returnStatus && item.returnStatus !== 'none') {
+                const err = new Error('A return request has already been submitted for this item.');
+                err.statusCode = 400;
+                throw err;
+            }
+
+            item.returnStatus = 'return initiated';
+            item.returnReason = trimmedReason;
+            item.returnedAt = now;
+
+            const allReturned = order.orderItems.every(i => i.returnStatus === 'return initiated' || i.returnStatus === 'item reached');
+            order.returnStatus = allReturned ? 'return initiated' : 'partially returned';
+
+            await order.save();
+            return { isEntireOrder: false, order };
+        }
+
+        if (order.status !== 'delivered') {
+            const err = new Error('Only delivered orders can be returned.');
+            err.statusCode = 400;
+            throw err;
+        }
+
+        if (order.returnStatus === 'return initiated' || order.returnStatus === 'returned') {
+            const err = new Error('A return request has already been submitted for this order.');
+            err.statusCode = 400;
+            throw err;
+        }
+
+        order.returnStatus = 'return initiated';
+
+        order.orderItems.forEach(item => {
+            if (item.itemStatus === 'delivered') {
+                item.returnStatus = 'return initiated';
+                item.returnReason = trimmedReason;
+                item.returnedAt = now;
+            }
+        });
+
+        await order.save();
+        return { isEntireOrder: true, order };
+
+    } catch (error) {
+        throw error;
     }
 };

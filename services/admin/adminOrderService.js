@@ -1,5 +1,10 @@
 import Order from '../../models/Order.js';
-import User from '../../models/User.js';
+import ProductVariant from '../../models/ProductVariant.js';
+
+const formatOrderId = (id) => {
+    if (!id) return '';
+    return id.startsWith('#') ? id : `#${id}`;
+};
 
 export const getAdminOrdersPageData = async (page = 1, limit = 5, searchQuery = '', statusFilter = '') => {
     try {
@@ -11,44 +16,135 @@ export const getAdminOrdersPageData = async (page = 1, limit = 5, searchQuery = 
 
         if (statusFilter && statusFilter.trim() !== '') {
             if (statusFilter.toLowerCase() === 'return') {
-                query.returnStatus = { $ne: 'none' };
+                query.orderItems = {
+                    $elemMatch: {
+                        returnStatus: { $ne: 'none' }
+                    }
+                };
             } else {
-                query.status = statusFilter;
+                query.orderItems = {
+                    $elemMatch: {
+                        itemStatus: statusFilter,
+                        returnStatus: 'none'
+                    }
+                };
             }
         }
 
         const skip = (page - 1) * limit;
 
-        const [
-            orders,
-            totalFilteredOrders,
-            totalOrdersCount,
-            processingCount,
-            packedCount,
-            shippedCount,
-            onTheWayCount,
-            outForDeliveryCount,
-            deliveredCount,
-            cancelledCount,
-            returnCount
-        ] = await Promise.all([
+        const [orders, totalFilteredOrders, totalOrdersCount] = await Promise.all([
             Order.find(query)
                 .populate('userId', 'fullName')
+                .populate({
+                    path: 'orderItems.productVariantId',
+                    populate: {
+                        path: 'productId',
+                        select: 'name images'
+                    }
+                })
                 .sort({ createdAt: -1 })
                 .skip(skip)
                 .limit(limit)
                 .lean(),
             Order.countDocuments(query),
-            Order.countDocuments(),
-            Order.countDocuments({ status: 'processing' }),
-            Order.countDocuments({ status: 'packed' }),
-            Order.countDocuments({ status: 'shipped' }),
-            Order.countDocuments({ status: 'on the way' }),
-            Order.countDocuments({ status: 'out for delivery' }),
-            Order.countDocuments({ status: 'delivered' }),
-            Order.countDocuments({ status: 'cancelled' }),
-            Order.countDocuments({ returnStatus: { $ne: 'none' } })
+            Order.countDocuments()
         ]);
+
+        if (statusFilter && statusFilter.trim() !== '') {
+            orders.forEach(order => {
+                if (statusFilter.toLowerCase() === 'return') {
+                    order.orderItems = order.orderItems.filter(item => item.returnStatus && item.returnStatus !== 'none');
+                } else {
+                    order.orderItems = order.orderItems.filter(item => item.itemStatus === statusFilter && item.returnStatus === 'none');
+                }
+            });
+        }
+
+        const itemStatsAggregation = await Order.aggregate([
+            { $unwind: '$orderItems' },
+            {
+                $group: {
+                    _id: null,
+                    processingCount: {
+                        $sum: {
+                            $cond: [
+                                { $and: [{ $eq: ['$orderItems.itemStatus', 'processing'] }, { $eq: ['$orderItems.returnStatus', 'none'] }] },
+                                1, 0
+                            ]
+                        }
+                    },
+                    packedCount: {
+                        $sum: {
+                            $cond: [
+                                { $and: [{ $eq: ['$orderItems.itemStatus', 'packed'] }, { $eq: ['$orderItems.returnStatus', 'none'] }] },
+                                1, 0
+                            ]
+                        }
+                    },
+                    shippedCount: {
+                        $sum: {
+                            $cond: [
+                                { $and: [{ $eq: ['$orderItems.itemStatus', 'shipped'] }, { $eq: ['$orderItems.returnStatus', 'none'] }] },
+                                1, 0
+                            ]
+                        }
+                    },
+                    onTheWayCount: {
+                        $sum: {
+                            $cond: [
+                                { $and: [{ $eq: ['$orderItems.itemStatus', 'on the way'] }, { $eq: ['$orderItems.returnStatus', 'none'] }] },
+                                1, 0
+                            ]
+                        }
+                    },
+                    outForDeliveryCount: {
+                        $sum: {
+                            $cond: [
+                                { $and: [{ $eq: ['$orderItems.itemStatus', 'out for delivery'] }, { $eq: ['$orderItems.returnStatus', 'none'] }] },
+                                1, 0
+                            ]
+                        }
+                    },
+                    deliveredCount: {
+                        $sum: {
+                            $cond: [
+                                { $and: [{ $eq: ['$orderItems.itemStatus', 'delivered'] }, { $eq: ['$orderItems.returnStatus', 'none'] }] },
+                                1, 0
+                            ]
+                        }
+                    },
+                    cancelledCount: {
+                        $sum: {
+                            $cond: [
+                                { $and: [{ $eq: ['$orderItems.itemStatus', 'cancelled'] }, { $eq: ['$orderItems.returnStatus', 'none'] }] },
+                                1, 0
+                            ]
+                        }
+                    },
+                    returnCount: {
+                        $sum: {
+                            $cond: [
+                                { $ne: ['$orderItems.returnStatus', 'none'] },
+                                1, 0
+                            ]
+                        }
+                    }
+                }
+            }
+        ]);
+
+        const metrics = itemStatsAggregation[0] || {
+            processingCount: 0,
+            packedCount: 0,
+            shippedCount: 0,
+            onTheWayCount: 0,
+            outForDeliveryCount: 0,
+            deliveredCount: 0,
+            cancelledCount: 0,
+            returnCount: 0
+        };
+        metrics.totalOrdersCount = totalOrdersCount;
 
         const totalPages = Math.ceil(totalFilteredOrders / limit) || 1;
         const safePage = Math.min(page, totalPages);
@@ -58,62 +154,21 @@ export const getAdminOrdersPageData = async (page = 1, limit = 5, searchQuery = 
             totalFilteredOrders,
             totalPages,
             safePage,
-            metrics: {
-                totalOrdersCount,
-                processingCount,
-                packedCount,
-                shippedCount,
-                onTheWayCount,
-                outForDeliveryCount,
-                deliveredCount,
-                cancelledCount,
-                returnCount
-            }
+            metrics
         };
     } catch (error) {
-        throw new Error(`Admin Order Service Failure: ${error.message}`);
+        throw new Error(`Admin Order Service Failure while fetching page data: ${error.message}`);
     }
 };
 
-export const updateOrderStatus = async (orderId, newStatus) => {
-    try {
-        const validStatuses = ['processing', 'packed', 'shipped', 'on the way', 'out for delivery', 'delivered'];
-        
-        const updateData = {};
-        if (validStatuses.includes(newStatus)) {
-            updateData.status = newStatus;
-        } else if (newStatus.startsWith('return:')) {
-            updateData.returnStatus = newStatus.replace('return:', '');
-        } else {
-            throw new Error('Invalid status update value provided.');
-        }
-
-        const formattedOrderId = orderId.startsWith('#') ? orderId : `#${orderId}`;
-
-        const updatedOrder = await Order.findOneAndUpdate(
-            { $or: [{ orderId: formattedOrderId }, { orderId }] },
-            { $set: updateData },
-            { new: true }
-        );
-
-        if (!updatedOrder) {
-            throw new Error('Order not found.');
-        }
-
-        return updatedOrder;
-    } catch (error) {
-        throw new Error(`Admin Order Service Status Update Failure: ${error.message}`);
-    }
-};
-
-export const getOrderDetailsByOrderId = async (orderId) => {
+export const getOrderDetailsByOrderIdAndItemId = async (orderId, orderItemId = null) => {
     try {
         if (!orderId) return null;
 
-        const formattedOrderId = orderId.startsWith('#') ? orderId : `#${orderId}`;
+        const formattedId = formatOrderId(orderId);
 
         const order = await Order.findOne({ 
-            $or: [{ orderId: formattedOrderId }, { orderId: orderId }] 
+            $or: [{ orderId: formattedId }, { orderId }] 
         })
             .populate('userId', 'fullName email phone')
             .populate({
@@ -125,12 +180,94 @@ export const getOrderDetailsByOrderId = async (orderId) => {
             })
             .lean();
 
-        if (!order) {
-            return null;
+        if (!order) return null;
+
+        let targetItem = null;
+        if (orderItemId) {
+            targetItem = order.orderItems.find(i => i._id.toString() === orderItemId.toString());
         }
 
-        return order;
+        if (!targetItem && order.orderItems && order.orderItems.length > 0) {
+            targetItem = order.orderItems[0];
+        }
+
+        return { order, item: targetItem };
     } catch (error) {
         throw new Error(`Admin Order Service Failure while retrieving order details: ${error.message}`);
+    }
+};
+
+export const updateOrderItemStatus = async (orderId, orderItemId, newStatus) => {
+    try {
+        const validDeliveryStatuses = ['processing', 'packed', 'shipped', 'on the way', 'out for delivery', 'delivered'];
+        const validReturnStatuses = ['return initiated', 'pickup assigned', 'item picked up', 'in transit', 'item reached'];
+
+        let isReturnUpdate = false;
+        const cleanStatus = newStatus.startsWith('return:') ? newStatus.replace('return:', '') : newStatus;
+
+        if (validReturnStatuses.includes(cleanStatus)) {
+            isReturnUpdate = true;
+        } else if (!validDeliveryStatuses.includes(cleanStatus)) {
+            const err = new Error('Invalid status update value provided.');
+            err.statusCode = 400;
+            throw err;
+        }
+
+        const formattedId = formatOrderId(orderId);
+
+        const order = await Order.findOne({
+            $or: [{ orderId: formattedId }, { orderId }]
+        });
+
+        if (!order) {
+            const err = new Error('Order not found.');
+            err.statusCode = 404;
+            throw err;
+        }
+
+        const item = order.orderItems.id(orderItemId);
+        if (!item) {
+            const err = new Error('Order item variant not found.');
+            err.statusCode = 404;
+            throw err;
+        }
+
+        if (isReturnUpdate) {
+            if (item.returnStatus === cleanStatus) {
+                return { isUnchanged: true };
+            }
+
+            const previousReturnStatus = item.returnStatus;
+            item.returnStatus = cleanStatus;
+
+            if (cleanStatus === 'item reached' && previousReturnStatus !== 'item reached') {
+                await ProductVariant.findByIdAndUpdate(item.productVariantId, {
+                    $inc: { stock: item.quantity }
+                });
+            }
+        } else {
+            if (item.itemStatus === 'cancelled') {
+                const err = new Error('Cancelled items cannot be updated.');
+                err.statusCode = 400;
+                throw err;
+            }
+
+            if (item.itemStatus === 'delivered' && item.returnStatus === 'none') {
+                const err = new Error('Delivered items cannot be modified unless return is initiated.');
+                err.statusCode = 400;
+                throw err;
+            }
+
+            if (item.itemStatus === cleanStatus) {
+                return { isUnchanged: true };
+            }
+            item.itemStatus = cleanStatus;
+        }
+
+        await order.save();
+        return { isUnchanged: false };
+
+    } catch (error) {
+        throw error;
     }
 };

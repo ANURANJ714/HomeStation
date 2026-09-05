@@ -4,6 +4,7 @@ import * as badgeService from '../../services/user/badgeService.js';
 import { getActivePromoBanner } from '../../services/user/bannerService.js';
 import * as checkoutService from '../../services/user/checkoutService.js';
 import * as orderService from '../../services/user/orderService.js';
+import * as userService from '../../services/user/authService.js';
 
 export const postCartItems = async (req, res) => {
     try {
@@ -11,7 +12,21 @@ export const postCartItems = async (req, res) => {
         const userEmail = req.user?.email || 'Unknown User';
         const clientIp = req.ip;
 
-        logger.info(`Checkout validation initiated for User (${userEmail}) | IP: ${clientIp}`);
+        const userProfile = await userService.getUserById(userId);
+        if (userProfile && userProfile.authProvider === 'google') {
+            const hasFullName = userProfile.fullName && userProfile.fullName.trim() !== '';
+            const hasPhone = userProfile.phone && userProfile.phone.trim() !== '';
+
+            if (!hasFullName || !hasPhone) {
+                logger.warn(`Checkout blocked: Incomplete profile for Google User (${userEmail}) | IP: ${clientIp}`);
+                return res.status(400).json({
+                    success: false,
+                    reason: 'INCOMPLETE_PROFILE',
+                    message: 'Complete your profile before making your first purchase',
+                    redirectUrl: '/user/profile'
+                });
+            }
+        }
 
         const result = await checkoutService.validateCartForCheckout(userId);
 
@@ -41,7 +56,7 @@ export const postCartItems = async (req, res) => {
             shippingCharges: 0
         };
 
-        logger.info(`Cart validated successfully for (${userEmail}). Proceeding to address selection.`);
+        logger.info(`Cart validated successfully for (${userEmail}). Proceeding to checkout.`);
 
         return res.status(200).json({
             success: true,
@@ -51,7 +66,6 @@ export const postCartItems = async (req, res) => {
 
     } catch (error) {
         logger.error(`postCartItems Error for (${req.user?.email || 'Unknown'}): ${error.message}\nStack: ${error.stack}`);
-        
         return res.status(500).json({
             success: false,
             message: 'An internal server error occurred while processing checkout.'
@@ -268,6 +282,7 @@ export const placeOrder = async (req, res) => {
         const checkout = req.session.checkoutOrder;
 
         if (!checkout || !checkout.cartItems || !checkout.shippingAddressId || !checkout.paymentMode) {
+            logger.warn(`Place order rejected: Incomplete session for (${userEmail}) | IP: ${clientIp}`);
             return res.status(400).json({
                 success: false,
                 message: 'Incomplete checkout session details.'
@@ -279,6 +294,13 @@ export const placeOrder = async (req, res) => {
             addressService.getDefaultAddress(userId)
         ]);
 
+        if (!shippingAddress) {
+            return res.status(400).json({
+                success: false,
+                message: 'Shipping address is invalid or not found.'
+            });
+        }
+
         const billingAddress = defaultBillingAddress || shippingAddress;
 
         const order = await orderService.createNewOrder(userId, checkout, shippingAddress, billingAddress);
@@ -286,7 +308,7 @@ export const placeOrder = async (req, res) => {
         logger.info(`Order placed successfully! ID: ${order.orderId} for User (${userEmail}) | IP: ${clientIp}`);
 
         req.session.lastPlacedOrderId = order.orderId;
-
+        req.session.orderSuccessTimestamp = Date.now();
         delete req.session.checkoutActive;
         delete req.session.checkoutOrder;
 
@@ -299,7 +321,10 @@ export const placeOrder = async (req, res) => {
     } catch (error) {
         logger.error(`Order Placement Error for (${req.user?.email || 'Unknown'}): ${error.message}\nStack: ${error.stack}`);
 
-        return res.status(200).json({
+        req.session.orderFailed = true;
+        req.session.orderFailureTimestamp = Date.now();
+        
+        return res.status(400).json({
             success: false,
             message: error.message || 'Payment or order processing failed.',
             redirectUrl: '/user/checkout/failure'
@@ -307,19 +332,53 @@ export const placeOrder = async (req, res) => {
     }
 };
 
+const setNoCacheHeaders = (res) => {
+    res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, private, max-age=0');
+    res.setHeader('Pragma', 'no-cache');
+    res.setHeader('Expires', '0');
+};
+
 export const loadSuccessPage = async (req, res) => {
     try {
         const clientIp = req.ip;
         const userEmail = req.user?.email || 'Unknown User';
-        
-        const orderId = req.query.orderId || req.session.lastPlacedOrderId || 'N/A';
+        const userId = req.user._id;
 
-        logger.info(`User (${userEmail}) loaded Order Success page for Order ID: ${orderId} | IP: ${clientIp}`);
+        const sessionOrderId = req.session.lastPlacedOrderId;
+        const sessionTime = req.session.orderSuccessTimestamp;
+        const queryOrderId = req.query.orderId;
+
+        if (!sessionOrderId || !sessionTime) {
+            logger.warn(`Unauthorized/expired access attempt to success page by (${userEmail}) | IP: ${clientIp}`);
+            return res.redirect('/user/orders');
+        }
+
+        const fiveMinutes = 5 * 60 * 1000;
+        if (Date.now() - sessionTime > fiveMinutes) {
+            delete req.session.lastPlacedOrderId;
+            delete req.session.orderSuccessTimestamp;
+            logger.warn(`Expired success page access by (${userEmail}) | IP: ${clientIp}`);
+            return res.redirect('/user/orders');
+        }
+
+        const activeOrderId = queryOrderId || sessionOrderId;
+
+        const order = await orderService.getUserOrderFullDetails(userId, activeOrderId);
+        if (!order) {
+            return res.redirect('/user/orders');
+        }
+
+        delete req.session.lastPlacedOrderId;
+        delete req.session.orderSuccessTimestamp;
+
+        setNoCacheHeaders(res);
+        logger.info(`User (${userEmail}) loaded Order Success page for ID: ${activeOrderId} | IP: ${clientIp}`);
 
         return res.render('user/orderpaymentsuccess', { 
-            orderId, 
+            orderId: activeOrderId, 
             csrfToken: req.csrfToken ? req.csrfToken() : '' 
         });
+
     } catch (error) {
         logger.error(`Error rendering order success page for (${req.user?.email || 'Unknown'}): ${error.message}\nStack: ${error.stack}`);
         
@@ -331,16 +390,32 @@ export const loadSuccessPage = async (req, res) => {
     }
 };
 
-export const loadFailurePage = async (req, res, next) => {
+export const loadFailurePage = async (req, res) => {
     try {
         const clientIp = req.ip;
         const userEmail = req.user?.email || 'Unknown User';
 
+        const failureFlag = req.session.orderFailed;
+        const failureTime = req.session.orderFailureTimestamp;
+
+        const fiveMinutes = 5 * 60 * 1000;
+        if (!failureFlag || !failureTime || (Date.now() - failureTime > fiveMinutes)) {
+            delete req.session.orderFailed;
+            delete req.session.orderFailureTimestamp;
+            logger.warn(`Direct/expired failure page access blocked for (${userEmail}) | IP: ${clientIp}`);
+            return res.redirect('/user/cart');
+        }
+
+        delete req.session.orderFailed;
+        delete req.session.orderFailureTimestamp;
+
+        setNoCacheHeaders(res);
         logger.warn(`User (${userEmail}) viewed Order Failure page | IP: ${clientIp}`);
 
         return res.render('user/orderpaymentfail', { 
             csrfToken: req.csrfToken ? req.csrfToken() : '' 
         });
+
     } catch (error) {
         logger.error(`Error rendering order failure page for (${req.user?.email || 'Unknown'}): ${error.message}\nStack: ${error.stack}`);
         

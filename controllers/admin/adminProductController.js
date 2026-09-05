@@ -63,12 +63,13 @@ export const getAddProductPage = async (req, res) => {
 export const addProduct = async (req, res) => {
     try {
         const adminEmail = req.user ? req.user.email : 'Unknown Admin';
+        const clientIp = req.ip;
 
         if (!req.files || req.files.length === 0) {
-            logger.warn(`Product creation blocked: Missing images. Attempted by: ${adminEmail}`);
+            logger.warn(`Product creation blocked: Missing images by (${adminEmail}) | IP: ${clientIp}`);
             return res.status(400).json({
                 success: false,
-                message: "At least one product image is required.",
+                message: "All 3 product images are required."
             });
         }
 
@@ -76,27 +77,27 @@ export const addProduct = async (req, res) => {
 
         const savedProduct = await productService.createProductWithVariants(req.body, req.body.variants, imageUrls);
 
-        logger.info(`Product "${savedProduct.name}" (ID: ${savedProduct.productId}) created successfully by ${adminEmail}.`);
+        logger.info(`Product "${savedProduct.name}" (ID: ${savedProduct.productId}) created successfully by ${adminEmail} | IP: ${clientIp}`);
 
         return res.status(201).json({
             success: true,
-            message: "Product and variants created successfully!",
+            message: "Product and variants created successfully!"
         });
 
     } catch (error) {
         if (error.statusCode === 400) {
-            logger.warn(`Product processing error: ${error.message}`);
+            logger.warn(`Product validation failed: ${error.message}`);
             return res.status(400).json({
                 success: false,
-                message: error.message,
+                message: error.message
             });
         }
 
         if (error.code === 11000) {
-            logger.warn(`Product variant duplicate error: ${error.message}`);
+            logger.warn(`Product duplicate key error: ${error.message}`);
             return res.status(400).json({
                 success: false,
-                message: "A variant with this name already exists for this product.",
+                message: "A product or variant with this identifier already exists."
             });
         }
 
@@ -105,24 +106,20 @@ export const addProduct = async (req, res) => {
             errorMessage = Object.values(error.errors)
                 .map((val) => val.message)
                 .join(", ");
-                
-            logger.warn(`Product schema validation failed: ${errorMessage}`);
-            
+
+            logger.warn(`Product Mongoose schema validation failed: ${errorMessage}`);
+
             return res.status(400).json({
                 success: false,
-                message: errorMessage,
+                message: errorMessage
             });
-        } 
-        
-        if (error.message) {
-            errorMessage = error.message;
         }
 
         logger.error(`Error adding product: ${error.message}\nStack: ${error.stack}`);
-        
+
         return res.status(500).json({
             success: false,
-            message: errorMessage,
+            message: errorMessage
         });
     }
 };
@@ -199,6 +196,7 @@ export const updateProduct = async (req, res) => {
     try {
         const { product_id } = req.params;
         const adminEmail = req.user ? req.user.email : 'Unknown Admin';
+        const clientIp = req.ip;
 
         const newFiles = (req.files && req.files.length > 0) ? req.files : [];
 
@@ -206,39 +204,57 @@ export const updateProduct = async (req, res) => {
 
         if (!result.isUpdated) {
             if (result.isNotFound) {
-                logger.warn(`Product update blocked: ID ${product_id} not found. Attempted by: ${adminEmail}`);
-                return res.status(404).json({ success: false, message: "Product not found" });
+                logger.warn(`Product update blocked: ID ${product_id} not found. Attempted by: ${adminEmail} | IP: ${clientIp}`);
+                return res.status(404).json({
+                    success: false,
+                    message: "Product not found."
+                });
             }
         }
 
-        logger.info(`Product "${result.product.name}" (ID: ${product_id}) successfully updated by ${adminEmail}.`);
+        logger.info(`Product "${result.product.name}" (ID: ${product_id}) successfully updated by ${adminEmail} | IP: ${clientIp}`);
 
-        return res.json({
+        return res.status(200).json({
             success: true,
-            message: "Product updated successfully!",
+            message: "Product updated successfully!"
         });
 
     } catch (error) {
-        let errorMessage = "An error occurred while updating the product.";
+        if (error.statusCode === 400) {
+            logger.warn(`Product update validation failed (ID: ${req.params.product_id}): ${error.message}`);
+            return res.status(400).json({
+                success: false,
+                message: error.message
+            });
+        }
 
+        if (error.code === 11000) {
+            logger.warn(`Product variant duplicate key error (ID: ${req.params.product_id}): ${error.message}`);
+            return res.status(400).json({
+                success: false,
+                message: "A variant with this name already exists for this product."
+            });
+        }
+
+        let errorMessage = "An error occurred while updating the product.";
         if (error.name === "ValidationError") {
             errorMessage = Object.values(error.errors)
                 .map((val) => val.message)
                 .join(", ");
-                
-            logger.warn(`Product update validation failed (ID: ${req.params.product_id}): ${errorMessage}`);
-            
+
+            logger.warn(`Product Mongoose schema validation failed (ID: ${req.params.product_id}): ${errorMessage}`);
+
             return res.status(400).json({
                 success: false,
-                message: errorMessage,
+                message: errorMessage
             });
         }
 
         logger.error(`Error updating product ID ${req.params.product_id}: ${error.message}\nStack: ${error.stack}`);
-        
+
         return res.status(500).json({
             success: false,
-            message: errorMessage,
+            message: errorMessage
         });
     }
 };

@@ -205,9 +205,22 @@ document.addEventListener("DOMContentLoaded", () => {
 
         const data = await response.json();
 
+        if (data.reason === "INCOMPLETE_PROFILE") {
+          return Swal.fire({
+            icon: "warning",
+            title: "Complete Your Profile",
+            text: data.message || "Complete your profile before making your first purchase",
+            confirmButtonColor: "#222",
+            heightAuto: false,
+          }).then(() => {
+            window.location.href = data.redirectUrl || "/user/profile";
+          });
+        }
+
         if (data.success && data.redirectUrl) {
           window.location.href = data.redirectUrl;
-        } else if (data.reason === "STOCK_EXCEEDED") {
+        } 
+        else if (data.reason === "STOCK_EXCEEDED") {
           Swal.fire({
             icon: "warning",
             title: "Limited Stock Available",
@@ -230,7 +243,7 @@ document.addEventListener("DOMContentLoaded", () => {
                   body: JSON.stringify({
                     cartItemId: data.cartItemId,
                     action: "set",
-                    targetQuantity: data.availableStock
+                    targetQuantity: data.availableStock,
                   }),
                 });
                 window.location.reload();
@@ -256,7 +269,8 @@ document.addEventListener("DOMContentLoaded", () => {
 
           proceedCheckoutBtn.disabled = false;
           proceedCheckoutBtn.innerText = originalText;
-        } else {
+        } 
+        else {
           Swal.fire({
             icon: "error",
             title: "Checkout Notice",

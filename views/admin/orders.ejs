@@ -64,13 +64,13 @@
                         </a>
                     </li>
                     <li class="nav-item">
-                        <a href="/admin/enquiries" class="nav-link">
-                            <i class="fa-solid fa-envelope nav-icon"></i> Enquiry
+                        <a href="/admin/offers" class="nav-link">
+                            <i class="fa-solid fa-percent nav-icon"></i> Offers
                         </a>
                     </li>
                     <li class="nav-item">
-                        <a href="/admin/offers" class="nav-link">
-                            <i class="fa-solid fa-gift nav-icon"></i> Offers
+                        <a href="/admin/enquiries" class="nav-link">
+                            <i class="fa-solid fa-envelope nav-icon"></i> Enquiry
                         </a>
                     </li>
                 </ul>
@@ -127,7 +127,7 @@
                                     <% } else if (statusFilter === 'out for delivery') { %>Out for Delivery
                                     <% } else if (statusFilter === 'delivered') { %>Delivered
                                     <% } else if (statusFilter === 'cancelled') { %>Cancelled
-                                    <% } else if (statusFilter === 'Return') { %>Return
+                                    <% } else if (statusFilter === 'Return' || statusFilter === 'return') { %>Return
                                     <% } else { %>All Status<% } %>
                                 </span>
                                 <i class="fa-solid fa-chevron-down custom-icon"></i>
@@ -141,7 +141,7 @@
                                 <li class="custom-select-option <%= statusFilter === 'out for delivery' ? 'selected' : '' %>" data-value="out for delivery">Out for Delivery</li>
                                 <li class="custom-select-option <%= statusFilter === 'delivered' ? 'selected' : '' %>" data-value="delivered">Delivered</li>
                                 <li class="custom-select-option <%= statusFilter === 'cancelled' ? 'selected' : '' %>" data-value="cancelled">Cancelled</li>
-                                <li class="custom-select-option <%= statusFilter === 'Return' ? 'selected' : '' %>" data-value="Return">Return</li>
+                                <li class="custom-select-option <%= (statusFilter === 'Return' || statusFilter === 'return') ? 'selected' : '' %>" data-value="Return">Return</li>
                             </ul>
                             <input type="hidden" name="filterStatus" id="filterStatusInput" value="<%= statusFilter %>">
                         </div>
@@ -229,8 +229,9 @@
                         <thead>
                             <tr>
                                 <th>Order ID</th>
+                                <th>Product Details</th>
                                 <th>Customer Name</th>
-                                <th class="text-center">Total items</th>
+                                <th class="text-center">Quantity</th>
                                 <th>Amount</th>
                                 <th>Order Date</th>
                                 <th>Status</th>
@@ -239,58 +240,72 @@
                         </thead>
                         <tbody>
                             <% if (orders && orders.length > 0) { %>
-                                <% orders.forEach(order => { 
-                                    const totalItems = order.orderItems.reduce((acc, item) => acc + item.quantity, 0);
-                                    const totalAmount = order.orderItems.reduce((acc, item) => acc + (item.currentPrice * item.quantity), 0);
-                                    const formattedDate = new Date(order.createdAt).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' });
-                                    const customerName = order.userId?.fullName || order.shippingAddress?.name || 'Customer';
-                                    const rawOrderId = order.orderId ? order.orderId.replace(/^#/, '') : '';
-                                %>
-                                    <tr>
-                                        <td class="fw-500"><%= order.orderId %></td>
-                                        <td><%= customerName %></td>
-                                        <td class="text-center"><%= totalItems %></td>
-                                        <td class="fw-500">₹<%= totalAmount.toLocaleString('en-IN') %></td>
-                                        <td><%= formattedDate %></td>
-                                        <td>
-                                            <% if (order.returnStatus && order.returnStatus !== 'none') { %>
-                                                <span class="badge badge-return"><i class="fa-solid fa-rotate-left"></i> <%= order.returnStatus.charAt(0).toUpperCase() + order.returnStatus.slice(1) %></span>
-                                            <% } else if (order.status === 'processing') { %>
-                                                <span class="badge badge-processing">Processing</span>
-                                            <% } else if (order.status === 'packed') { %>
-                                                <span class="badge badge-packed">Packed</span>
-                                            <% } else if (order.status === 'shipped') { %>
-                                                <span class="badge badge-shipped">Shipped</span>
-                                            <% } else if (order.status === 'on the way') { %>
-                                                <span class="badge badge-ontheway">On the Way</span>
-                                            <% } else if (order.status === 'out for delivery') { %>
-                                                <span class="badge badge-outfordelivery">Out for Delivery</span>
-                                            <% } else if (order.status === 'delivered') { %>
-                                                <span class="badge badge-delivered">Delivered</span>
-                                            <% } else if (order.status === 'cancelled') { %>
-                                                <span class="badge badge-cancelled">Cancelled</span>
-                                            <% } else { %>
-                                                <span class="badge badge-warning"><%= order.status %></span>
-                                            <% } %>
-                                        </td>
-                                        <td class="actions-td">
-                                            <div class="actions-cell">
-                                                <a href="/admin/orders/<%= rawOrderId %>" class="btn-icon view" title="View Order Details">
-                                                    <i class="fa-regular fa-eye"></i>
-                                                </a>
-                                                <button type="button" class="btn-icon edit trigger-update-modal-btn" 
-                                                    data-order-id="<%= order.orderId %>" 
-                                                    data-status="<%= order.status %>" 
-                                                    title="Update Status">
-                                                    <i class="fa-solid fa-pen-to-square"></i>
-                                                </button>
-                                            </div>
-                                        </td>
-                                    </tr>
+                                <% orders.forEach(order => { %>
+                                    <% order.orderItems.forEach(item => { 
+                                        const isReturn = item.returnStatus && item.returnStatus !== 'none';
+                                        
+                                        // Filter logic: if return, only show returnStatus !== 'none'; if delivery status, ensure match AND returnStatus === 'none'
+                                        if (statusFilter && statusFilter.trim() !== '') {
+                                            if (statusFilter.toLowerCase() === 'return' && !isReturn) return;
+                                            if (statusFilter.toLowerCase() !== 'return' && (item.itemStatus !== statusFilter || isReturn)) return;
+                                        }
+
+                                        const variant = item.productVariantId;
+                                        const product = variant?.productId;
+                                        const itemTotal = item.currentPrice * item.quantity;
+                                        const formattedDate = new Date(order.createdAt).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' });
+                                        const customerName = order.userId?.fullName || order.shippingAddress?.name || 'Customer';
+                                        const rawOrderId = order.orderId ? order.orderId.replace(/^#/, '') : '';
+                                        const statusLabel = isReturn 
+                                            ? (item.returnStatus.charAt(0).toUpperCase() + item.returnStatus.slice(1)) 
+                                            : (item.itemStatus.charAt(0).toUpperCase() + item.itemStatus.slice(1));
+                                    %>
+                                        <tr>
+                                            <td class="fw-500"><%= order.orderId %></td>
+                                            <td>
+                                                <div class="product-inline-cell">
+                                                    <span class="product-name-bold"><%= product?.name || 'Item' %></span>
+                                                    <small class="text-muted">(<%= variant?.variantName || 'Standard' %>)</small>
+                                                </div>
+                                            </td>
+                                            <td><%= customerName %></td>
+                                            <td class="text-center"><%= item.quantity %></td>
+                                            <td class="fw-500">₹<%= itemTotal.toLocaleString('en-IN') %></td>
+                                            <td><%= formattedDate %></td>
+                                            <td>
+                                                <% if (isReturn) { %>
+                                                    <span class="badge badge-return"><i class="fa-solid fa-rotate-left"></i> <%= statusLabel %></span>
+                                                <% } else if (item.itemStatus === 'delivered' && item.returnStatus === 'none') { %>
+                                                    <span class="badge badge-delivered">Delivered</span>
+                                                <% } else if (item.itemStatus === 'cancelled' && item.returnStatus === 'none') { %>
+                                                    <span class="badge badge-cancelled">Cancelled</span>
+                                                <% } else if (item.itemStatus === 'packed' && item.returnStatus === 'none') { %>
+                                                    <span class="badge badge-packed">Packed</span>
+                                                <% } else if (item.itemStatus === 'shipped' && item.returnStatus === 'none') { %>
+                                                    <span class="badge badge-shipped">Shipped</span>
+                                                <% } else if (item.itemStatus === 'on the way' && item.returnStatus === 'none') { %>
+                                                    <span class="badge badge-ontheway">On the Way</span>
+                                                <% } else if (item.itemStatus === 'out for delivery' && item.returnStatus === 'none') { %>
+                                                    <span class="badge badge-outfordelivery">Out for Delivery</span>
+                                                <% } else if (item.itemStatus === 'processing' && item.returnStatus === 'none') { %>
+                                                    <span class="badge badge-processing">Processing</span>
+                                                <% } else { %>
+                                                    <span class="badge badge-info"><%= item.itemStatus.charAt(0).toUpperCase() + item.itemStatus.slice(1) %></span>
+                                                <% } %>
+                                            </td>
+                                            <td class="actions-td">
+                                                <div class="actions-cell">
+                                                    <a href="/admin/orders/<%= rawOrderId %>?_id=<%= item._id %>" class="btn-icon view" title="View Order Item Details">
+                                                        <i class="fa-regular fa-eye"></i>
+                                                    </a>
+                                                </div>
+                                            </td>
+                                        </tr>
+                                    <% }) %>
                                 <% }) %>
                             <% } else { %>
                                 <tr>
-                                    <td colspan="7" class="empty-table-msg">No matching orders found.</td>
+                                    <td colspan="8" class="empty-table-msg">No matching orders found.</td>
                                 </tr>
                             <% } %>
                         </tbody>
@@ -327,45 +342,6 @@
                 <% } %>
 
             </main>
-        </div>
-    </div>
-
-    <div class="modal-overlay" id="updateStatusModal">
-        <div class="modal-content modal-content-sm">
-            <div class="modal-header">
-                <h2>Update Order Status</h2>
-                <button type="button" class="close-modal-btn" id="closeUpdateModalBtn"><i class="fa-solid fa-xmark"></i></button>
-            </div>
-
-            <div class="modal-body">
-                <form id="updateStatusForm">
-                    <input type="hidden" id="modalOrderId" value="">
-
-                    <div class="form-group mb-20">
-                        <label>Status</label>
-                        <div class="custom-select-wrapper" id="modalStatusSelectWrapper">
-                            <div class="custom-select-trigger form-input-style">
-                                <span id="modalStatusText">Processing</span>
-                                <i class="fa-solid fa-chevron-down custom-icon"></i>
-                            </div>
-                            <ul class="custom-select-options">
-                                <li class="custom-select-option" data-value="processing">Processing</li>
-                                <li class="custom-select-option" data-value="packed">Packed</li>
-                                <li class="custom-select-option" data-value="shipped">Shipped</li>
-                                <li class="custom-select-option" data-value="on the way">On the Way</li>
-                                <li class="custom-select-option" data-value="out for delivery">Out for Delivery</li>
-                                <li class="custom-select-option" data-value="delivered">Delivered</li>
-                            </ul>
-                            <input type="hidden" name="deliveryStatus" id="modalStatusInput" value="processing">
-                        </div>
-                    </div>
-
-                    <div class="modal-footer pt-20">
-                        <button type="button" class="btn btn-secondary" id="cancelUpdateModalBtn">Cancel</button>
-                        <button type="submit" class="btn btn-primary" id="saveStatusBtn">Update Status</button>
-                    </div>
-                </form>
-            </div>
         </div>
     </div>
 

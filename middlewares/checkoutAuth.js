@@ -1,5 +1,6 @@
 import logger from '../utils/logger.js';
 import * as checkoutService from '../services/user/checkoutService.js';
+import * as userService from '../services/user/authService.js';
 
 export const ensureCheckoutOrigin = async (req, res, next) => {
     try {
@@ -9,6 +10,20 @@ export const ensureCheckoutOrigin = async (req, res, next) => {
         }
 
         const userId = req.user._id;
+
+        const userProfile = await userService.getUserById(userId);
+
+        if (userProfile && userProfile.authProvider === 'google') {
+            const hasFullName = userProfile.fullName && userProfile.fullName.trim() !== '';
+            const hasPhone = userProfile.phone && userProfile.phone.trim() !== '';
+
+            if (!hasFullName || !hasPhone) {
+                logger.warn(`Checkout blocked for Google User (${userProfile.email}): Incomplete profile details.`);
+                
+                req.session.profileAlertMessage = 'Complete your profile before making your first purchase';
+                return res.redirect('/user/profile');
+            }
+        }
 
         if (!req.session.checkoutActive) {
             logger.warn(`Direct checkout access blocked for (${req.user.email}): Proceed to checkout was not initiated.`);
@@ -29,7 +44,7 @@ export const ensureCheckoutOrigin = async (req, res, next) => {
 
         next();
     } catch (error) {
-        logger.error(`Error in ensureCheckoutOrigin middleware: ${error.message}`);
+        logger.error(`Error in ensureCheckoutOrigin middleware: ${error.message}\nStack: ${error.stack}`);
         req.session.cartAlertMessage = 'An error occurred while validating your checkout. Please check your cart.';
         return res.redirect('/user/cart');
     }

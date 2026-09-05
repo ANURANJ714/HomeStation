@@ -59,7 +59,7 @@
                             <label class="filter-option">
                                 <input type="checkbox" name="status" value="on-the-way" <%= (statusFilters && statusFilters.includes('on-the-way')) ? 'checked' : '' %>>
                                 <span class="checkmark"></span>
-                                <i class="fa-solid fa-truck filter-icon on-way"></i> On the way
+                                <i class="fa-solid fa-truck filter-icon on-way"></i> On Transit
                             </label>
                         </li>
                         <li>
@@ -129,68 +129,81 @@
 
                 <div class="order-list" id="orderList">
                     <% if (orders && orders.length > 0) { %>
-                        <% orders.forEach(order => { 
-                            order.orderItems.forEach(item => {
-                                const variant = item.productVariantId;
-                                const product = variant?.productId;
-                                const categoryName = product?.categoryId?.name || 'HomeStation';
-                                const imageUrl = (product?.images && product.images[0]) ? product.images[0] : 'https://placehold.co/120';
-                                const itemTotal = item.currentPrice * item.quantity;
-                                const orderedDate = new Date(order.createdAt);
-                                const formattedOrderDate = orderedDate.toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' });
-                                
-                                const expectedDateObj = new Date(orderedDate);
-                                expectedDateObj.setDate(expectedDateObj.getDate() + 4);
-                                const formattedExpectedDate = expectedDateObj.toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' });
-                                
-                                const updatedDateObj = new Date(order.updatedAt || order.createdAt);
-                                const formattedUpdatedDate = updatedDateObj.toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' });
-                                const cleanOrderId = order.orderId ? order.orderId.replace(/^#/, '') : '';
-                        %>
-                            <div class="order-card">
-                                <div class="order-card-summary">
-                                    <div class="order-card-left">
-                                        <img src="<%= imageUrl %>" alt="<%= product?.name || 'Product' %>" class="order-img">
-                                        <div class="order-info">
-                                            <p class="order-product-name"><%= product?.name || 'Product Name Unavailable' %> (<%= variant?.variantName || 'Standard' %>)</p>
-                                            <p class="order-category"><%= categoryName %></p>
-                                            <p class="order-meta">Order ID: <%= order.orderId %> &nbsp;|&nbsp; Qty: <%= item.quantity %></p>
-                                            <p class="order-date"><i class="fa-regular fa-calendar"></i> Ordered on <%= formattedOrderDate %></p>
+                        <% orders.forEach(order => { %>
+                            <% order.orderItems.forEach(item => { %>
+                                <% 
+                                    const variant = item.productVariantId;
+                                    const product = variant?.productId;
+                                    const categoryName = product?.categoryId?.name || 'HomeStation';
+                                    const imageUrl = (product?.images && product.images[0]) ? product.images[0] : 'https://placehold.co/120';
+                                    const itemTotal = item.currentPrice * item.quantity;
+                                    const orderedDate = new Date(order.createdAt);
+                                    const formattedOrderDate = orderedDate.toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' });
+
+                                    const expectedDateObj = new Date(orderedDate);
+                                    expectedDateObj.setDate(expectedDateObj.getDate() + 4);
+                                    const formattedExpectedDate = expectedDateObj.toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' });
+
+                                    const updatedDateObj = new Date(order.updatedAt || order.createdAt);
+                                    const formattedUpdatedDate = updatedDateObj.toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' });
+                                    const safeOrderId = order.orderId ? order.orderId.replace(/^#/, '') : '';
+                                %>
+                                <div class="order-card">
+                                    <div class="order-card-summary">
+                                        <div class="order-card-left">
+                                            <img src="<%= imageUrl %>" alt="<%= product?.name || 'Product' %>" class="order-img">
+                                            <div class="order-info">
+                                                <p class="order-product-name">
+                                                    <%= product?.name || 'Product Name Unavailable' %> (<%= variant?.variantName || 'Standard' %>)
+                                                </p>
+                                                <p class="order-category">
+                                                    <%= categoryName %>
+                                                </p>
+                                                <p class="order-meta">
+                                                    Order ID: <%= order.orderId %> &nbsp;|&nbsp; Qty: <%= item.quantity %>
+                                                </p>
+                                                <p class="order-date">
+                                                    <i class="fa-regular fa-calendar"></i> Ordered on <%= formattedOrderDate %>
+                                                </p>
+                                            </div>
+                                        </div>
+                                        <div class="order-card-right">
+                                            <p class="order-price">₹<%= itemTotal.toLocaleString('en-IN') %></p>
+
+                                            <% if (item.returnStatus && item.returnStatus !== 'none') { %>
+                                                <span class="status-badge returned">
+                                                    <i class="fa-solid fa-rotate-left"></i>
+                                                    <%= item.returnStatus.charAt(0).toUpperCase() + item.returnStatus.slice(1) %>
+                                                </span>
+                                                <p class="order-delivery-note">
+                                                    <%= item.returnStatus.charAt(0).toUpperCase() + item.returnStatus.slice(1) %> on <%= formattedUpdatedDate %>
+                                                </p>
+                                            <% } else if (item.itemStatus === 'delivered') { %>
+                                                <span class="status-badge delivered">
+                                                    <i class="fa-solid fa-circle-check"></i> Delivered
+                                                </span>
+                                                <p class="order-delivery-note">Delivered on <%= formattedUpdatedDate %></p>
+                                            <% } else if (item.itemStatus === 'cancelled') { %>
+                                                <span class="status-badge cancelled">
+                                                    <i class="fa-solid fa-circle-xmark"></i> Cancelled
+                                                </span>
+                                                <p class="order-delivery-note">Cancelled on <%= formattedUpdatedDate %></p>
+                                            <% } else { %>
+                                                <span class="status-badge on-the-way">
+                                                    <i class="fa-solid fa-truck"></i>
+                                                    <%= item.itemStatus.charAt(0).toUpperCase() + item.itemStatus.slice(1) %>
+                                                </span>
+                                                <p class="order-delivery-note">Expected by <%= formattedExpectedDate %></p>
+                                            <% } %>
+
+                                            <a href="/user/orders/detail/<%= safeOrderId %>" class="btn-order-details">
+                                                <i class="fa-solid fa-receipt"></i> Order Details
+                                            </a>
                                         </div>
                                     </div>
-                                    <div class="order-card-right">
-                                        <p class="order-price">₹<%= itemTotal.toLocaleString('en-IN') %></p>
-
-                                        <% if (order.returnStatus && order.returnStatus !== 'none') { %>
-                                            <span class="status-badge returned">
-                                                <i class="fa-solid fa-rotate-left"></i> <%= order.returnStatus.charAt(0).toUpperCase() + order.returnStatus.slice(1) %>
-                                            </span>
-                                            <p class="order-delivery-note"><%= order.returnStatus.charAt(0).toUpperCase() + order.returnStatus.slice(1) %> on <%= formattedUpdatedDate %></p>
-                                        <% } else if (order.status === 'delivered') { %>
-                                            <span class="status-badge delivered">
-                                                <i class="fa-solid fa-circle-check"></i> Delivered
-                                            </span>
-                                            <p class="order-delivery-note">Delivered on <%= formattedUpdatedDate %></p>
-                                        <% } else if (order.status === 'cancelled') { %>
-                                            <span class="status-badge cancelled">
-                                                <i class="fa-solid fa-circle-xmark"></i> Cancelled
-                                            </span>
-                                            <p class="order-delivery-note">Cancelled on <%= formattedUpdatedDate %></p>
-                                        <% } else { %>
-                                            <span class="status-badge on-the-way">
-                                                <i class="fa-solid fa-truck"></i> <%= order.status.charAt(0).toUpperCase() + order.status.slice(1) %>
-                                            </span>
-                                            <p class="order-delivery-note">Expected by <%= formattedExpectedDate %></p>
-                                        <% } %>
-
-                                        <a href="/user/orders/detail/<%= cleanOrderId %>" class="btn-order-details">
-                                            <i class="fa-solid fa-receipt"></i> Order Details
-                                        </a>
-                                    </div>
                                 </div>
-                            </div>
+                            <% }) %>
                         <% }) %>
-                    <% }) %>
                     <% } else { %>
                         <div class="orders-empty" id="ordersEmpty">
                             <i class="fa-solid fa-box-open"></i>
@@ -213,19 +226,29 @@
                     %>
                     <div class="pagination" id="paginationBar">
                         <% if (currentPage > 1) { %>
-                            <a href="<%= buildPageUrl(currentPage - 1) %>" class="page-btn flex-center"><i class="fa-solid fa-chevron-left"></i></a>
+                            <a href="<%= buildPageUrl(currentPage - 1) %>" class="page-btn flex-center">
+                                <i class="fa-solid fa-chevron-left"></i>
+                            </a>
                         <% } else { %>
-                            <button type="button" class="page-btn" disabled><i class="fa-solid fa-chevron-left"></i></button>
+                            <button type="button" class="page-btn" disabled>
+                                <i class="fa-solid fa-chevron-left"></i>
+                            </button>
                         <% } %>
 
                         <% for (let p = 1; p <= totalPages; p++) { %>
-                            <a href="<%= buildPageUrl(p) %>" class="page-btn flex-center <%= currentPage === p ? 'active' : '' %>"><%= p %></a>
+                            <a href="<%= buildPageUrl(p) %>" class="page-btn flex-center <%= currentPage === p ? 'active' : '' %>">
+                                <%= p %>
+                            </a>
                         <% } %>
 
                         <% if (currentPage < totalPages) { %>
-                            <a href="<%= buildPageUrl(currentPage + 1) %>" class="page-btn flex-center"><i class="fa-solid fa-chevron-right"></i></a>
+                            <a href="<%= buildPageUrl(currentPage + 1) %>" class="page-btn flex-center">
+                                <i class="fa-solid fa-chevron-right"></i>
+                            </a>
                         <% } else { %>
-                            <button type="button" class="page-btn" disabled><i class="fa-solid fa-chevron-right"></i></button>
+                            <button type="button" class="page-btn" disabled>
+                                <i class="fa-solid fa-chevron-right"></i>
+                            </button>
                         <% } %>
                     </div>
                 <% } %>

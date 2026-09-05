@@ -1,5 +1,55 @@
 import mongoose from 'mongoose';
 
+const orderItemSchema = new mongoose.Schema({
+    productVariantId: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: 'ProductVariant',
+        required: true
+    },
+    quantity: { 
+        type: Number, 
+        required: true 
+    },
+    currentPrice: { 
+        type: Number, 
+        required: true 
+    },
+    originalPrice: { 
+        type: Number, 
+        required: true 
+    },
+    discount: { 
+        type: Number, 
+        default: 0 
+    },
+    itemStatus: {
+        type: String,
+        enum: ['processing', 'packed', 'shipped', 'on the way', 'out for delivery', 'delivered', 'cancelled'],
+        default: 'processing'
+    },
+    returnStatus: {
+        type: String,
+        enum: ['none', 'return initiated', 'pickup assigned', 'item picked up', 'in transit', 'item reached'],
+        default: 'none'
+    },
+    cancellationReason: {
+        type: String,
+        default: null
+    },
+    returnReason: {
+        type: String,
+        default: null
+    },
+    cancelledAt: {
+        type: Date,
+        default: null
+    },
+    returnedAt: {
+        type: Date,
+        default: null
+    }
+}, { _id: true });
+
 const orderSchema = new mongoose.Schema({
     orderId: {
         type: String,
@@ -11,17 +61,7 @@ const orderSchema = new mongoose.Schema({
         ref: 'User',
         required: true
     },
-    orderItems: [{
-        productVariantId: {
-            type: mongoose.Schema.Types.ObjectId,
-            ref: 'ProductVariant',
-            required: true
-        },
-        quantity: { type: Number, required: true },
-        currentPrice: { type: Number, required: true },
-        originalPrice: { type: Number, required: true },
-        discount: { type: Number, default: 0 }
-    }],
+    orderItems: [orderItemSchema],
     shippingAddress: {
         name: { type: String, required: true },
         phone: { type: String, required: true },
@@ -44,18 +84,7 @@ const orderSchema = new mongoose.Schema({
         type: String,
         enum: ['razorpay', 'wallet', 'cod'],
         required: true
-    },
-    status: {
-        type: String,
-        enum: ['processing', 'packed', 'shipped', 'on the way', 'out for delivery', 'delivered', 'cancelled'],
-        default: 'processing'
-    },
-    returnStatus: {
-        type: String,
-        enum: ['none', 'return initiated', 'pickup assigned', 'item picked up', 'in transit', 'item reached'],
-        default: 'none'
     }
 }, { timestamps: true });
-
 
 export default mongoose.model('Order', orderSchema);
