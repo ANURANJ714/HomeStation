@@ -174,36 +174,6 @@ ul {
   overflow: hidden;
 }
 
-.detail-header-banner {
-  padding: 24px 30px;
-  display: flex;
-  align-items: flex-start;
-  gap: 18px;
-  border-bottom: 1px solid #eaeaea;
-}
-
-.detail-header-banner i:first-child,
-.banner-main-icon {
-  font-size: 34px;
-  line-height: 1;
-  margin-top: 2px;
-  flex-shrink: 0;
-}
-
-.detail-header-banner h2 {
-  font-size: 20px;
-  font-weight: 700;
-  margin-bottom: 4px;
-  line-height: 1.2;
-}
-
-.detail-header-banner p {
-  font-size: 14px;
-  opacity: 0.95;
-  line-height: 1.4;
-  margin: 0;
-}
-
 .return-window-note {
   font-size: 13.5px !important;
   line-height: 1.4 !important;
@@ -754,6 +724,63 @@ ul {
   color: #1565c0;
 }
 
+.item-status-prominent {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    flex-wrap: wrap;
+    margin-top: 4px;
+}
+
+.badge-status-prominent {
+    font-size: 15px;
+    font-weight: 700;
+    padding: 6px 14px;
+    border-radius: 6px;
+    display: inline-flex;
+    align-items: center;
+    gap: 7px;
+}
+
+.badge-status-prominent.badge-success {
+    background-color: #e8f5e9;
+    color: #2e7d32;
+    border: 1px solid #c8e6c9;
+}
+
+.badge-status-prominent.badge-danger {
+    background-color: #fdecea;
+    color: #c0392b;
+    border: 1px solid #fadbd8;
+}
+
+.badge-status-prominent.badge-orange {
+    background-color: #fff3e0;
+    color: #e65100;
+    border: 1px solid #ffe0b2;
+}
+
+.badge-status-prominent.badge-warning {
+    background-color: #fffde7;
+    color: #f57f17;
+    border: 1px solid #fff9c4;
+}
+
+.badge-status-prominent.badge-info {
+    background-color: #e3f2fd;
+    color: #1565c0;
+    border: 1px solid #bbdefb;
+}
+
+.item-return-window-note {
+    font-size: 13px;
+    font-weight: 500;
+    color: #2e7d32;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+}
+
 @media (max-width: 768px) {
   .container-fluid {
     padding: 0 20px;
@@ -801,10 +828,6 @@ ul {
 }
 
 @media (max-width: 600px) {
-  .detail-header-banner {
-    padding: 20px;
-  }
-
   .status-tracker-container {
     padding: 20px;
   }

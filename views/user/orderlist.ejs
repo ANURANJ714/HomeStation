@@ -4,7 +4,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>HomeStation</title>
+    <title>HomeStation - My Orders</title>
     <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&display=swap" rel="stylesheet">
     <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,600;0,700;1,600&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
@@ -80,7 +80,7 @@
                             <label class="filter-option">
                                 <input type="checkbox" name="status" value="returned" <%= (statusFilters && statusFilters.includes('returned')) ? 'checked' : '' %>>
                                 <span class="checkmark"></span>
-                                <i class="fa-solid fa-rotate-left filter-icon returned"></i> Returned
+                                <i class="fa-solid fa-rotate-left filter-icon returned"></i> Return
                             </label>
                         </li>
                     </ul>
@@ -130,24 +130,24 @@
                 <div class="order-list" id="orderList">
                     <% if (orders && orders.length > 0) { %>
                         <% orders.forEach(order => { %>
-                            <% order.orderItems.forEach(item => { %>
-                                <% 
-                                    const variant = item.productVariantId;
-                                    const product = variant?.productId;
-                                    const categoryName = product?.categoryId?.name || 'HomeStation';
-                                    const imageUrl = (product?.images && product.images[0]) ? product.images[0] : 'https://placehold.co/120';
-                                    const itemTotal = item.currentPrice * item.quantity;
-                                    const orderedDate = new Date(order.createdAt);
-                                    const formattedOrderDate = orderedDate.toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' });
+                            <% order.orderItems.forEach(item => { 
+                                const variant = item.productVariantId;
+                                const product = variant?.productId;
+                                const categoryName = product?.categoryId?.name || 'HomeStation';
+                                const imageUrl = (product?.images && product.images[0]) ? product.images[0] : 'https://placehold.co/120';
+                                const itemTotal = item.currentPrice * item.quantity;
+                                const orderedDate = new Date(order.createdAt);
+                                const formattedOrderDate = orderedDate.toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' });
 
-                                    const expectedDateObj = new Date(orderedDate);
-                                    expectedDateObj.setDate(expectedDateObj.getDate() + 4);
-                                    const formattedExpectedDate = expectedDateObj.toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' });
+                                const expectedDateObj = new Date(orderedDate);
+                                expectedDateObj.setDate(expectedDateObj.getDate() + 4);
+                                const formattedExpectedDate = expectedDateObj.toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' });
 
-                                    const updatedDateObj = new Date(order.updatedAt || order.createdAt);
-                                    const formattedUpdatedDate = updatedDateObj.toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' });
-                                    const safeOrderId = order.orderId ? order.orderId.replace(/^#/, '') : '';
-                                %>
+                                const updatedDateObj = new Date(order.updatedAt || order.createdAt);
+                                const formattedUpdatedDate = updatedDateObj.toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' });
+                                const safeOrderId = order.orderId ? order.orderId.replace(/^#/, '') : '';
+                                const isReturn = item.returnStatus && item.returnStatus !== 'none';
+                            %>
                                 <div class="order-card">
                                     <div class="order-card-summary">
                                         <div class="order-card-left">
@@ -170,7 +170,7 @@
                                         <div class="order-card-right">
                                             <p class="order-price">₹<%= itemTotal.toLocaleString('en-IN') %></p>
 
-                                            <% if (item.returnStatus && item.returnStatus !== 'none') { %>
+                                            <% if (isReturn) { %>
                                                 <span class="status-badge returned">
                                                     <i class="fa-solid fa-rotate-left"></i>
                                                     <%= item.returnStatus.charAt(0).toUpperCase() + item.returnStatus.slice(1) %>

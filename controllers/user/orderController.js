@@ -45,7 +45,6 @@ export const loadUserOrdersPage = async (req, res) => {
 
     } catch (error) {
         logger.error(`Error loading user orders for (${req.user?.email || 'Unknown'}): ${error.message}\nStack: ${error.stack}`);
-
         return res.status(500).json({
             success: false,
             message: 'An internal server error occurred while retrieving your orders.'
@@ -65,10 +64,21 @@ export const loadUserOrderDetailPage = async (req, res) => {
             getActivePromoBanner()
         ]);
 
-        if (!order) {
+        if (!order || !order.orderItems || order.orderItems.length === 0) {
             logger.warn(`User (${userEmail}) attempted to access invalid order: ${orderId} | IP: ${clientIp}`);
             return res.redirect('/user/orders');
         }
+
+        const itemStatuses = order.orderItems.map(i => i.itemStatus);
+        const returnStatuses = order.orderItems.map(i => i.returnStatus).filter(s => s !== 'none');
+
+        const overallStatus = itemStatuses.every(s => s === 'cancelled') 
+            ? 'cancelled' 
+            : (itemStatuses.every(s => s === 'delivered') ? 'delivered' : itemStatuses.find(s => s !== 'cancelled') || 'processing');
+
+        const overallReturnStatus = returnStatuses.length > 0 
+            ? (returnStatuses.every(s => s === 'item reached') ? 'item reached' : returnStatuses[0]) 
+            : 'none';
 
         let paymentModeLabel = 'COD';
         let paymentStatusText = 'Unpaid';
@@ -81,7 +91,7 @@ export const loadUserOrderDetailPage = async (req, res) => {
             paymentStatusText = 'Paid';
         } else if (order.paymentMode === 'cod') {
             paymentModeLabel = 'Cash on Delivery';
-            paymentStatusText = order.status === 'delivered' ? 'Paid' : 'Unpaid';
+            paymentStatusText = overallStatus === 'delivered' ? 'Paid' : 'Unpaid';
         }
 
         const createdDateObj = new Date(order.createdAt);
@@ -96,7 +106,7 @@ export const loadUserOrderDetailPage = async (req, res) => {
 
         let isReturnEligible = false;
         let formattedReturnDeadline = '';
-        if (order.status === 'delivered') {
+        if (overallStatus === 'delivered') {
             const deliveredDate = new Date(order.updatedAt || order.createdAt);
             const returnDeadlineObj = new Date(deliveredDate);
             returnDeadlineObj.setDate(returnDeadlineObj.getDate() + 15);
@@ -107,10 +117,10 @@ export const loadUserOrderDetailPage = async (req, res) => {
         }
 
         const statusSteps = ['processing', 'packed', 'shipped', 'on the way', 'out for delivery', 'delivered'];
-        const currentStepIndex = statusSteps.indexOf(order.status.toLowerCase());
+        const currentStepIndex = statusSteps.indexOf(overallStatus.toLowerCase());
 
         const returnSteps = ['return initiated', 'pickup assigned', 'item picked up', 'in transit', 'item reached'];
-        const currentReturnStepIndex = returnSteps.indexOf(order.returnStatus?.toLowerCase());
+        const currentReturnStepIndex = returnSteps.indexOf(overallReturnStatus.toLowerCase());
 
         const hasCancellableItems = order.orderItems.some(i => i.itemStatus !== 'delivered' && i.itemStatus !== 'cancelled');
         const hasReturnableItems = order.orderItems.some(i => i.itemStatus === 'delivered' && (!i.returnStatus || i.returnStatus === 'none'));
@@ -121,12 +131,14 @@ export const loadUserOrderDetailPage = async (req, res) => {
 
         const userReviews = await reviewService.getUserReviewsForProducts(userId, productIds);
 
-        logger.info(`User (${userEmail}) loaded full details for Order [${order.orderId}] | IP: ${clientIp}`);
+        logger.info(`User (${userEmail}) loaded details for Order [${order.orderId}] | IP: ${clientIp}`);
 
         return res.render('user/orderdetail', {
             user: req.user,
             order,
             userReviews,
+            overallStatus,
+            overallReturnStatus,
             paymentModeLabel,
             paymentStatusText,
             formattedOrderDate,

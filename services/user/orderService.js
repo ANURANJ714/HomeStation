@@ -147,17 +147,46 @@ export const getUserOrdersPageData = async (userId, page = 1, limit = 4, searchQ
 
         if (statusFilters && statusFilters.length > 0) {
             const statusQueries = [];
+
             statusFilters.forEach(stat => {
                 if (stat === 'on-the-way') {
-                    statusQueries.push({ status: { $in: ['processing', 'packed', 'shipped', 'on the way', 'out for delivery'] } });
+                    statusQueries.push({
+                        orderItems: {
+                            $elemMatch: {
+                                itemStatus: { $nin: ['cancelled', 'delivered'] },
+                                returnStatus: 'none'
+                            }
+                        }
+                    });
                 } else if (stat === 'delivered') {
-                    statusQueries.push({ status: 'delivered', returnStatus: 'none' });
+                    statusQueries.push({
+                        orderItems: {
+                            $elemMatch: {
+                                itemStatus: 'delivered',
+                                returnStatus: 'none'
+                            }
+                        }
+                    });
                 } else if (stat === 'cancelled') {
-                    statusQueries.push({ status: 'cancelled' });
+                    statusQueries.push({
+                        orderItems: {
+                            $elemMatch: {
+                                itemStatus: 'cancelled',
+                                returnStatus: 'none'
+                            }
+                        }
+                    });
                 } else if (stat === 'returned') {
-                    statusQueries.push({ returnStatus: { $ne: 'none' } });
+                    statusQueries.push({
+                        orderItems: {
+                            $elemMatch: {
+                                returnStatus: { $ne: 'none' }
+                            }
+                        }
+                    });
                 }
             });
+
             if (statusQueries.length > 0) {
                 query.$or = statusQueries;
             }
@@ -170,9 +199,13 @@ export const getUserOrdersPageData = async (userId, page = 1, limit = 4, searchQ
                 thirtyDaysAgo.setDate(now.getDate() - 30);
                 query.createdAt = { $gte: thirtyDaysAgo };
             } else if (timeFilter === 'lastyear') {
-                const threeHundredSixtyFiveDaysAgo = new Date();
-                threeHundredSixtyFiveDaysAgo.setDate(now.getDate() - 365);
-                query.createdAt = { $gte: threeHundredSixtyFiveDaysAgo };
+                const lastYearDate = new Date();
+                lastYearDate.setDate(now.getDate() - 365);
+                query.createdAt = { $gte: lastYearDate };
+            } else if (timeFilter === 'older') {
+                const olderThanYear = new Date();
+                olderThanYear.setDate(now.getDate() - 365);
+                query.createdAt = { $lt: olderThanYear };
             }
         }
 
@@ -195,11 +228,44 @@ export const getUserOrdersPageData = async (userId, page = 1, limit = 4, searchQ
             Order.countDocuments(query)
         ]);
 
+        orders.forEach(order => {
+            order.orderItems = order.orderItems.filter(item => {
+                let matchesStatus = true;
+                if (statusFilters && statusFilters.length > 0) {
+                    matchesStatus = statusFilters.some(stat => {
+                        if (stat === 'on-the-way') {
+                            return item.itemStatus !== 'cancelled' && item.itemStatus !== 'delivered' && item.returnStatus === 'none';
+                        }
+                        if (stat === 'delivered') {
+                            return item.itemStatus === 'delivered' && item.returnStatus === 'none';
+                        }
+                        if (stat === 'cancelled') {
+                            return item.itemStatus === 'cancelled' && item.returnStatus === 'none';
+                        }
+                        if (stat === 'returned') {
+                            return item.returnStatus && item.returnStatus !== 'none';
+                        }
+                        return false;
+                    });
+                }
+
+                let matchesSearch = true;
+                if (searchQuery && searchQuery.trim() !== '') {
+                    const prodName = item.productVariantId?.productId?.name || '';
+                    matchesSearch = prodName.toLowerCase().includes(searchQuery.trim().toLowerCase());
+                }
+
+                return matchesStatus && matchesSearch;
+            });
+        });
+
+        const filteredOrders = orders.filter(order => order.orderItems.length > 0);
+
         const totalPages = Math.ceil(totalFilteredOrders / limit) || 1;
         const safePage = Math.min(page, totalPages);
 
         return {
-            orders,
+            orders: filteredOrders,
             totalFilteredOrders,
             totalPages,
             safePage,

@@ -5,12 +5,13 @@ document.addEventListener('DOMContentLoaded', () => {
     const clearFiltersBtn = document.getElementById('clearFiltersBtn');
 
     function updateSearchButtonState() {
+        if (!searchInput || !searchActionIcon || !searchActionBtn) return;
         if (searchInput.value.trim().length > 0) {
             searchActionIcon.className = "fa-solid fa-xmark";
-            searchActionBtn.style.color = "#d93025";
+            searchActionBtn.classList.add("text-danger");
         } else {
             searchActionIcon.className = "fa-solid fa-magnifying-glass";
-            searchActionBtn.style.color = "#666";
+            searchActionBtn.classList.remove("text-danger");
         }
     }
 
@@ -32,10 +33,8 @@ document.addEventListener('DOMContentLoaded', () => {
             if (searchInput.value.trim().length > 0) {
                 searchInput.value = '';
                 updateSearchButtonState();
-                submitFilters();
-            } else {
-                submitFilters();
             }
+            submitFilters();
         });
     }
 
@@ -61,6 +60,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
         const params = new URLSearchParams();
         if (searchTerm) params.append('search', searchTerm);
+        
         statuses.forEach(s => params.append('status', s));
         if (timeRadio) params.append('time', timeRadio.value);
         params.append('page', '1');
