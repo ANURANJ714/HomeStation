@@ -11,6 +11,15 @@
   text-decoration: none !important;
 }
 
+.text-center {
+    text-align: center;
+}
+
+.font-16 {
+    font-size: 16px;
+    line-height: 1.6;
+}
+
 .logout-btn-submit {
   background: none;
   border: none;

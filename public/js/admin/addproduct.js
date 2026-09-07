@@ -12,8 +12,8 @@ document.addEventListener('DOMContentLoaded', () => {
             month: 'short', 
             day: 'numeric', 
             hour: '2-digit', 
-            minute: '2-digit',
-            hour12: true
+            minute: '2-digit', 
+            hour12: true 
         };
         display.textContent = now.toLocaleDateString('en-IN', opts);
     }
@@ -161,10 +161,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     return Swal.fire({
                         icon: 'error',
                         title: 'Invalid File Format',
-                        html: `
-                            <p style="margin-bottom: 8px;">The file <b>"${file.name}"</b> is not a supported image format.</p>
-                            <p style="font-size: 14px; color: #555;">Accepted formats: <b>JPG, JPEG, PNG, WEBP</b></p>
-                        `,
+                        text: `The file "${file.name}" is not a supported format. Accepted: JPG, JPEG, PNG, WEBP.`,
                         confirmButtonColor: '#1a1a1a',
                         heightAuto: false
                     });
@@ -280,7 +277,6 @@ document.addEventListener('DOMContentLoaded', () => {
             e.preventDefault();
             clearAllErrors();
 
-            const form = this;
             const submitBtn = document.getElementById('saveProductBtn');
             const originalBtnText = submitBtn.innerHTML;
 
@@ -294,46 +290,6 @@ document.addEventListener('DOMContentLoaded', () => {
 
             const variantRows = document.querySelectorAll('.variant-row');
             const croppedCount = Object.keys(croppedFilesMap).length;
-
-            let areAllVariantsEmpty = true;
-            variantRows.forEach((row) => {
-                const vName = row.querySelector('.v-name').value.trim();
-                const vPrice = row.querySelector('.v-price').value.trim();
-                const vStock = row.querySelector('.v-stock').value.trim();
-                if (vName !== '' || vPrice !== '' || vStock !== '') {
-                    areAllVariantsEmpty = false;
-                }
-            });
-
-            if (
-                pName === '' &&
-                pCat === '' &&
-                pDesc === '' &&
-                pBrand === '' &&
-                pMat === '' &&
-                pWarr === '' &&
-                pSpecs === '' &&
-                areAllVariantsEmpty &&
-                croppedCount === 0
-            ) {
-                document.getElementById('productNameError').innerText = 'Product name is required.';
-                document.getElementById('productCategoryError').innerText = 'Please select a category.';
-                document.getElementById('productDescriptionError').innerText = 'Product description is required.';
-                document.getElementById('productBrandError').innerText = 'Brand name is required.';
-                document.getElementById('productMaterialError').innerText = 'Material type is required.';
-                document.getElementById('productWarrantyError').innerText = 'Warranty detail is required.';
-                document.getElementById('productSpecsError').innerText = 'Product specifications are required.';
-                document.getElementById('variantsContainerError').innerText = 'Variant details are required.';
-                document.getElementById('imagesError').innerText = 'All 3 images must be uploaded and cropped.';
-
-                return Swal.fire({
-                    icon: 'warning',
-                    title: 'All Fields Required',
-                    text: 'Please fill out all mandatory fields and upload required product images before saving.',
-                    heightAuto: false,
-                    confirmButtonColor: '#1a1a1a'
-                });
-            }
 
             const errorMessages = [];
 
@@ -379,8 +335,15 @@ document.addEventListener('DOMContentLoaded', () => {
                 errorMessages.push(msg);
             }
 
+            if (croppedCount < 3) {
+                const msg = 'All 3 images (Main Image, Side Image 1, and Side Image 2) must be selected and cropped.';
+                document.getElementById('imagesError').innerText = msg;
+                errorMessages.push(msg);
+            }
+
             const variants = [];
-            let variantErrorFound = false;
+            const variantNamesSet = new Set();
+            const dimensionsSet = new Set();
 
             if (variantRows.length === 0) {
                 const msg = 'At least one variant must be added.';
@@ -406,38 +369,49 @@ document.addEventListener('DOMContentLoaded', () => {
                 const vHeight = vHeightText !== '' ? parseFloat(vHeightText) : null;
 
                 if (vName === '' || vPriceText === '' || vStockText === '') {
-                    variantErrorFound = true;
                     errorMessages.push(`Variant #${variantNumber} is missing required fields (Name, Price, or Stock).`);
                 }
 
                 if (vPriceText !== '' && (isNaN(vPrice) || vPrice < 0)) {
-                    variantErrorFound = true;
-                    errorMessages.push(`Variant #${variantNumber} price cannot be negative or invalid.`);
+                    errorMessages.push(`Variant #${variantNumber} price cannot be negative.`);
                 }
 
                 if (vStockText !== '' && (isNaN(vStock) || vStock < 0)) {
-                    variantErrorFound = true;
-                    errorMessages.push(`Variant #${variantNumber} stock cannot be negative or invalid.`);
+                    errorMessages.push(`Variant #${variantNumber} stock cannot be negative.`);
                 }
 
                 if (vDiscountText !== '' && (isNaN(vDiscount) || vDiscount < 0 || vDiscount > 100)) {
-                    variantErrorFound = true;
                     errorMessages.push(`Variant #${variantNumber} discount must be between 0% and 100%.`);
                 }
 
                 if (vLength !== null && (isNaN(vLength) || vLength < 0)) {
-                    variantErrorFound = true;
                     errorMessages.push(`Variant #${variantNumber} length cannot be negative.`);
                 }
 
                 if (vWidth !== null && (isNaN(vWidth) || vWidth < 0)) {
-                    variantErrorFound = true;
                     errorMessages.push(`Variant #${variantNumber} width cannot be negative.`);
                 }
 
                 if (vHeight !== null && (isNaN(vHeight) || vHeight < 0)) {
-                    variantErrorFound = true;
                     errorMessages.push(`Variant #${variantNumber} height cannot be negative.`);
+                }
+
+                if (vName) {
+                    const normalized = vName.toLowerCase();
+                    if (variantNamesSet.has(normalized)) {
+                        errorMessages.push(`Duplicate variant name: "${vName}". Each variant name must be unique.`);
+                    } else {
+                        variantNamesSet.add(normalized);
+                    }
+                }
+
+                if (vLength !== null && vWidth !== null && vHeight !== null) {
+                    const dimKey = `${vLength}x${vWidth}x${vHeight}`;
+                    if (dimensionsSet.has(dimKey)) {
+                        errorMessages.push(`Duplicate dimensions in Variant #${variantNumber} (${vLength}" × ${vWidth}" × ${vHeight}"). Length, width, and height cannot all be identical across variants.`);
+                    } else {
+                        dimensionsSet.add(dimKey);
+                    }
                 }
 
                 variants.push({
@@ -451,22 +425,12 @@ document.addEventListener('DOMContentLoaded', () => {
                 });
             });
 
-            if (variantErrorFound) {
-                document.getElementById('variantsContainerError').innerText = 'Please fix invalid or negative values in variant fields.';
-            }
-
-            if (croppedCount < 3) {
-                const msg = 'All 3 images (Main Image, Side Image 1, and Side Image 2) must be selected and cropped.';
-                document.getElementById('imagesError').innerText = msg;
-                errorMessages.push(msg);
-            }
-
             if (errorMessages.length > 0) {
-                const formattedMessageList = errorMessages.slice(0, 4).map(msg => `• ${msg}`).join('<br>');
+                const formattedList = errorMessages.slice(0, 4).map(msg => `• ${msg}`).join('<br>');
                 return Swal.fire({
                     icon: 'warning',
                     title: 'Validation Errors',
-                    html: `<div style="text-align: center; font-size: 17px; line-height: 1.6;">${formattedMessageList}</div>`,
+                    html: `<div class="text-center font-16">${formattedList}</div>`,
                     heightAuto: false,
                     confirmButtonColor: '#1a1a1a'
                 });
@@ -515,7 +479,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 } else {
                     Swal.fire({
                         icon: 'error',
-                        title: 'Error',
+                        title: 'Validation Error',
                         text: data.message,
                         heightAuto: false,
                         confirmButtonColor: '#1a1a1a'
@@ -542,7 +506,6 @@ document.addEventListener('DOMContentLoaded', () => {
     if (adminLogoutForm) {
         adminLogoutForm.addEventListener("submit", async function (e) {
             e.preventDefault(); 
-
             const primaryToken = document.getElementById("globalCsrfTokenField")?.value || "";
 
             try {
@@ -560,12 +523,11 @@ document.addEventListener('DOMContentLoaded', () => {
                 }
 
                 const data = await response.json();
-
                 if (data.success || response.ok) {
                     Swal.fire({
                         icon: "success",
                         title: "Logged Out",
-                        text: data.message || "Redirecting to login window...",
+                        text: data.message || "Redirecting to login...",
                         timer: 1500,
                         showConfirmButton: false,
                         heightAuto: false

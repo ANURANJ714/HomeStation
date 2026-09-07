@@ -204,6 +204,7 @@ export const validateProductInput = async (productData, variantData, imageUrls) 
             errorMessages.push('At least one variant must be added.');
         } else {
             const variantNamesSet = new Set();
+            const dimensionCombinationsSet = new Set();
 
             parsedVariants.forEach((v, index) => {
                 const variantNumber = index + 1;
@@ -228,22 +229,26 @@ export const validateProductInput = async (productData, variantData, imageUrls) 
                     errorMessages.push(`Variant #${variantNumber} discount must be between 0% and 100%.`);
                 }
 
+                let vLen = null;
+                let vWid = null;
+                let vHei = null;
+
                 if (v.length !== null && v.length !== undefined && v.length !== '') {
-                    const vLen = parseFloat(v.length);
+                    vLen = parseFloat(v.length);
                     if (isNaN(vLen) || vLen < 0) {
                         errorMessages.push(`Variant #${variantNumber} length cannot be negative.`);
                     }
                 }
 
                 if (v.width !== null && v.width !== undefined && v.width !== '') {
-                    const vWid = parseFloat(v.width);
+                    vWid = parseFloat(v.width);
                     if (isNaN(vWid) || vWid < 0) {
                         errorMessages.push(`Variant #${variantNumber} width cannot be negative.`);
                     }
                 }
 
                 if (v.height !== null && v.height !== undefined && v.height !== '') {
-                    const vHei = parseFloat(v.height);
+                    vHei = parseFloat(v.height);
                     if (isNaN(vHei) || vHei < 0) {
                         errorMessages.push(`Variant #${variantNumber} height cannot be negative.`);
                     }
@@ -255,6 +260,15 @@ export const validateProductInput = async (productData, variantData, imageUrls) 
                         errorMessages.push(`Duplicate variant name detected: "${vName}". Each variant name must be unique.`);
                     } else {
                         variantNamesSet.add(normalized);
+                    }
+                }
+
+                if (vLen !== null && vWid !== null && vHei !== null) {
+                    const dimensionKey = `${vLen}x${vWid}x${vHei}`;
+                    if (dimensionCombinationsSet.has(dimensionKey)) {
+                        errorMessages.push(`Duplicate dimensions detected on Variant #${variantNumber} (${vLen}" × ${vWid}" × ${vHei}"). Two variants cannot have the exact same length, width, and height.`);
+                    } else {
+                        dimensionCombinationsSet.add(dimensionKey);
                     }
                 }
             });
@@ -491,6 +505,7 @@ export const validateEditProductInput = async (productData, variantData, finalIm
             errorMessages.push('At least one variant must be added.');
         } else {
             const variantNamesSet = new Set();
+            const dimensionCombinationsSet = new Set();
 
             parsedVariants.forEach((v, index) => {
                 const variantNumber = index + 1;
@@ -515,22 +530,26 @@ export const validateEditProductInput = async (productData, variantData, finalIm
                     errorMessages.push(`Variant #${variantNumber} discount must be between 0% and 100%.`);
                 }
 
+                let vLen = null;
+                let vWid = null;
+                let vHei = null;
+
                 if (v.length !== null && v.length !== undefined && v.length !== '') {
-                    const vLen = parseFloat(v.length);
+                    vLen = parseFloat(v.length);
                     if (isNaN(vLen) || vLen < 0) {
                         errorMessages.push(`Variant #${variantNumber} length cannot be negative.`);
                     }
                 }
 
                 if (v.width !== null && v.width !== undefined && v.width !== '') {
-                    const vWid = parseFloat(v.width);
+                    vWid = parseFloat(v.width);
                     if (isNaN(vWid) || vWid < 0) {
                         errorMessages.push(`Variant #${variantNumber} width cannot be negative.`);
                     }
                 }
 
                 if (v.height !== null && v.height !== undefined && v.height !== '') {
-                    const vHei = parseFloat(v.height);
+                    vHei = parseFloat(v.height);
                     if (isNaN(vHei) || vHei < 0) {
                         errorMessages.push(`Variant #${variantNumber} height cannot be negative.`);
                     }
@@ -542,6 +561,15 @@ export const validateEditProductInput = async (productData, variantData, finalIm
                         errorMessages.push(`Duplicate variant name detected: "${vName}". Each variant name must be unique.`);
                     } else {
                         variantNamesSet.add(normalized);
+                    }
+                }
+
+                if (vLen !== null && vWid !== null && vHei !== null) {
+                    const dimensionKey = `${vLen}x${vWid}x${vHei}`;
+                    if (dimensionCombinationsSet.has(dimensionKey)) {
+                        errorMessages.push(`Duplicate dimensions detected on Variant #${variantNumber} (${vLen}" × ${vWid}" × ${vHei}"). Two variants cannot have the exact same length, width, and height.`);
+                    } else {
+                        dimensionCombinationsSet.add(dimensionKey);
                     }
                 }
             });

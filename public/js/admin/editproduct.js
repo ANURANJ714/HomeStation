@@ -56,39 +56,39 @@ document.addEventListener("DOMContentLoaded", () => {
     const row = document.createElement("div");
     row.className = "variant-row new-created-variant";
     row.innerHTML = `
-            <div class="variant-col">
-                <label>Variant Name *</label>
-                <input type="text" class="v-name" placeholder="e.g. King Size">
-            </div>
-            <div class="variant-col">
-                <label>Original Price (₹) *</label>
-                <input type="number" class="v-price" placeholder="0.00" min="0" step="0.01">
-            </div>
-            <div class="variant-col">
-                <label>Discount (%)</label>
-                <input type="number" class="v-discount" placeholder="0" min="0" max="100">
-            </div>
-            <div class="variant-col">
-                <label>Stock *</label>
-                <input type="number" class="v-stock" placeholder="Qty" min="0">
-            </div>
-            <div class="variant-col size-col">
-                <label>Length (in)</label>
-                <input type="number" class="v-length" placeholder="L" min="0" step="0.1">
-            </div>
-            <div class="variant-col size-col">
-                <label>Width (in)</label>
-                <input type="number" class="v-width" placeholder="W" min="0" step="0.1">
-            </div>
-            <div class="variant-col size-col">
-                <label>Height (in)</label>
-                <input type="number" class="v-height" placeholder="H" min="0" step="0.1">
-            </div>
-            <div class="variant-col actions-col">
-                <button type="button" class="btn-icon delete remove-variant-btn">
-                    <i class="fa-regular fa-trash-can"></i>
-                </button>
-            </div>`;
+      <div class="variant-col">
+          <label>Variant Name *</label>
+          <input type="text" class="v-name" placeholder="e.g. King Size">
+      </div>
+      <div class="variant-col">
+          <label>Original Price (₹) *</label>
+          <input type="number" class="v-price" placeholder="0.00" min="0" step="0.01">
+      </div>
+      <div class="variant-col">
+          <label>Discount (%)</label>
+          <input type="number" class="v-discount" placeholder="0" min="0" max="100">
+      </div>
+      <div class="variant-col">
+          <label>Stock *</label>
+          <input type="number" class="v-stock" placeholder="Qty" min="0">
+      </div>
+      <div class="variant-col size-col">
+          <label>Length (in)</label>
+          <input type="number" class="v-length" placeholder="L" min="0" step="0.1">
+      </div>
+      <div class="variant-col size-col">
+          <label>Width (in)</label>
+          <input type="number" class="v-width" placeholder="W" min="0" step="0.1">
+      </div>
+      <div class="variant-col size-col">
+          <label>Height (in)</label>
+          <input type="number" class="v-height" placeholder="H" min="0" step="0.1">
+      </div>
+      <div class="variant-col actions-col">
+          <button type="button" class="btn-icon delete remove-variant-btn">
+              <i class="fa-regular fa-trash-can"></i>
+          </button>
+      </div>`;
     return row;
   }
 
@@ -160,10 +160,7 @@ document.addEventListener("DOMContentLoaded", () => {
           return Swal.fire({
             icon: "error",
             title: "Invalid File Format",
-            html: `
-              <p style="margin-bottom: 8px;">The file <b>"${file.name}"</b> is not a supported image format.</p>
-              <p style="font-size: 14px; color: #555;">Accepted formats: <b>JPG, JPEG, PNG, WEBP</b></p>
-            `,
+            text: `The file "${file.name}" is not supported. Accepted: JPG, JPEG, PNG, WEBP.`,
             confirmButtonColor: "#1a1a1a",
             heightAuto: false,
           });
@@ -325,16 +322,6 @@ document.addEventListener("DOMContentLoaded", () => {
 
       const variantRows = document.querySelectorAll(".variant-row");
 
-      let areAllVariantsEmpty = true;
-      variantRows.forEach((row) => {
-        const vName = row.querySelector(".v-name").value.trim();
-        const vPrice = row.querySelector(".v-price").value.trim();
-        const vStock = row.querySelector(".v-stock").value.trim();
-        if (vName !== "" || vPrice !== "" || vStock !== "") {
-          areAllVariantsEmpty = false;
-        }
-      });
-
       const uploadBoxes = document.querySelectorAll(".upload-box");
       const existingImagesArray = [];
       let missingImageSlotCount = 0;
@@ -357,45 +344,6 @@ document.addEventListener("DOMContentLoaded", () => {
           existingImagesArray[index] = "";
         }
       });
-
-      if (
-        pName === "" &&
-        pCat === "" &&
-        pDesc === "" &&
-        pBrand === "" &&
-        pMat === "" &&
-        pWarr === "" &&
-        pSpecs === "" &&
-        areAllVariantsEmpty &&
-        missingImageSlotCount === 3
-      ) {
-        document.getElementById("productNameError").innerText =
-          "Product name is required.";
-        document.getElementById("productCategoryError").innerText =
-          "Please select a category.";
-        document.getElementById("productDescriptionError").innerText =
-          "Product description is required.";
-        document.getElementById("productBrandError").innerText =
-          "Brand name is required.";
-        document.getElementById("productMaterialError").innerText =
-          "Material type is required.";
-        document.getElementById("productWarrantyError").innerText =
-          "Warranty detail is required.";
-        document.getElementById("productSpecsError").innerText =
-          "Product specifications are required.";
-        document.getElementById("variantsContainerError").innerText =
-          "Variant details are required.";
-        document.getElementById("imagesError").innerText =
-          "All 3 product image slots must contain a valid image.";
-
-        return Swal.fire({
-          icon: "warning",
-          title: "All Fields Required",
-          text: "Please fill out all mandatory fields and ensure all product image slots contain valid images before saving.",
-          heightAuto: false,
-          confirmButtonColor: "#1a1a1a",
-        });
-      }
 
       const errorMessages = [];
 
@@ -441,8 +389,15 @@ document.addEventListener("DOMContentLoaded", () => {
         errorMessages.push(msg);
       }
 
+      if (missingImageSlotCount > 0) {
+        const msg = "All 3 product image slots must contain a valid image.";
+        document.getElementById("imagesError").innerText = msg;
+        errorMessages.push(msg);
+      }
+
       const variants = [];
-      let variantErrorFound = false;
+      const variantNamesSet = new Set();
+      const dimensionsSet = new Set();
 
       if (variantRows.length === 0) {
         const msg = "At least one variant must be added.";
@@ -468,55 +423,49 @@ document.addEventListener("DOMContentLoaded", () => {
         const vHeight = vHeightText !== "" ? parseFloat(vHeightText) : null;
 
         if (vName === "" || vPriceText === "" || vStockText === "") {
-          variantErrorFound = true;
-          errorMessages.push(
-            `Variant #${variantNumber} is missing required fields (Name, Price, or Stock).`,
-          );
+          errorMessages.push(`Variant #${variantNumber} is missing required fields (Name, Price, or Stock).`);
         }
 
         if (vPriceText !== "" && (isNaN(vPrice) || vPrice < 0)) {
-          variantErrorFound = true;
-          errorMessages.push(
-            `Variant #${variantNumber} price cannot be negative or invalid.`,
-          );
+          errorMessages.push(`Variant #${variantNumber} price cannot be negative.`);
         }
 
         if (vStockText !== "" && (isNaN(vStock) || vStock < 0)) {
-          variantErrorFound = true;
-          errorMessages.push(
-            `Variant #${variantNumber} stock cannot be negative or invalid.`,
-          );
+          errorMessages.push(`Variant #${variantNumber} stock cannot be negative.`);
         }
 
-        if (
-          vDiscountText !== "" &&
-          (isNaN(vDiscount) || vDiscount < 0 || vDiscount > 100)
-        ) {
-          variantErrorFound = true;
-          errorMessages.push(
-            `Variant #${variantNumber} discount must be between 0% and 100%.`,
-          );
+        if (vDiscountText !== "" && (isNaN(vDiscount) || vDiscount < 0 || vDiscount > 100)) {
+          errorMessages.push(`Variant #${variantNumber} discount must be between 0% and 100%.`);
         }
 
         if (vLength !== null && (isNaN(vLength) || vLength < 0)) {
-          variantErrorFound = true;
-          errorMessages.push(
-            `Variant #${variantNumber} length cannot be negative.`,
-          );
+          errorMessages.push(`Variant #${variantNumber} length cannot be negative.`);
         }
 
         if (vWidth !== null && (isNaN(vWidth) || vWidth < 0)) {
-          variantErrorFound = true;
-          errorMessages.push(
-            `Variant #${variantNumber} width cannot be negative.`,
-          );
+          errorMessages.push(`Variant #${variantNumber} width cannot be negative.`);
         }
 
         if (vHeight !== null && (isNaN(vHeight) || vHeight < 0)) {
-          variantErrorFound = true;
-          errorMessages.push(
-            `Variant #${variantNumber} height cannot be negative.`,
-          );
+          errorMessages.push(`Variant #${variantNumber} height cannot be negative.`);
+        }
+
+        if (vName) {
+          const normalized = vName.toLowerCase();
+          if (variantNamesSet.has(normalized)) {
+            errorMessages.push(`Duplicate variant name: "${vName}". Each variant name must be unique.`);
+          } else {
+            variantNamesSet.add(normalized);
+          }
+        }
+
+        if (vLength !== null && vWidth !== null && vHeight !== null) {
+          const dimKey = `${vLength}x${vWidth}x${vHeight}`;
+          if (dimensionsSet.has(dimKey)) {
+            errorMessages.push(`Duplicate dimensions in Variant #${variantNumber} (${vLength}" × ${vWidth}" × ${vHeight}"). Length, width, and height cannot all be identical across variants.`);
+          } else {
+            dimensionsSet.add(dimKey);
+          }
         }
 
         variants.push({
@@ -530,27 +479,12 @@ document.addEventListener("DOMContentLoaded", () => {
         });
       });
 
-      if (variantErrorFound) {
-        document.getElementById("variantsContainerError").innerText =
-          "Please fix invalid or negative values in variant fields.";
-      }
-
-      if (missingImageSlotCount > 0) {
-        const msg =
-          "All 3 product image slots must contain a valid image (pre-existing or newly uploaded).";
-        document.getElementById("imagesError").innerText = msg;
-        errorMessages.push(msg);
-      }
-
       if (errorMessages.length > 0) {
-        const formattedMessageList = errorMessages
-          .slice(0, 4)
-          .map((msg) => `• ${msg}`)
-          .join("<br>");
+        const formattedMessageList = errorMessages.slice(0, 4).map((msg) => `• ${msg}`).join("<br>");
         return Swal.fire({
           icon: "warning",
           title: "Validation Errors",
-          html: `<div style="text-align: center; font-size: 17px; line-height: 1.6;">${formattedMessageList}</div>`,
+          html: `<div class="text-center font-16">${formattedMessageList}</div>`,
           heightAuto: false,
           confirmButtonColor: "#1a1a1a",
         });
@@ -566,17 +500,13 @@ document.addEventListener("DOMContentLoaded", () => {
       formData.append("specifications", pSpecs);
       formData.append("variants", JSON.stringify(variants));
       formData.append("existingImages", JSON.stringify(existingImagesArray));
-      formData.append(
-        "updatedSlotIndices",
-        JSON.stringify(Object.keys(croppedFilesMap).map(Number)),
-      );
+      formData.append("updatedSlotIndices", JSON.stringify(Object.keys(croppedFilesMap).map(Number)));
 
       Object.keys(croppedFilesMap).forEach((idx) => {
         formData.append("images", croppedFilesMap[idx]);
       });
 
-      submitBtn.innerHTML =
-        '<i class="fa-solid fa-spinner fa-spin"></i> Saving...';
+      submitBtn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Saving...';
       submitBtn.disabled = true;
 
       try {
@@ -604,7 +534,7 @@ document.addEventListener("DOMContentLoaded", () => {
         } else {
           Swal.fire({
             icon: "error",
-            title: "Error",
+            title: "Validation Error",
             text: data.message,
             heightAuto: false,
             confirmButtonColor: "#1a1a1a",
@@ -631,9 +561,7 @@ document.addEventListener("DOMContentLoaded", () => {
   if (adminLogoutForm) {
     adminLogoutForm.addEventListener("submit", async function (e) {
       e.preventDefault();
-
-      const primaryToken =
-        document.getElementById("globalCsrfTokenField")?.value || "";
+      const primaryToken = document.getElementById("globalCsrfTokenField")?.value || "";
 
       try {
         const response = await fetch("/admin/logout", {
@@ -655,7 +583,7 @@ document.addEventListener("DOMContentLoaded", () => {
           Swal.fire({
             icon: "success",
             title: "Logged Out",
-            text: data.message || "Redirecting to login window...",
+            text: data.message || "Redirecting to login...",
             timer: 1500,
             showConfirmButton: false,
             heightAuto: false,
