@@ -10,70 +10,63 @@ export const validateCartForCheckout = async (userId) => {
                 path: 'productVariantId',
                 populate: {
                     path: 'productId',
-                    populate: {
-                        path: 'categoryId'
-                    }
+                    populate: { path: 'categoryId' }
                 }
             })
             .lean();
-            
+
         if (!cartItems || cartItems.length === 0) {
             return {
                 isValid: false,
                 reason: 'EMPTY_CART',
-                message: 'No items in the cart. Please add products to proceed.'
+                message: 'Your cart is empty.'
             };
         }
 
+        const validItems = [];
+
         for (const item of cartItems) {
             const variant = item.productVariantId;
-
-            if (!variant) {
-                return {
-                    isValid: false,
-                    reason: 'ITEM_UNAVAILABLE',
-                    message: 'One of the items in your cart is no longer available.'
-                };
-            }
+            if (!variant) continue;
 
             const product = variant.productId;
-            const category = product?.categoryId;
+            if (!product || product.isDeleted === true) continue;
 
-            if (!product || product.isDeleted || !category || category.isDeleted) {
-                const productName = product?.name || 'Selected product';
-                return {
-                    isValid: false,
-                    reason: 'SOFT_DELETED',
-                    message: `"${productName}" is no longer available.`
-                };
+            const category = product.categoryId;
+            if (category && category.isDeleted === true) continue;
+
+            if (typeof variant.stock === 'number' && variant.stock <= 0) {
+                continue;
             }
 
-            if (variant.stock <= 0) {
-                return {
-                    isValid: false,
-                    reason: 'OUT_OF_STOCK',
-                    message: `"${product.name} (${variant.variantName})" is out of stock.`
-                };
-            }
-
-            if (item.quantity > variant.stock) {
+            if (variant.stock < item.quantity) {
                 return {
                     isValid: false,
                     reason: 'STOCK_EXCEEDED',
+                    message: `Only ${variant.stock} item(s) are available in stock for this variant.`,
                     cartItemId: item._id,
                     availableStock: variant.stock,
-                    productName: `${product.name} (${variant.variantName})`,
-                    message: `Only ${variant.stock} units available for "${product.name} (${variant.variantName})".`
+                    productName: `${product.name} (${variant.variantName})`
                 };
             }
+
+            validItems.push(item);
+        }
+
+        if (validItems.length === 0) {
+            return {
+                isValid: false,
+                reason: 'EMPTY_CART',
+                message: 'No available items in cart to checkout.'
+            };
         }
 
         return {
             isValid: true,
-            cartItems
+            cartItems: validItems
         };
     } catch (error) {
-        throw new Error(`Checkout Service failure during cart validation: ${error.message}`);
+        throw new Error(`Checkout validation service error: ${error.message}`);
     }
 };
 

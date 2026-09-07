@@ -5,18 +5,64 @@ document.addEventListener("DOMContentLoaded", () => {
   const confirmDeleteBtn = document.getElementById("confirmDelete");
   let currentDeleteCartId = null;
 
-  const alertInput = document.getElementById("cartAlertMessage");
-  const cartAlertMessage = alertInput?.value;
+  function promptStockResolution(cartItemId, productName, availableStock) {
+    const itemLabel = productName ? `<b>${productName}</b>` : "This product variant";
 
-  if (cartAlertMessage && cartAlertMessage.trim() !== "") {
     Swal.fire({
-      icon: "info",
-      title: "Cart Updated",
-      text: cartAlertMessage,
+      icon: "warning",
+      title: "Limited Stock Available",
+      html: `${itemLabel} has only <b>${availableStock}</b> quantity available.<br><br>Do you want to proceed with this quantity or remove the item from the cart?`,
+      showCancelButton: true,
+      confirmButtonText: "Proceed",
+      cancelButtonText: "Remove",
       confirmButtonColor: "#222",
+      cancelButtonColor: "#8b0000",
       heightAuto: false,
+      allowOutsideClick: false,
+      allowEscapeKey: false,
+    }).then(async (result) => {
+      if (result.isConfirmed) {
+        try {
+          await fetch("/user/cart/change-quantity", {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              "CSRF-Token": csrfToken,
+            },
+            body: JSON.stringify({
+              cartItemId: cartItemId,
+              action: "set",
+              targetQuantity: availableStock,
+            }),
+          });
+          window.location.reload();
+        } catch (err) {
+          window.location.reload();
+        }
+      } else if (result.dismiss === Swal.DismissReason.cancel) {
+        try {
+          await fetch("/user/cart/remove-item", {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              "CSRF-Token": csrfToken,
+            },
+            body: JSON.stringify({ cartItemId: cartItemId }),
+          });
+          window.location.reload();
+        } catch (err) {
+          window.location.reload();
+        }
+      }
     });
-    if (alertInput) alertInput.value = "";
+  }
+
+  const alertItemId = document.getElementById("stockAlertItemId")?.value;
+  const alertAvailable = document.getElementById("stockAlertAvailable")?.value;
+  const alertName = document.getElementById("stockAlertName")?.value;
+
+  if (alertItemId && alertAvailable !== undefined) {
+    promptStockResolution(alertItemId, alertName, alertAvailable);
   }
 
   document.querySelectorAll(".clickable-cart-card").forEach((card) => {
@@ -38,7 +84,7 @@ document.addEventListener("DOMContentLoaded", () => {
     if (removeBtn) {
       e.preventDefault();
       currentDeleteCartId = removeBtn.getAttribute("data-cart-id");
-      deleteModal.classList.add("active");
+      if (deleteModal) deleteModal.classList.add("active");
     }
   });
 
@@ -65,14 +111,13 @@ document.addEventListener("DOMContentLoaded", () => {
     const currentVal = parseInt(qtyInput.value, 10) || 1;
 
     if (isPlus && currentVal >= 5) {
-      Swal.fire({
+      return Swal.fire({
         icon: "warning",
         title: "Limit Reached",
         text: "Maximum quantity limit is 5 items per product.",
         confirmButtonColor: "#222",
         heightAuto: false,
       });
-      return;
     }
 
     const action = isPlus ? "increase" : "decrease";
@@ -109,15 +154,17 @@ document.addEventListener("DOMContentLoaded", () => {
           icon: "warning",
           title: "Stock Constraint",
           text: data.message,
+          confirmButtonColor: "#222",
           heightAuto: false,
         });
       }
     } catch (error) {
-      console.error("Fetch error on quantity change:", error);
+      console.error("Quantity change error:", error);
       Swal.fire({
         icon: "error",
         title: "Network Error",
         text: "Could not update quantity.",
+        confirmButtonColor: "#222",
         heightAuto: false,
       });
     }
@@ -149,11 +196,12 @@ document.addEventListener("DOMContentLoaded", () => {
             icon: "error",
             title: "Error",
             text: data.message || "Failed to remove the product.",
+            confirmButtonColor: "#222",
             heightAuto: false,
           });
         }
       } catch (error) {
-        console.error("Cart deletion exception:", error);
+        console.error("Cart deletion error:", error);
         window.location.reload();
       }
     });
@@ -161,26 +209,31 @@ document.addEventListener("DOMContentLoaded", () => {
 
   function updateSummaryInvoiceUI(totalQty, subtotalAmt) {
     const pageTitleElement = document.querySelector(".page-title");
-    if (pageTitleElement)
+    if (pageTitleElement) {
       pageTitleElement.innerText = `Shopping Cart (${totalQty} Items)`;
+    }
 
     const labelRow = document.querySelector(
       ".summary-row:first-of-type span:first-child",
     );
-    if (labelRow)
+    if (labelRow) {
       labelRow.innerHTML = `Cart Subtotal (${totalQty} items) <br><small>(Inclusive of 18% GST)</small>`;
+    }
 
     const priceDisplay = document.querySelector(
       ".summary-row:first-of-type span:last-child",
     );
-    if (priceDisplay)
+    if (priceDisplay) {
       priceDisplay.innerText = `₹${subtotalAmt.toLocaleString("en-IN")}`;
+    }
 
     const totalPayable = Math.max(subtotalAmt - 1500, 0);
     const totalUI = document.querySelector(
       ".summary-row.total span:last-child",
     );
-    if (totalUI) totalUI.innerText = `₹${totalPayable.toLocaleString("en-IN")}`;
+    if (totalUI) {
+      totalUI.innerText = `₹${totalPayable.toLocaleString("en-IN")}`;
+    }
   }
 
   const proceedCheckoutBtn = document.getElementById("proceedCheckoutBtn");
@@ -219,58 +272,14 @@ document.addEventListener("DOMContentLoaded", () => {
 
         if (data.success && data.redirectUrl) {
           window.location.href = data.redirectUrl;
+          return;
         } 
-        else if (data.reason === "STOCK_EXCEEDED") {
-          Swal.fire({
-            icon: "warning",
-            title: "Limited Stock Available",
-            html: `This product variant is only available in <b>${data.availableStock}</b> quantity.<br><br>Do you want to remove item from cart or proceed with this quantity?`,
-            showCancelButton: true,
-            confirmButtonText: "Proceed",
-            cancelButtonText: "Remove",
-            confirmButtonColor: "#222",
-            cancelButtonColor: "#8b0000",
-            heightAuto: false,
-          }).then(async (result) => {
-            if (result.isConfirmed) {
-              try {
-                await fetch("/user/cart/change-quantity", {
-                  method: "POST",
-                  headers: {
-                    "Content-Type": "application/json",
-                    "CSRF-Token": csrfToken,
-                  },
-                  body: JSON.stringify({
-                    cartItemId: data.cartItemId,
-                    action: "set",
-                    targetQuantity: data.availableStock,
-                  }),
-                });
-                window.location.reload();
-              } catch (err) {
-                window.location.reload();
-              }
-            } else if (result.dismiss === Swal.DismissReason.cancel) {
-              try {
-                await fetch("/user/cart/remove-item", {
-                  method: "POST",
-                  headers: {
-                    "Content-Type": "application/json",
-                    "CSRF-Token": csrfToken,
-                  },
-                  body: JSON.stringify({ cartItemId: data.cartItemId }),
-                });
-                window.location.reload();
-              } catch (err) {
-                window.location.reload();
-              }
-            }
-          });
-
+        
+        if (data.reason === "STOCK_EXCEEDED") {
+          promptStockResolution(data.cartItemId, data.productName, data.availableStock);
           proceedCheckoutBtn.disabled = false;
           proceedCheckoutBtn.innerText = originalText;
-        } 
-        else {
+        } else {
           Swal.fire({
             icon: "error",
             title: "Checkout Notice",
@@ -282,7 +291,7 @@ document.addEventListener("DOMContentLoaded", () => {
           proceedCheckoutBtn.innerText = originalText;
         }
       } catch (error) {
-        console.error("Checkout submission error:", error);
+        console.error("Checkout verification error:", error);
         Swal.fire({
           icon: "error",
           title: "Network Error",

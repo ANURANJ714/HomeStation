@@ -108,36 +108,29 @@ export const getCartItems = async (userId) => {
 
         let subtotal = 0;
         let totalQuantity = 0;
-        const flags = { outOfStockRemoved: false, productRemoved: false, categoryRemoved: false };
         const validCartItems = [];
-        const invalidCartItemIds = [];
+        let stockExceededItem = null;
 
         for (const item of cartItems) {
             const variant = item.productVariantId;
             
-            if (!variant) {
-                invalidCartItemIds.push(item._id);
-                continue; 
-            }
+            if (!variant) continue;
 
             const product = variant.productId;
-            
-            if (!product || product.isDeleted === true || product.isDeleted === 'true') {
-                invalidCartItemIds.push(item._id);
-                continue; 
-            }
+            if (!product || product.isDeleted === true || product.isDeleted === 'true') continue;
 
             const category = product.categoryId;
+            if (category && (category.isDeleted === true || category.isDeleted === 'true')) continue;
 
-            if (category && (category.isDeleted === true || category.isDeleted === 'true')) {
-                invalidCartItemIds.push(item._id);
-                continue; 
-            }
+            if (typeof variant.stock === 'number' && variant.stock <= 0) continue;
 
-            if (typeof variant.stock === 'number' && variant.stock <= 0) {
-                flags.outOfStockRemoved = true;
-                invalidCartItemIds.push(item._id);
-                continue; 
+            if (typeof variant.stock === 'number' && variant.stock < item.quantity && !stockExceededItem) {
+                stockExceededItem = {
+                    cartItemId: item._id.toString(),
+                    productName: `${product.name} (${variant.variantName})`,
+                    availableStock: variant.stock,
+                    selectedQuantity: item.quantity
+                };
             }
 
             const currentPrice = Math.round(variant.originalPrice * (1 - (variant.discount || 0) / 100));
@@ -146,15 +139,11 @@ export const getCartItems = async (userId) => {
             validCartItems.push(item);
         }
 
-        if (invalidCartItemIds.length > 0) {
-            await Cart.deleteMany({ _id: { $in: invalidCartItemIds } });
-        }
-
         return { 
             cartItems: validCartItems, 
             subtotal, 
             totalQuantity,
-            flags 
+            stockExceededItem
         };
 
     } catch (error) {
@@ -164,18 +153,34 @@ export const getCartItems = async (userId) => {
 
 export const updateItemExactQuantity = async (userId, cartItemId, newQuantity) => {
     try {
-        const updatedCartItem = await Cart.findOneAndUpdate(
-            { _id: cartItemId, userId },
-            { $set: { quantity: newQuantity } },
-            { new: true }
-        );
-        return updatedCartItem;
+        const cartItem = await Cart.findOne({ _id: cartItemId, userId });
+        if (!cartItem) {
+            return { success: false, reason: 'NOT_FOUND', message: 'Cart item not found.' };
+        }
+
+        const variant = await ProductVariant.findById(cartItem.productVariantId);
+        if (!variant || variant.stock <= 0) {
+            return { success: false, reason: 'OUT_OF_STOCK', message: 'Product variant is no longer in stock.' };
+        }
+
+        const desiredQty = parseInt(newQuantity, 10);
+
+        if (desiredQty <= 0) {
+            await Cart.deleteOne({ _id: cartItemId, userId });
+            return { success: true, action: 'removed', currentQuantity: 0 };
+        }
+
+        const finalQuantity = Math.min(desiredQty, variant.stock, 5);
+        cartItem.quantity = finalQuantity;
+        await cartItem.save();
+
+        return { success: true, action: 'updated', currentQuantity: cartItem.quantity };
     } catch (error) {
         throw new Error(`Failed to adjust cart item quantity: ${error.message}`);
     }
 };
 
-export const updateCartQuantity = async (userId, cartItemId, actionType) => {
+export const updateCartQuantity = async (userId, cartItemId, actionType, targetQuantity = null) => {
     try {
         const cartItem = await Cart.findOne({ _id: cartItemId, userId });
         if (!cartItem) {
@@ -188,18 +193,37 @@ export const updateCartQuantity = async (userId, cartItemId, actionType) => {
         });
 
         if (!variant || !variant.productId || variant.productId.isDeleted === true) {
-            return { success: false, reason: 'PRODUCT_REMOVED', message: "Product has been removed." };
+            return { success: false, reason: 'PRODUCT_REMOVED', message: 'Product has been removed.' };
         }
 
         if (variant.productId.categoryId && variant.productId.categoryId.isDeleted === true) {
-            return { success: false, reason: 'PRODUCT_REMOVED', message: "Product has been removed." };
+            return { success: false, reason: 'PRODUCT_REMOVED', message: 'Product has been removed.' };
         }
 
         if (variant.stock <= 0) {
-            return { success: false, reason: 'OUT_OF_STOCK', message: "Product is out of stock." };
+            return { success: false, reason: 'OUT_OF_STOCK', message: 'Product is out of stock.' };
+        }
+
+        if (actionType === 'set') {
+            const desiredQty = parseInt(targetQuantity, 10);
+            if (isNaN(desiredQty) || desiredQty <= 0) {
+                await Cart.deleteOne({ _id: cartItemId, userId });
+                return { success: true, action: 'removed', currentQuantity: 0 };
+            }
+            cartItem.quantity = Math.min(desiredQty, variant.stock, 5);
+            await cartItem.save();
+            return { success: true, action: 'updated', currentQuantity: cartItem.quantity };
         }
 
         if (actionType === 'increase') {
+            if (cartItem.quantity >= 5) {
+                return {
+                    success: false,
+                    reason: 'MAX_LIMIT',
+                    message: 'Maximum quantity limit is 5 items per product.'
+                };
+            }
+
             if (cartItem.quantity >= variant.stock) {
                 return { 
                     success: false, 
@@ -207,6 +231,7 @@ export const updateCartQuantity = async (userId, cartItemId, actionType) => {
                     message: `Only ${variant.stock} units available in stock.` 
                 };
             }
+
             cartItem.quantity += 1;
             await cartItem.save();
             return { success: true, action: 'updated', currentQuantity: cartItem.quantity };
@@ -235,7 +260,7 @@ export const deleteCartItemCompletely = async (userId, cartItemId) => {
 
         const cartCountAggregation = await Cart.aggregate([
             { $match: { userId: new mongoose.Types.ObjectId(userId) } },
-            { $group: { _id: null, totalCount: { $sum: "$quantity" } } }
+            { $group: { _id: null, totalCount: { $sum: '$quantity' } } }
         ]);
 
         const totalCartCount = cartCountAggregation.length > 0 ? cartCountAggregation[0].totalCount : 0;

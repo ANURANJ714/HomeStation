@@ -646,20 +646,41 @@ export const updateExistingProduct = async (productIdStr, productData, newFiles,
 
         await product.save();
 
-        await ProductVariant.deleteMany({ productId: product._id });
+        const existingVariants = await ProductVariant.find({ productId: product._id });
 
-        const variantDocs = parsedVariants.map((variant) => ({
-            productId: product._id,
-            variantName: variant.variantName.trim(),
-            originalPrice: parseFloat(variant.originalPrice),
-            discount: variant.discount ? parseFloat(variant.discount) : 0,
-            stock: parseInt(variant.stock, 10),
-            length: variant.length !== null && variant.length !== undefined && variant.length !== '' ? parseFloat(variant.length) : null,
-            width: variant.width !== null && variant.width !== undefined && variant.width !== '' ? parseFloat(variant.width) : null,
-            height: variant.height !== null && variant.height !== undefined && variant.height !== '' ? parseFloat(variant.height) : null
-        }));
+        for (const vData of parsedVariants) {
+            const vNameTrimmed = vData.variantName.trim();
+            
+            const existing = existingVariants.find(
+                ev => ev.variantName.trim().toLowerCase() === vNameTrimmed.toLowerCase()
+            );
 
-        await ProductVariant.insertMany(variantDocs);
+            const vLength = vData.length !== null && vData.length !== undefined && vData.length !== '' ? parseFloat(vData.length) : null;
+            const vWidth = vData.width !== null && vData.width !== undefined && vData.width !== '' ? parseFloat(vData.width) : null;
+            const vHeight = vData.height !== null && vData.height !== undefined && vData.height !== '' ? parseFloat(vData.height) : null;
+
+            if (existing) {
+                existing.variantName = vNameTrimmed;
+                existing.originalPrice = parseFloat(vData.originalPrice);
+                existing.discount = vData.discount ? parseFloat(vData.discount) : 0;
+                existing.stock = parseInt(vData.stock, 10);
+                existing.length = vLength;
+                existing.width = vWidth;
+                existing.height = vHeight;
+                await existing.save();
+            } else {
+                await ProductVariant.create({
+                    productId: product._id,
+                    variantName: vNameTrimmed,
+                    originalPrice: parseFloat(vData.originalPrice),
+                    discount: vData.discount ? parseFloat(vData.discount) : 0,
+                    stock: parseInt(vData.stock, 10),
+                    length: vLength,
+                    width: vWidth,
+                    height: vHeight
+                });
+            }
+        }
 
         return { isUpdated: true, product };
 

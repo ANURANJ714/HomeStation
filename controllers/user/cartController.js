@@ -58,50 +58,53 @@ export const addToCartController = async (req, res) => {
 export const loadCartPage = async (req, res) => {
     try {
         const userId = req.user._id;
+        const userEmail = req.user?.email || 'Unknown User';
+        const clientIp = req.ip;
 
         const [cartData, bannerText] = await Promise.all([
             cartService.getCartItems(userId),
             getActivePromoBanner()
         ]);
 
-        let alertMessage = null;
-        if (cartData.flags.outOfStockRemoved) {
-            alertMessage = "Items that went out of stock have been cleared from your cart.";
-        }
+        logger.info(`User (${userEmail}) loaded Cart Page | IP: ${clientIp}`);
 
         return res.render('user/cart', {
             user: req.user,
             cartItems: cartData.cartItems,
             subtotal: cartData.subtotal,
             totalQuantity: cartData.totalQuantity,
+            stockExceededItem: cartData.stockExceededItem,
             bannerText,
-            cartAlertMessage: alertMessage,
             csrfToken: req.csrfToken ? req.csrfToken() : ''
         });
 
     } catch (error) {
-        logger.error(`Error loading Cart Page (IP: ${req.ip}): ${error.message}`);
+        logger.error(`Error loading Cart Page (IP: ${req.ip}): ${error.message}\nStack: ${error.stack}`);
         return res.status(500).json({ 
             success: false, 
-            message: "Server error occurred while loading the cart page." 
+            message: 'Server error occurred while loading the cart page.' 
         });
     }
 };
 
 export const changeQuantityController = async (req, res) => {
     try {
-        const { cartItemId, action } = req.body;
+        const { cartItemId, action, targetQuantity } = req.body;
         const userId = req.user._id;
+        const userEmail = req.user.email || 'Unknown User';
 
-        if (!cartItemId || !['increase', 'decrease'].includes(action)) {
-            return res.status(400).json({ success: false, message: "Invalid payload parameters." });
+        if (!cartItemId || !['increase', 'decrease', 'set'].includes(action)) {
+            return res.status(400).json({ 
+                success: false, 
+                message: 'Invalid payload parameters.' 
+            });
         }
 
         if (req.session.checkoutActive) {
             delete req.session.checkoutActive;
         }
 
-        const result = await cartService.updateCartQuantity(userId, cartItemId, action);
+        const result = await cartService.updateCartQuantity(userId, cartItemId, action, targetQuantity);
 
         if (!result.success) {
             return res.status(200).json({ 
@@ -113,6 +116,8 @@ export const changeQuantityController = async (req, res) => {
 
         const currentTotals = await cartService.getCartItems(userId);
 
+        logger.info(`User (${userEmail}) modified quantity for item [${cartItemId}]. Action: ${action} | New Qty: ${result.currentQuantity}`);
+
         return res.status(200).json({
             success: true,
             action: result.action,
@@ -122,8 +127,11 @@ export const changeQuantityController = async (req, res) => {
         });
 
     } catch (error) {
-        logger.error(`Cart quantity shift crash endpoint: ${error.message}`);
-        return res.status(500).json({ success: false, message: "Server error updating cart values." });
+        logger.error(`Cart quantity shift error: ${error.message}\nStack: ${error.stack}`);
+        return res.status(500).json({ 
+            success: false, 
+            message: 'Server error updating cart values.' 
+        });
     }
 };
 
@@ -131,9 +139,13 @@ export const removeCartItemController = async (req, res) => {
     try {
         const { cartItemId } = req.body;
         const userId = req.user._id;
+        const userEmail = req.user.email || 'Unknown User';
 
         if (!cartItemId) {
-            return res.status(400).json({ success: false, message: "Cart item identifier is required." });
+            return res.status(400).json({ 
+                success: false, 
+                message: 'Cart item identifier is required.' 
+            });
         }
 
         if (req.session.checkoutActive) {
@@ -143,16 +155,19 @@ export const removeCartItemController = async (req, res) => {
         const { isDeleted, totalCartCount } = await cartService.deleteCartItemCompletely(userId, cartItemId);
 
         if (!isDeleted) {
-            return res.status(404).json({ success: false, message: "Target cart element was not found." });
+            return res.status(404).json({ 
+                success: false, 
+                message: 'Target cart element was not found.' 
+            });
         }
 
         const currentTotals = await cartService.getCartItems(userId);
 
-        logger.info(`User (${req.user.email}) completely dropped cart entry item: ${cartItemId}`);
+        logger.info(`User (${userEmail}) removed cart item: ${cartItemId}`);
 
         return res.status(200).json({
             success: true,
-            message: "Item removed from your cart successfully.",
+            message: 'Item removed from your cart successfully.',
             count: totalCartCount,
             countMessage: `Total items in Cart: ${totalCartCount}`,
             subtotal: currentTotals.subtotal,
@@ -160,30 +175,50 @@ export const removeCartItemController = async (req, res) => {
         });
 
     } catch (error) {
-        logger.error(`Critical crash intercept inside removeCartItemController: ${error.message}`);
-        return res.status(500).json({ success: false, message: "Server error occurred during drop action." });
+        logger.error(`Cart remove item error: ${error.message}\nStack: ${error.stack}`);
+        return res.status(500).json({ 
+            success: false, 
+            message: 'Server error occurred during removal.' 
+        });
     }
 };
 
 export const setExactCartQuantity = async (req, res) => {
     try {
         const userId = req.user._id;
+        const userEmail = req.user.email || 'Unknown User';
         const { cartItemId, quantity } = req.body;
 
-        if (!cartItemId || !quantity || quantity <= 0) {
+        if (!cartItemId || quantity === undefined || quantity === null || parseInt(quantity, 10) <= 0) {
             return res.status(400).json({
                 success: false,
                 message: 'Invalid item or quantity parameters.'
             });
         }
 
-        await cartService.updateItemExactQuantity(userId, cartItemId, quantity);
+        if (req.session.checkoutActive) {
+            delete req.session.checkoutActive;
+        }
+
+        const result = await cartService.updateItemExactQuantity(userId, cartItemId, quantity);
+
+        if (!result.success) {
+            return res.status(400).json({
+                success: false,
+                reason: result.reason,
+                message: result.message
+            });
+        }
+
+        logger.info(`User (${userEmail}) set exact quantity for item [${cartItemId}] to ${result.currentQuantity}`);
 
         return res.status(200).json({
             success: true,
+            currentQuantity: result.currentQuantity,
             message: 'Quantity adjusted to available stock.'
         });
     } catch (error) {
+        logger.error(`setExactCartQuantity error: ${error.message}\nStack: ${error.stack}`);
         return res.status(500).json({
             success: false,
             message: 'Failed to adjust quantity.'

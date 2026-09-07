@@ -31,13 +31,13 @@ export const postCartItems = async (req, res) => {
         const result = await checkoutService.validateCartForCheckout(userId);
 
         if (!result.isValid) {
-            logger.warn(`Checkout validation failed for (${userEmail}): ${result.message} [Reason: ${result.reason}]`);
+            logger.warn(`Checkout validation notice for (${userEmail}): ${result.message} [Reason: ${result.reason}]`);
             return res.status(400).json({
                 success: false,
                 reason: result.reason,
                 message: result.message,
                 cartItemId: result.cartItemId || null,
-                availableStock: result.availableStock || null,
+                availableStock: result.availableStock || 0,
                 productName: result.productName || null
             });
         }
@@ -56,7 +56,7 @@ export const postCartItems = async (req, res) => {
             shippingCharges: 0
         };
 
-        logger.info(`Cart validated successfully for (${userEmail}). Proceeding to checkout.`);
+        logger.info(`Cart validated successfully for (${userEmail}). Proceeding to address.`);
 
         return res.status(200).json({
             success: true,
