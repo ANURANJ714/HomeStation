@@ -2,16 +2,13 @@ document.addEventListener("DOMContentLoaded", () => {
   const csrfToken = document.getElementById("csrfToken")?.value || "";
 
   function executeRedirectPipeline(targetPage = 1) {
-    const priceSortValue =
-      document.getElementById("priceFilter")?.value || "all";
+    const priceSortValue = document.getElementById("priceFilter")?.value || "all";
     window.location.href = `/deals?page=${targetPage}&priceSort=${priceSortValue}`;
   }
 
   const priceFilterDropdown = document.getElementById("priceFilter");
   if (priceFilterDropdown) {
-    priceFilterDropdown.addEventListener("change", () =>
-      executeRedirectPipeline(1),
-    );
+    priceFilterDropdown.addEventListener("change", () => executeRedirectPipeline(1));
   }
 
   document.querySelectorAll(".change-deals-page-btn").forEach((btn) => {
@@ -68,17 +65,15 @@ document.addEventListener("DOMContentLoaded", () => {
             if (icon) icon.className = "fa-regular fa-heart";
           }
 
-          const alertContent = data.countMessage
-            ? `${data.message}<br>${data.countMessage}`
-            : data.message;
-
           Swal.fire({
             icon: "success",
             title: data.action === "added" ? "Added!" : "Removed!",
-            html: alertContent,
-            timer: 1500,
+            text: data.message,
+            timer: 1200,
             showConfirmButton: false,
             heightAuto: false,
+          }).then(() => {
+            window.location.reload();
           });
         } else {
           Swal.fire({
@@ -127,17 +122,15 @@ document.addEventListener("DOMContentLoaded", () => {
 
         const data = await response.json();
         if (data.success) {
-          const alertContent = data.countMessage
-            ? `${data.message}<br>${data.countMessage}`
-            : data.message;
-
           Swal.fire({
             icon: "success",
             title: "Added!",
-            html: alertContent,
-            timer: 1500,
+            text: data.message,
+            timer: 1200,
             showConfirmButton: false,
             heightAuto: false,
+          }).then(() => {
+            window.location.reload();
           });
         } else {
           Swal.fire({
@@ -160,4 +153,22 @@ document.addEventListener("DOMContentLoaded", () => {
       }
     });
   });
+
+  const searchInput = document.getElementById("searchInput");
+  const searchBtn = document.getElementById("searchBtn");
+
+  function performSearch() {
+    if (!searchInput) return;
+    const query = searchInput.value.trim();
+    if (query) {
+      window.location.href = `/search?q=${encodeURIComponent(query)}`;
+    }
+  }
+
+  if (searchBtn) searchBtn.addEventListener("click", performSearch);
+  if (searchInput) {
+    searchInput.addEventListener("keypress", (e) => {
+      if (e.key === "Enter") performSearch();
+    });
+  }
 });

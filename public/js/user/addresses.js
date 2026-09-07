@@ -4,6 +4,15 @@ document.addEventListener("DOMContentLoaded", () => {
   const deleteConfirmModal = document.getElementById("deleteConfirmModal");
   let deleteId = null;
 
+  function clearFieldErrors() {
+    document.querySelectorAll(".field-error-msg").forEach((el) => {
+      el.textContent = "";
+    });
+    document.querySelectorAll(".form-control").forEach((input) => {
+      input.classList.remove("input-error");
+    });
+  }
+
   const openModal = () => {
     const addressForm = document.getElementById("addressForm");
     if (addressForm) addressForm.reset();
@@ -21,11 +30,13 @@ document.addEventListener("DOMContentLoaded", () => {
       saveBtn.classList.remove("btn-save-disabled");
     }
 
+    clearFieldErrors();
     if (addAddressModal) addAddressModal.classList.add("active");
   };
 
   const closeModal = () => {
     if (addAddressModal) addAddressModal.classList.remove("active");
+    clearFieldErrors();
     const saveBtn = document.getElementById("modalSaveBtn");
     if (saveBtn) {
       saveBtn.disabled = false;
@@ -70,6 +81,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
     const editBtn = e.target.closest(".action-edit");
     if (editBtn) {
+      clearFieldErrors();
       const d = editBtn.dataset;
       document.getElementById("fieldId").value = d.id;
       document.getElementById("modalTitle").textContent = "Edit Address";
@@ -107,6 +119,7 @@ document.addEventListener("DOMContentLoaded", () => {
       const targetId = closeTarget.getAttribute("data-close");
       const targetModal = document.getElementById(targetId);
       if (targetModal) targetModal.classList.remove("active");
+      clearFieldErrors();
     }
 
     if (e.target === addAddressModal) closeModal();
@@ -121,63 +134,105 @@ document.addEventListener("DOMContentLoaded", () => {
   if (phoneInput) phoneInput.addEventListener("input", enforceNumericOnly);
   if (pincodeInput) pincodeInput.addEventListener("input", enforceNumericOnly);
 
+  document.querySelectorAll("#addressForm .form-control").forEach((input) => {
+    input.addEventListener("input", () => {
+      input.classList.remove("input-error");
+      const errEl = input.parentElement.querySelector(".field-error-msg");
+      if (errEl) errEl.textContent = "";
+    });
+  });
+
   const addressForm = document.getElementById("addressForm");
   if (addressForm) {
     addressForm.addEventListener("submit", async (e) => {
       e.preventDefault();
+      clearFieldErrors();
 
-      const name = document.getElementById("fieldName").value.trim();
-      const phone = document.getElementById("fieldPhone").value.trim();
-      const pincode = document.getElementById("fieldPincode").value.trim();
-      const city = document.getElementById("fieldCity").value.trim();
-      const state = document.getElementById("fieldState").value.trim();
-      const fullAddress = document.getElementById("fieldAddress").value.trim();
+      const nameInput = document.getElementById("fieldName");
+      const phoneInputEl = document.getElementById("fieldPhone");
+      const pincodeInputEl = document.getElementById("fieldPincode");
+      const cityInput = document.getElementById("fieldCity");
+      const stateInput = document.getElementById("fieldState");
+      const fullAddressInput = document.getElementById("fieldAddress");
+
+      const name = nameInput.value.trim();
+      const phone = phoneInputEl.value.trim();
+      const pincode = pincodeInputEl.value.trim();
+      const city = cityInput.value.trim();
+      const state = stateInput.value.trim();
+      const fullAddress = fullAddressInput.value.trim();
+
       const checkedTypeInput = document.querySelector(
         'input[name="addr-type"]:checked',
       );
       const addressType = checkedTypeInput ? checkedTypeInput.value : "Home";
       const isDefault = document.getElementById("fieldDefault").checked;
 
-      if (!name || !phone || !pincode || !city || !state || !fullAddress) {
-        return Swal.fire({
-          icon: "warning",
-          title: "Missing Information",
-          text: "Please fill out all address fields.",
-          confirmButtonColor: "#222",
-          heightAuto: false,
-        });
+      let hasError = false;
+
+      if (!name) {
+        document.getElementById("nameError").textContent = "Full name is required.";
+        nameInput.classList.add("input-error");
+        hasError = true;
+      } else if (name.length < 3) {
+        document.getElementById("nameError").textContent = "Name must be at least 3 characters long.";
+        nameInput.classList.add("input-error");
+        hasError = true;
       }
 
-      if (!/^[0-9]{10}$/.test(phone)) {
-        return Swal.fire({
-          icon: "warning",
-          title: "Invalid Phone Number",
-          text: "Please enter a valid 10-digit mobile number.",
-          confirmButtonColor: "#222",
-          heightAuto: false,
-        });
+      if (!phone) {
+        document.getElementById("phoneError").textContent = "Phone number is required.";
+        phoneInputEl.classList.add("input-error");
+        hasError = true;
+      } else if (!/^[0-9]{10}$/.test(phone)) {
+        document.getElementById("phoneError").textContent = "Enter a valid 10-digit phone number.";
+        phoneInputEl.classList.add("input-error");
+        hasError = true;
       }
 
-      if (!/^[0-9]{6}$/.test(pincode)) {
-        return Swal.fire({
-          icon: "warning",
-          title: "Invalid Pincode",
-          text: "Please enter a valid 6-digit pincode.",
-          confirmButtonColor: "#222",
-          heightAuto: false,
-        });
+      if (!pincode) {
+        document.getElementById("pincodeError").textContent = "Pincode is required.";
+        pincodeInputEl.classList.add("input-error");
+        hasError = true;
+      } else if (!/^[0-9]{6}$/.test(pincode)) {
+        document.getElementById("pincodeError").textContent = "Enter a valid 6-digit postal pincode.";
+        pincodeInputEl.classList.add("input-error");
+        hasError = true;
       }
+
+      if (!city) {
+        document.getElementById("cityError").textContent = "City is required.";
+        cityInput.classList.add("input-error");
+        hasError = true;
+      }
+
+      if (!state) {
+        document.getElementById("stateError").textContent = "State is required.";
+        stateInput.classList.add("input-error");
+        hasError = true;
+      }
+
+      if (!fullAddress) {
+        document.getElementById("addressError").textContent = "Address detail is required.";
+        fullAddressInput.classList.add("input-error");
+        hasError = true;
+      } else if (fullAddress.length < 10) {
+        document.getElementById("addressError").textContent = "Address must be at least 10 characters.";
+        fullAddressInput.classList.add("input-error");
+        hasError = true;
+      }
+
+      if (hasError) return;
 
       const submitBtn = document.getElementById("modalSaveBtn");
       const originalBtnText = submitBtn.innerHTML;
 
-      submitBtn.innerHTML =
-        '<i class="fa-solid fa-spinner fa-spin"></i> Saving...';
+      submitBtn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Saving...';
       submitBtn.disabled = true;
       submitBtn.classList.add("btn-save-disabled");
 
       const addressId = document.getElementById("fieldId").value;
-      const isEdit = addressId ? true : false;
+      const isEdit = Boolean(addressId);
       const payload = {
         name,
         phone,
@@ -189,9 +244,7 @@ document.addEventListener("DOMContentLoaded", () => {
         isDefault,
       };
 
-      const url = addressId
-        ? `/user/addresses/${addressId}`
-        : "/user/addresses";
+      const url = addressId ? `/user/addresses/${addressId}` : "/user/addresses";
       const method = addressId ? "PATCH" : "POST";
 
       try {
@@ -200,6 +253,7 @@ document.addEventListener("DOMContentLoaded", () => {
           headers: {
             "Content-Type": "application/json",
             "CSRF-Token": csrfToken,
+            "x-csrf-token": csrfToken,
           },
           body: JSON.stringify(payload),
         });
@@ -210,7 +264,7 @@ document.addEventListener("DOMContentLoaded", () => {
           closeModal();
           Swal.fire({
             icon: "success",
-            title: isEdit ? "Address Edited!" : "Address Saved!",
+            title: isEdit ? "Address Updated" : "Address Saved",
             text: data.message,
             timer: 1500,
             showConfirmButton: false,
@@ -223,7 +277,8 @@ document.addEventListener("DOMContentLoaded", () => {
           Swal.fire({
             icon: "error",
             title: "Error",
-            text: data.message,
+            text: data.message || "Failed to process address.",
+            confirmButtonColor: "#222",
             heightAuto: false,
           });
         }
@@ -234,7 +289,8 @@ document.addEventListener("DOMContentLoaded", () => {
         Swal.fire({
           icon: "error",
           title: "Server Error",
-          text: "Something went wrong.",
+          text: "Something went wrong. Please try again.",
+          confirmButtonColor: "#222",
           heightAuto: false,
         });
       }
@@ -247,14 +303,17 @@ document.addEventListener("DOMContentLoaded", () => {
       if (!deleteId) return;
 
       const originalText = modalDeleteBtn.innerHTML;
-      modalDeleteBtn.innerHTML =
-        '<i class="fa-solid fa-spinner fa-spin"></i> Deleting...';
+      modalDeleteBtn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Deleting...';
       modalDeleteBtn.disabled = true;
 
       try {
         const response = await fetch(`/user/addresses/${deleteId}`, {
           method: "DELETE",
-          headers: { "CSRF-Token": csrfToken },
+          headers: {
+            "Content-Type": "application/json",
+            "CSRF-Token": csrfToken,
+            "x-csrf-token": csrfToken,
+          },
         });
         const data = await response.json();
 
@@ -263,7 +322,7 @@ document.addEventListener("DOMContentLoaded", () => {
         if (data.success) {
           Swal.fire({
             icon: "success",
-            title: "Deleted!",
+            title: "Deleted",
             text: data.message,
             timer: 1500,
             showConfirmButton: false,
@@ -273,7 +332,8 @@ document.addEventListener("DOMContentLoaded", () => {
           Swal.fire({
             icon: "error",
             title: "Error",
-            text: data.message,
+            text: data.message || "Failed to delete address.",
+            confirmButtonColor: "#222",
             heightAuto: false,
           });
         }
@@ -283,6 +343,7 @@ document.addEventListener("DOMContentLoaded", () => {
           icon: "error",
           title: "Error",
           text: "Could not delete address.",
+          confirmButtonColor: "#222",
           heightAuto: false,
         });
       } finally {
@@ -293,12 +354,11 @@ document.addEventListener("DOMContentLoaded", () => {
   }
 
   const logoutForm = document.getElementById("logoutForm");
-
   if (logoutForm) {
     logoutForm.addEventListener("submit", async (e) => {
       e.preventDefault();
 
-      const csrfToken =
+      const csrf =
         logoutForm.querySelector('input[name="_csrf"]')?.value ||
         document.getElementById("csrfToken")?.value;
 
@@ -307,7 +367,8 @@ document.addEventListener("DOMContentLoaded", () => {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
-            "CSRF-Token": csrfToken,
+            "CSRF-Token": csrf,
+            "x-csrf-token": csrf,
           },
         });
 
@@ -318,7 +379,7 @@ document.addEventListener("DOMContentLoaded", () => {
             icon: "success",
             title: "Goodbye!",
             text: data.message || "Logged out successfully.",
-            timer: 1500, 
+            timer: 1500,
             showConfirmButton: false,
             heightAuto: false,
           }).then(() => {
@@ -329,6 +390,7 @@ document.addEventListener("DOMContentLoaded", () => {
             icon: "error",
             title: "Logout Failed",
             text: data.message || "Something went wrong.",
+            confirmButtonColor: "#222",
             heightAuto: false,
           });
         }

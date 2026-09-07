@@ -26,6 +26,31 @@ document.addEventListener("DOMContentLoaded", () => {
   const editAddressTargetId = document.getElementById("editAddressTargetId");
   const deleteAddressTargetId = document.getElementById("deleteAddressTargetId");
 
+  function clearModalErrors() {
+    document.querySelectorAll("#addressModal .field-error-msg").forEach((el) => {
+      el.textContent = "";
+    });
+    document.querySelectorAll("#addressModal .form-control").forEach((input) => {
+      input.classList.remove("input-error");
+    });
+  }
+
+  document.querySelectorAll("#addressModal .form-control").forEach((input) => {
+    input.addEventListener("input", () => {
+      input.classList.remove("input-error");
+      const errEl = input.parentElement.querySelector(".field-error-msg");
+      if (errEl) errEl.textContent = "";
+    });
+  });
+
+  const enforceNumericOnly = (event) => {
+    event.target.value = event.target.value.replace(/[^0-9]/g, "");
+  };
+  const phoneInput = document.getElementById("fieldPhone");
+  const pincodeInput = document.getElementById("fieldPincode");
+  if (phoneInput) phoneInput.addEventListener("input", enforceNumericOnly);
+  if (pincodeInput) pincodeInput.addEventListener("input", enforceNumericOnly);
+
   function closeAllMenus() {
     document
       .querySelectorAll(".address-dropdown.open")
@@ -66,6 +91,7 @@ document.addEventListener("DOMContentLoaded", () => {
   if (openAddAddressModalBtn) {
     openAddAddressModalBtn.addEventListener("click", () => {
       closeAllMenus();
+      clearModalErrors();
       modalTitle.textContent = "Add Address";
       modalSaveBtn.textContent = "Add Address";
       editAddressTargetId.value = "";
@@ -87,6 +113,7 @@ document.addEventListener("DOMContentLoaded", () => {
     const editBtn = e.target.closest(".edit-address-trigger-btn");
     if (!editBtn) return;
     closeAllMenus();
+    clearModalErrors();
 
     const d = editBtn.dataset;
     modalTitle.textContent = "Edit Address";
@@ -114,6 +141,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
   function closeAddressModal() {
     if (addressModal) addressModal.classList.remove("active");
+    clearModalErrors();
   }
 
   document.getElementById("closeAddressModalBtn")?.addEventListener("click", closeAddressModal);
@@ -121,48 +149,83 @@ document.addEventListener("DOMContentLoaded", () => {
 
   if (modalSaveBtn) {
     modalSaveBtn.addEventListener("click", async () => {
-      const name = document.getElementById("fieldName").value.trim();
-      const phone = document.getElementById("fieldPhone").value.trim();
-      const pincode = document.getElementById("fieldPincode").value.trim();
-      const city = document.getElementById("fieldCity").value.trim();
-      const state = document.getElementById("fieldState").value.trim();
-      const fullAddress = document.getElementById("fieldAddress").value.trim();
-      
+      clearModalErrors();
+
+      const nameInput = document.getElementById("fieldName");
+      const phoneInputEl = document.getElementById("fieldPhone");
+      const pincodeInputEl = document.getElementById("fieldPincode");
+      const cityInput = document.getElementById("fieldCity");
+      const stateInput = document.getElementById("fieldState");
+      const fullAddressInput = document.getElementById("fieldAddress");
+
+      const name = nameInput.value.trim();
+      const phone = phoneInputEl.value.trim();
+      const pincode = pincodeInputEl.value.trim();
+      const city = cityInput.value.trim();
+      const state = stateInput.value.trim();
+      const fullAddress = fullAddressInput.value.trim();
+
       const selectedRadioVal = document.querySelector('input[name="addr-type"]:checked')?.value || "Home";
       const addressType = selectedRadioVal.charAt(0).toUpperCase() + selectedRadioVal.slice(1).toLowerCase();
-      
+
       const isDefault = document.getElementById("fieldDefault").checked;
       const targetId = editAddressTargetId.value;
 
-      if (!name || !phone || !pincode || !city || !state || !fullAddress) {
-        return Swal.fire({
-          icon: "warning",
-          title: "Incomplete Fields",
-          text: "Please fill in all mandatory address details.",
-          confirmButtonColor: "#222",
-          heightAuto: false,
-        });
+      let hasError = false;
+
+      if (!name) {
+        document.getElementById("checkoutNameError").textContent = "Full name is required.";
+        nameInput.classList.add("input-error");
+        hasError = true;
+      } else if (name.length < 3) {
+        document.getElementById("checkoutNameError").textContent = "Name must be at least 3 characters long.";
+        nameInput.classList.add("input-error");
+        hasError = true;
       }
 
-      if (!/^\d{10}$/.test(phone)) {
-        return Swal.fire({
-          icon: "warning",
-          title: "Invalid Mobile",
-          text: "Please enter a valid 10-digit phone number.",
-          confirmButtonColor: "#222",
-          heightAuto: false,
-        });
+      if (!phone) {
+        document.getElementById("checkoutPhoneError").textContent = "Phone number is required.";
+        phoneInputEl.classList.add("input-error");
+        hasError = true;
+      } else if (!/^[0-9]{10}$/.test(phone)) {
+        document.getElementById("checkoutPhoneError").textContent = "Enter a valid 10-digit mobile number.";
+        phoneInputEl.classList.add("input-error");
+        hasError = true;
       }
 
-      if (!/^\d{6}$/.test(pincode)) {
-        return Swal.fire({
-          icon: "warning",
-          title: "Invalid Pincode",
-          text: "Please enter a valid 6-digit postal code.",
-          confirmButtonColor: "#222",
-          heightAuto: false,
-        });
+      if (!pincode) {
+        document.getElementById("checkoutPincodeError").textContent = "Pincode is required.";
+        pincodeInputEl.classList.add("input-error");
+        hasError = true;
+      } else if (!/^[0-9]{6}$/.test(pincode)) {
+        document.getElementById("checkoutPincodeError").textContent = "Enter a valid 6-digit pincode.";
+        pincodeInputEl.classList.add("input-error");
+        hasError = true;
       }
+
+      if (!city) {
+        document.getElementById("checkoutCityError").textContent = "City is required.";
+        cityInput.classList.add("input-error");
+        hasError = true;
+      }
+
+      if (!state) {
+        document.getElementById("checkoutStateError").textContent = "State is required.";
+        stateInput.classList.add("input-error");
+        hasError = true;
+      }
+
+      if (!fullAddress) {
+        document.getElementById("checkoutAddressError").textContent = "Full address is required.";
+        fullAddressInput.classList.add("input-error");
+        hasError = true;
+      } else if (fullAddress.length < 10) {
+        document.getElementById("checkoutAddressError").textContent = "Address must be at least 10 characters.";
+        fullAddressInput.classList.add("input-error");
+        hasError = true;
+      }
+
+      if (hasError) return;
 
       const payload = {
         addressType,
@@ -174,7 +237,7 @@ document.addEventListener("DOMContentLoaded", () => {
         pincode,
         isDefault,
       };
-      
+
       const isEdit = Boolean(targetId);
       const url = isEdit
         ? `/user/checkout/address/edit/${targetId}`
@@ -201,7 +264,7 @@ document.addEventListener("DOMContentLoaded", () => {
           closeAddressModal();
           Swal.fire({
             icon: "success",
-            title: "Success",
+            title: isEdit ? "Address Updated" : "Address Added",
             text: data.message,
             timer: 1500,
             showConfirmButton: false,

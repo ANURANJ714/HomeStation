@@ -1,6 +1,7 @@
 import Product from '../../models/Products.js';
 import ProductVariant from '../../models/ProductVariant.js';
 import Category from '../../models/Category.js';
+import Order from '../../models/Order.js';
 
 export const getProductsPageData = async (queryOptions) => {
     const { searchQuery, categoryFilter, maxPriceFilter, safeSkip, limit } = queryOptions;
@@ -394,10 +395,30 @@ export const getTopDealsCatalog = async (filters) => {
 
 export const getBestsellersCatalog = async (filters) => {
     try {
-        const { priceSort, page, limit } = filters;
+        const { priceSort, page = 1, limit = 8 } = filters;
 
         const activeCategories = await Category.find({ isDeleted: false }).select('_id');
-        const activeCategoryIds = activeCategories.map(c => c._id.toString());
+        const activeCategoryIds = activeCategories.map(c => c._id);
+
+        const salesStats = await Order.aggregate([
+            { $unwind: '$orderItems' },
+            { 
+                $match: { 
+                    'orderItems.itemStatus': { $ne: 'cancelled' } 
+                } 
+            },
+            {
+                $group: {
+                    _id: '$orderItems.productVariantId',
+                    totalSold: { $sum: '$orderItems.quantity' }
+                }
+            }
+        ]);
+
+        const salesMap = new Map();
+        salesStats.forEach(stat => {
+            salesMap.set(stat._id.toString(), stat.totalSold);
+        });
 
         const productsList = await Product.find({ 
             isDeleted: false, 
@@ -408,15 +429,19 @@ export const getBestsellersCatalog = async (filters) => {
 
         for (const product of productsList) {
             const firstVariant = await ProductVariant.findOne({ productId: product._id })
-                .sort({ createdAt: 1 }) 
+                .sort({ createdAt: 1 })
                 .lean();
 
             if (firstVariant) {
-                const calculatedPrice = Math.round(firstVariant.originalPrice * (1 - ((firstVariant.discount || 0) / 100)));
-                
+                const calculatedPrice = Math.round(
+                    firstVariant.originalPrice * (1 - ((firstVariant.discount || 0) / 100))
+                );
+                const totalSold = salesMap.get(firstVariant._id.toString()) || 0;
+
                 bestsellerItems.push({
                     ...firstVariant,
                     calculatedPrice,
+                    totalSold,
                     productId: product 
                 });
             }
@@ -426,20 +451,23 @@ export const getBestsellersCatalog = async (filters) => {
             bestsellerItems.sort((a, b) => a.calculatedPrice - b.calculatedPrice);
         } else if (priceSort === 'high-to-low') {
             bestsellerItems.sort((a, b) => b.calculatedPrice - a.calculatedPrice);
+        } else {
+            bestsellerItems.sort((a, b) => b.totalSold - a.totalSold);
         }
 
         const totalItems = bestsellerItems.length;
-        const totalPages = Math.ceil(totalItems / limit);
-        const skipOffset = (page - 1) * limit;
+        const totalPages = Math.ceil(totalItems / limit) || 1;
+        const safePage = Math.min(Math.max(1, page), totalPages);
+        const skipOffset = (safePage - 1) * limit;
         const paginatedSlice = bestsellerItems.slice(skipOffset, skipOffset + limit);
 
         return {
             variants: paginatedSlice,
             totalItems,
             totalPages,
-            currentPage: page
+            currentPage: safePage
         };
     } catch (error) {
-        throw new Error(`Data layer breakdown caught running getBestsellersCatalog: ${error.message}`);
+        throw new Error(`Data layer error running getBestsellersCatalog: ${error.message}`);
     }
 };

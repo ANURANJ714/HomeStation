@@ -4,7 +4,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>HomeStation</title>
+    <title>HomeStation - World of Mattress</title>
     <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&display=swap" rel="stylesheet">
     <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,600;0,700;1,600&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
@@ -20,44 +20,9 @@
     <input type="hidden" id="serverAlertTitle" value="<%= typeof errorAlert !== 'undefined' && errorAlert ? errorAlert.title : '' %>">
     <input type="hidden" id="serverAlertMessage" value="<%= typeof errorAlert !== 'undefined' && errorAlert ? errorAlert.message : '' %>">
 
-    <% if (typeof bannerText !== 'undefined' && bannerText) { %>
-        <div class="promo-bar">
-            <b><%- bannerText %></b>
-        </div>
-    <% } %>
+    <%- include('../partials/user/promoBar') %>
 
-    <header class="header">
-        <div class="container-fluid header-container">
-            <div class="header-left-group">
-                <a href="/home" class="logo">HomeStation</a>
-            </div>
-
-            <nav class="nav" id="appNavbar">
-                <ul class="nav-list">
-                    <li><a href="/home" class="nav-link">Home</a></li>
-                    <li><a href="/products" class="nav-link active">World of Mattress</a></li>
-                    <li><a href="/deals" class="nav-link">Top Deals</a></li>
-                    <li><a href="/bestsellers" class="nav-link">Best Sellers</a></li>
-                    <li><a href="/contact" class="nav-link">Contact Us</a></li>
-                </ul>
-            </nav>
-
-            <div class="search-container">
-                <input type="text" placeholder="Search for products, brands and more..." id="searchInput" value="<%= searchQuery %>">
-                <button id="searchBtn" type="button"><i class="fa-solid fa-magnifying-glass"></i></button>
-            </div>
-
-            <div class="header-actions">
-                <a href="/user/wishlist" class="icon-link wishlist-link"><i class="fa-regular fa-heart"></i> <span class="action-text">Wishlist</span></a>
-                <% if (user) { %>
-                    <a href="/user/profile" class="icon-link"><i class="fa-solid fa-user"></i> <span class="action-text">Profile</span></a>
-                <% } else { %>
-                    <a href="/user/login" class="icon-link"><i class="fa-solid fa-right-to-bracket"></i> <span class="action-text">Login</span></a>
-                <% } %>
-                <a href="/user/cart" class="icon-link"><i class="fa-solid fa-cart-shopping"></i> <span class="action-text">Cart</span></a>
-            </div>
-        </div>
-    </header>
+    <%- include('../partials/user/header', { activePage: 'products' }) %>
 
     <main class="mattress-page">
         <div class="container-fluid mattress-container">
@@ -192,35 +157,7 @@
         </div>
     </main>
 
-    <footer class="footer">
-        <div class="container-fluid footer-container">
-            <div class="footer-left">
-                <a href="/home" class="logo footer-logo">HomeStation</a>
-                <p>Your premier destination for high-quality mattresses and sleep essentials, crafted to bring cloud-like comfort to every night.</p>
-            </div>
-            <div class="footer-links-wrapper">
-                <div class="footer-column">
-                    <h4>Shop</h4>
-                    <ul>
-                        <li><a href="/products">World of Mattress</a></li>
-                        <li><a href="/deals">Top Deals</a></li>
-                        <li><a href="/bestsellers">Best Sellers</a></li>
-                    </ul>
-                </div>
-                <div class="footer-column">
-                    <h4>Support</h4>
-                    <ul>
-                        <li><a href="#">Track Your Orders</a></li>
-                        <li><a href="/privacy-policy">Privacy Policy</a></li>
-                        <li><a href="/contact">Contact Us</a></li>
-                    </ul>
-                </div>
-            </div>
-        </div>
-        <div class="container-fluid copyright">
-            <p>&copy; 2026 HomeStation Store. All rights reserved.</p>
-        </div>
-    </footer>
+    <%- include('../partials/user/footer') %>
 
     <script src="/js/user/categories.js"></script>
 </body>

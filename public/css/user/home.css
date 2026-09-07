@@ -587,32 +587,40 @@ img {
     color: #000000;
 }
 
+.action-text-wrapper {
+    position: relative;
+    display: inline-flex;
+    align-items: center;
+}
+
+.action-text {
+    font-size: 15px;
+    font-weight: 500;
+    color: inherit;
+    line-height: 1;
+}
+
 .count-pill-badge {
+    position: absolute;
+    top: -10px;
+    right: -14px;
+    background-color: #d93025; /* Red */
+    color: #ffffff;
+    font-size: 11px;
+    font-weight: 700;
+    line-height: 1;
+    min-width: 18px;
+    height: 18px;
+    padding: 0 5px;
+    border-radius: 9px;
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    min-width: 26px;
-    height: 20px;
-    padding: 0 7px;
-    border-radius: 12px;
-    color: #ffffff;
-    font-size: 12px;
-    font-weight: 700;
-    font-family: inherit;
-    line-height: 1;
-    text-align: center;
-    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
-    transform: translateY(-2px);
-    transition: transform 0.2s ease, opacity 0.2s ease;
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
+    pointer-events: none;
+    z-index: 10;
 }
 
-.count-pill-badge.wishlist-badge {
-    background: #e60000;
-}
-
-.count-pill-badge.cart-badge {
-    background: #0044ff;
-}
 @media (max-width: 992px) {
     .products-grid {
         grid-template-columns: repeat(3, 1fr);
@@ -689,5 +697,10 @@ img {
 
     .header-actions .icon-link {
         font-size: 18px;
+    }
+    .count-pill-badge {
+        position: absolute;
+        top: -6px;
+        right: -8px;
     }
 }

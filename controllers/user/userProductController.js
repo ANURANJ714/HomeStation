@@ -2,11 +2,13 @@ import * as productService from '../../services/user/userProductService.js';
 import * as wishlistService from '../../services/user/wishlistService.js';
 import Category from '../../models/Category.js';
 import { getActivePromoBanner } from '../../services/user/bannerService.js';
+import { getUserHeaderCounts } from '../../services/user/badgeService.js';
 import logger from '../../utils/logger.js';
 
 export const loadProductsCatalogPage = async (req, res) => {
     try {
         const user = req.user || null;
+        const userId = user ? user._id : null;
         
         const serverAlert = req.session.serverAlert || null;
         if (req.session.serverAlert) {
@@ -36,7 +38,7 @@ export const loadProductsCatalogPage = async (req, res) => {
                 .filter(Boolean);
         }
 
-        const [metaData, uniqueBrands, catalogResult, bannerText, userWishlist] = await Promise.all([
+        const [metaData, uniqueBrands, catalogResult, bannerText, userWishlist, headerCounts] = await Promise.all([
             productService.getCatalogPageMetadata(selectedCategoriesArray),
             productService.getUniqueActiveBrands(),
             productService.getFilteredProductsCatalog({
@@ -48,7 +50,8 @@ export const loadProductsCatalogPage = async (req, res) => {
                 limit
             }),
             getActivePromoBanner(),
-            wishlistService.getUserWishlistArray(user ? user._id : null)
+            wishlistService.getUserWishlistArray(userId),
+            getUserHeaderCounts(userId)
         ]);
 
         logger.info(`Catalog rendered safely for categories [${selectedCategoriesArray.join(', ')}] by User: ${user ? user.email : 'Guest'}`);
@@ -68,6 +71,8 @@ export const loadProductsCatalogPage = async (req, res) => {
             searchQuery,
             bannerText,
             userWishlist,
+            wishlistCount: headerCounts.wishlistCount,
+            cartCount: headerCounts.cartCount,
             errorAlert: serverAlert,
             csrfToken: req.csrfToken()
         });
@@ -174,14 +179,16 @@ export const executeCatalogSearchPage = async (req, res) => {
 export const loadTopDealsPage = async (req, res) => {
     try {
         const user = req.user || null;
+        const userId = user ? user._id : null;
         const priceSort = req.query.priceSort ? String(req.query.priceSort).trim() : 'all';
         const page = Math.max(1, parseInt(req.query.page, 10) || 1);
         const limit = 8;
 
-        const [dealsData, bannerText, userWishlist] = await Promise.all([
+        const [dealsData, bannerText, userWishlist, headerCounts] = await Promise.all([
             productService.getTopDealsCatalog({ priceSort, page, limit }),
             getActivePromoBanner(),
-            wishlistService.getUserWishlistArray(user ? user._id : null)
+            wishlistService.getUserWishlistArray(userId),
+            getUserHeaderCounts(userId)
         ]);
 
         logger.info(`Top Deals view aggregated for [${user ? user.email : 'Guest'}] - Applied Price Sort Filter: [${priceSort}]`);
@@ -195,10 +202,12 @@ export const loadTopDealsPage = async (req, res) => {
             currentPriceSort: priceSort,
             bannerText,
             userWishlist,
+            wishlistCount: headerCounts.wishlistCount,
+            cartCount: headerCounts.cartCount,
             csrfToken: req.csrfToken()
         });
     } catch (error) {
-        logger.error(`Critical error caught inside loadTopDealsPage controller template pipeline: ${error.message}`);
+        logger.error(`Critical error caught inside loadTopDealsPage controller template pipeline: ${error.message}\nStack: ${error.stack}`);
         return res.status(500).json({ success: false, message: "An error occurred compiling top discount records." });
     }
 };
@@ -206,17 +215,19 @@ export const loadTopDealsPage = async (req, res) => {
 export const loadBestsellersPage = async (req, res) => {
     try {
         const user = req.user || null;
+        const userId = user ? user._id : null;
         const priceSort = req.query.priceSort ? String(req.query.priceSort).trim() : 'all';
         const page = Math.max(1, parseInt(req.query.page, 10) || 1);
         const limit = 8;
 
-        const [catalogData, bannerText, userWishlist] = await Promise.all([
+        const [catalogData, bannerText, userWishlist, headerCounts] = await Promise.all([
             productService.getBestsellersCatalog({ priceSort, page, limit }),
             getActivePromoBanner(),
-            wishlistService.getUserWishlistArray(user ? user._id : null)
+            wishlistService.getUserWishlistArray(userId),
+            getUserHeaderCounts(userId)
         ]);
 
-        logger.info(`Bestsellers screen profile initialized by [${user ? user.email : 'Guest'}] - Filter applied: ${priceSort}`);
+        logger.info(`Bestsellers catalog rendered for [${user ? user.email : 'Guest'}] - Applied Price Sort: [${priceSort}]`);
 
         return res.render('user/bestseller', {
             user,
@@ -227,10 +238,15 @@ export const loadBestsellersPage = async (req, res) => {
             currentPriceSort: priceSort,
             bannerText,
             userWishlist,
-            csrfToken: req.csrfToken()
+            wishlistCount: headerCounts.wishlistCount,
+            cartCount: headerCounts.cartCount,
+            csrfToken: req.csrfToken ? req.csrfToken() : ''
         });
     } catch (error) {
-        logger.error(`Critical parsing error caught within loadBestsellersPage controller path: ${error.message}`);
-        return res.status(500).json({ success: false, message: "An unexpected layout processing error occurred loading best sellers." });
+        logger.error(`Critical error inside loadBestsellersPage controller: ${error.message}\nStack: ${error.stack}`);
+        return res.status(500).json({ 
+            success: false, 
+            message: "An unexpected layout processing error occurred loading best sellers." 
+        });
     }
 };

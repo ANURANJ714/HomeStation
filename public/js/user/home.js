@@ -17,10 +17,8 @@ document.addEventListener("DOMContentLoaded", () => {
   }
 
   if (hamburgerBtn) hamburgerBtn.addEventListener("click", openMobileDrawer);
-  if (closeSidebarBtn)
-    closeSidebarBtn.addEventListener("click", closeMobileDrawer);
-  if (sidebarOverlay)
-    sidebarOverlay.addEventListener("click", closeMobileDrawer);
+  if (closeSidebarBtn) closeSidebarBtn.addEventListener("click", closeMobileDrawer);
+  if (sidebarOverlay) sidebarOverlay.addEventListener("click", closeMobileDrawer);
 
   document.addEventListener("click", (e) => {
     const card = e.target.closest(".clickable-product-card");
@@ -35,6 +33,44 @@ document.addEventListener("DOMContentLoaded", () => {
     }
   });
 
+  function updateHeaderBadge(type, count) {
+    const badgeId = type === 'wishlist' ? 'headerWishlistBadge' : 'headerCartBadge';
+    const parentSelector = type === 'wishlist' 
+      ? '.wishlist-link .action-text-wrapper' 
+      : '.cart-link .action-text-wrapper';
+    
+    let badge = document.getElementById(badgeId);
+    const parentWrapper = document.querySelector(parentSelector);
+
+    if (count > 0) {
+      if (!badge && parentWrapper) {
+        badge = document.createElement('span');
+        badge.id = badgeId;
+        badge.className = 'count-pill-badge';
+        parentWrapper.appendChild(badge);
+      }
+      if (badge) {
+        badge.textContent = count;
+        badge.style.display = 'inline-flex';
+      }
+    } else if (badge) {
+      badge.remove();
+    }
+  }
+
+  async function syncHeaderCounts() {
+    try {
+      const response = await fetch('/user/header-counts');
+      if (response.ok) {
+        const data = await response.json();
+        if (data.cartCount !== undefined) updateHeaderBadge('cart', data.cartCount);
+        if (data.wishlistCount !== undefined) updateHeaderBadge('wishlist', data.wishlistCount);
+      }
+    } catch (err) {
+      window.location.reload();
+    }
+  }
+
   document.addEventListener("click", async (e) => {
     const addToCartBtn = e.target.closest(".add-to-cart-btn");
     if (addToCartBtn) {
@@ -42,10 +78,7 @@ document.addEventListener("DOMContentLoaded", () => {
       e.stopPropagation();
       const variantId = addToCartBtn.getAttribute("data-variant-id");
 
-      if (!variantId) {
-        console.error("No variant ID found on this cart button.");
-        return;
-      }
+      if (!variantId) return;
 
       try {
         const response = await fetch("/cart/add", {
@@ -55,7 +88,7 @@ document.addEventListener("DOMContentLoaded", () => {
             "x-csrf-token": csrfToken,
             "CSRF-Token": csrfToken,
           },
-          body: JSON.stringify({ variantId: variantId }),
+          body: JSON.stringify({ variantId }),
         });
 
         if (response.status === 401 || response.status === 403) {
@@ -66,23 +99,26 @@ document.addEventListener("DOMContentLoaded", () => {
         const data = await response.json();
 
         if (data.success) {
-          const alertContent = data.countMessage
-            ? `${data.message}<br>${data.countMessage}`
-            : data.message;
+          if (data.totalQuantity !== undefined) {
+            updateHeaderBadge('cart', data.totalQuantity);
+          }
 
           Swal.fire({
             icon: "success",
             title: "Added to Cart!",
-            html: alertContent,
-            timer: 1500,
+            text: data.message,
+            timer: 1200,
             showConfirmButton: false,
             heightAuto: false,
+          }).then(() => {
+            window.location.reload();
           });
         } else {
           Swal.fire({
             icon: "error",
-            title: "Oops...",
-            text: data.message || "Something went wrong.",
+            title: "Unable to Add",
+            text: data.message || "Could not add item to cart.",
+            confirmButtonColor: "#222",
             heightAuto: false,
           });
         }
@@ -91,7 +127,8 @@ document.addEventListener("DOMContentLoaded", () => {
         Swal.fire({
           icon: "error",
           title: "Network Error",
-          text: "Could not connect to the server.",
+          text: "Could not connect to server.",
+          confirmButtonColor: "#222",
           heightAuto: false,
         });
       }
@@ -116,7 +153,7 @@ document.addEventListener("DOMContentLoaded", () => {
             "x-csrf-token": csrfToken,
             "CSRF-Token": csrfToken,
           },
-          body: JSON.stringify({ variantId: variantId }),
+          body: JSON.stringify({ variantId }),
         });
 
         if (response.status === 401 || response.status === 403) {
@@ -127,31 +164,38 @@ document.addEventListener("DOMContentLoaded", () => {
         const data = await response.json();
 
         if (data.success) {
-          const alertContent = data.countMessage
-            ? `${data.message}<br>${data.countMessage}`
-            : data.message;
+          if (data.wishlistCount !== undefined) {
+            updateHeaderBadge('wishlist', data.wishlistCount);
+          }
 
           if (data.action === "added") {
             wishlistBtn.classList.add("liked");
             if (icon) icon.className = "fa-solid fa-heart";
+
             Swal.fire({
               icon: "success",
-              title: "Added!",
-              html: alertContent,
-              timer: 1500,
+              title: "Added to Wishlist!",
+              text: data.message,
+              timer: 1200,
               showConfirmButton: false,
               heightAuto: false,
+            }).then(() => {
+              window.location.reload();
             });
+
           } else if (data.action === "removed") {
             wishlistBtn.classList.remove("liked");
             if (icon) icon.className = "fa-regular fa-heart";
+
             Swal.fire({
               icon: "success",
-              title: "Removed!",
-              html: alertContent,
-              timer: 1500,
+              title: "Removed from Wishlist!",
+              text: data.message,
+              timer: 1200,
               showConfirmButton: false,
               heightAuto: false,
+            }).then(() => {
+              window.location.reload();
             });
           }
         } else {
@@ -159,6 +203,7 @@ document.addEventListener("DOMContentLoaded", () => {
             icon: "error",
             title: "Oops...",
             text: data.message || "Something went wrong.",
+            confirmButtonColor: "#222",
             heightAuto: false,
           });
         }
@@ -167,36 +212,13 @@ document.addEventListener("DOMContentLoaded", () => {
         Swal.fire({
           icon: "error",
           title: "Network Error",
-          text: "Could not connect to the server.",
+          text: "Could not connect to server.",
+          confirmButtonColor: "#222",
           heightAuto: false,
         });
       }
     }
   });
-
-  function updateHeaderBadge(type, count) {
-    const badgeId = type === 'wishlist' ? 'headerWishlistBadge' : 'headerCartBadge';
-    const parentSelector = type === 'wishlist' ? '.wishlist-link' : '.cart-link';
-    const badgeClass = type === 'wishlist' ? 'wishlist-badge' : 'cart-badge';
-    
-    let badge = document.getElementById(badgeId);
-    const parentLink = document.querySelector(parentSelector);
-
-    if (count > 0) {
-        if (!badge && parentLink) {
-            badge = document.createElement('span');
-            badge.id = badgeId;
-            badge.className = `count-pill-badge ${badgeClass}`;
-            parentLink.appendChild(badge);
-        }
-        if (badge) {
-            badge.textContent = count;
-            badge.style.display = 'inline-flex';
-        }
-    } else if (badge) {
-        badge.remove();
-    }
-}
 
   const searchInput = document.getElementById("searchInput");
   const searchBtn = document.getElementById("searchBtn");

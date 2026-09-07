@@ -125,17 +125,15 @@ document.addEventListener("DOMContentLoaded", () => {
             if (icon) icon.className = "fa-regular fa-heart";
           }
 
-          const alertContent = data.countMessage
-            ? `${data.message}<br>${data.countMessage}`
-            : data.message;
-
           Swal.fire({
             icon: "success",
             title: data.action === "added" ? "Added!" : "Removed!",
-            html: alertContent,
-            timer: 1500,
+            text: data.message,
+            timer: 1200,
             showConfirmButton: false,
             heightAuto: false,
+          }).then(() => {
+            window.location.reload();
           });
         } else {
           Swal.fire({
@@ -181,17 +179,15 @@ document.addEventListener("DOMContentLoaded", () => {
 
         const data = await response.json();
         if (data.success) {
-          const alertContent = data.countMessage
-            ? `${data.message}<br>${data.countMessage}`
-            : data.message;
-
           Swal.fire({
             icon: "success",
             title: "Added!",
-            html: alertContent,
-            timer: 1500,
+            text: data.message,
+            timer: 1200,
             showConfirmButton: false,
             heightAuto: false,
+          }).then(() => {
+            window.location.reload();
           });
         } else {
           Swal.fire({

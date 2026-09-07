@@ -1,0 +1,56 @@
+<header class="header">
+    <div class="container-fluid header-container">
+        <div class="header-left-group">
+            <a href="/home" class="logo">HomeStation</a>
+        </div>
+
+        <nav class="nav" id="appNavbar">
+            <ul class="nav-list">
+                <li><a href="/home" class="nav-link <%= (typeof activePage !== 'undefined' && activePage === 'home') ? 'active' : '' %>">Home</a></li>
+                <li><a href="/products" class="nav-link <%= (typeof activePage !== 'undefined' && activePage === 'products') ? 'active' : '' %>">World of Mattress</a></li>
+                <li><a href="/deals" class="nav-link <%= (typeof activePage !== 'undefined' && activePage === 'deals') ? 'active' : '' %>">Top Deals</a></li>
+                <li><a href="/bestsellers" class="nav-link <%= (typeof activePage !== 'undefined' && activePage === 'bestsellers') ? 'active' : '' %>">Best Sellers</a></li>
+                <li><a href="/contact" class="nav-link <%= (typeof activePage !== 'undefined' && activePage === 'contact') ? 'active' : '' %>">Contact Us</a></li>
+            </ul>
+        </nav>
+
+        <div class="search-container">
+            <input type="text" placeholder="Search for products, brands and more..." id="searchInput">
+            <button id="searchBtn" type="button"><i class="fa-solid fa-magnifying-glass"></i></button>
+        </div>
+
+        <div class="header-actions">
+            <a href="/user/wishlist" class="icon-link wishlist-link">
+                <i class="fa-regular fa-heart"></i>
+                <span class="action-text-wrapper">
+                    <span class="action-text">Wishlist</span>
+                    <% if (typeof wishlistCount !== 'undefined' && wishlistCount > 0) { %>
+                        <span class="count-pill-badge" id="headerWishlistBadge"><%= wishlistCount %></span>
+                    <% } %>
+                </span>
+            </a>
+
+            <% if (typeof user !== 'undefined' && user) { %>
+                <a href="/user/profile" class="icon-link">
+                    <i class="fa-solid fa-user"></i>
+                    <span class="action-text">Profile</span>
+                </a>
+            <% } else { %>
+                <a href="/user/login" class="icon-link">
+                    <i class="fa-solid fa-right-to-bracket"></i>
+                    <span class="action-text">Login</span>
+                </a>
+            <% } %>
+
+            <a href="/user/cart" class="icon-link cart-link">
+                <i class="fa-solid fa-cart-shopping"></i>
+                <span class="action-text-wrapper">
+                    <span class="action-text">Cart</span>
+                    <% if (typeof cartCount !== 'undefined' && cartCount > 0) { %>
+                        <span class="count-pill-badge" id="headerCartBadge"><%= cartCount %></span>
+                    <% } %>
+                </span>
+            </a>
+        </div>
+    </div>
+</header>
