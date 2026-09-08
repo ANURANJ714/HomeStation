@@ -17,33 +17,79 @@ document.addEventListener("DOMContentLoaded", () => {
         });
     }
 
+    function clearErrors() {
+        document.querySelectorAll(".field-error-msg").forEach(el => el.textContent = "");
+        document.querySelectorAll(".contact-form input, .contact-form select, .contact-form textarea").forEach(el => el.classList.remove("input-error"));
+    }
+
+    document.querySelectorAll(".contact-form input, .contact-form select, .contact-form textarea").forEach(el => {
+        el.addEventListener("input", () => {
+            el.classList.remove("input-error");
+            const err = el.parentElement.querySelector(".field-error-msg");
+            if (err) err.textContent = "";
+        });
+    });
+
     const contactForm = document.getElementById("userContactInquiryForm");
     if (contactForm) {
         contactForm.addEventListener("submit", async function(e) {
             e.preventDefault();
+            clearErrors();
 
             const csrfToken = document.getElementById("csrfToken")?.value || "";
-            const name = document.getElementById("name").value.trim();
-            const email = document.getElementById("email").value.trim();
-            const subject = document.getElementById("subject").value;
-            const message = document.getElementById("message").value.trim();
+            const nameInput = document.getElementById("name");
+            const emailInput = document.getElementById("email");
+            const subjectInput = document.getElementById("subject");
+            const messageInput = document.getElementById("message");
 
-            if (!name || !email || !subject || !message) {
-                return Swal.fire({
-                    icon: "error",
-                    title: "Missing Information",
-                    text: "Fields cannot be empty",
-                    confirmButtonColor: "#222",
-                    heightAuto: false
-                });
+            const name = nameInput.value.trim();
+            const email = emailInput.value.trim();
+            const subject = subjectInput.value;
+            const message = messageInput.value.trim();
+
+            let hasError = false;
+
+            if (!name) {
+                document.getElementById("nameError").textContent = "Name is required.";
+                nameInput.classList.add("input-error");
+                hasError = true;
             }
+
+            if (!email) {
+                document.getElementById("emailError").textContent = "Email address is required.";
+                emailInput.classList.add("input-error");
+                hasError = true;
+            } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+                document.getElementById("emailError").textContent = "Please enter a valid email address.";
+                emailInput.classList.add("input-error");
+                hasError = true;
+            }
+
+            if (!subject) {
+                document.getElementById("subjectError").textContent = "Please select a subject.";
+                subjectInput.classList.add("input-error");
+                hasError = true;
+            }
+
+            if (!message) {
+                document.getElementById("messageError").textContent = "Message content is required.";
+                messageInput.classList.add("input-error");
+                hasError = true;
+            } else if (message.length < 10) {
+                document.getElementById("messageError").textContent = "Message must be at least 10 characters long.";
+                messageInput.classList.add("input-error");
+                hasError = true;
+            }
+
+            if (hasError) return;
 
             try {
                 const response = await fetch("/contact/submit", {
                     method: "POST",
                     headers: {
                         "Content-Type": "application/json",
-                        "csrf-token": csrfToken
+                        "csrf-token": csrfToken,
+                        "CSRF-Token": csrfToken
                     },
                     body: JSON.stringify({ name, email, subjectId: subject, message })
                 });
@@ -63,10 +109,8 @@ document.addEventListener("DOMContentLoaded", () => {
                         confirmButtonColor: "#222",
                         heightAuto: false
                     }).then(() => {
-                        const msgField = document.getElementById("message");
-                        const subField = document.getElementById("subject");
-                        if (msgField) msgField.value = "";
-                        if (subField) subField.value = "";
+                        if (messageInput) messageInput.value = "";
+                        if (subjectInput) subjectInput.value = "";
                     });
                 } else {
                     Swal.fire({
@@ -81,7 +125,7 @@ document.addEventListener("DOMContentLoaded", () => {
                 Swal.fire({
                     icon: "error",
                     title: "Network Error",
-                    text: "Could not establish an active backend server communication tunnel.",
+                    text: "Could not establish server communication.",
                     confirmButtonColor: "#222",
                     heightAuto: false
                 });

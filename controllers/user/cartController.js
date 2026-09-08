@@ -1,5 +1,6 @@
 import * as cartService from '../../services/user/cartService.js';
 import {getActivePromoBanner} from '../../services/user/bannerService.js';
+import { getUserHeaderCounts } from '../../services/user/badgeService.js';
 import logger from '../../utils/logger.js';
 
 export const addToCartController = async (req, res) => {
@@ -61,9 +62,10 @@ export const loadCartPage = async (req, res) => {
         const userEmail = req.user?.email || 'Unknown User';
         const clientIp = req.ip;
 
-        const [cartData, bannerText] = await Promise.all([
+        const [cartData, bannerText, headerCounts] = await Promise.all([
             cartService.getCartItems(userId),
-            getActivePromoBanner()
+            getActivePromoBanner(),
+            getUserHeaderCounts(userId)
         ]);
 
         logger.info(`User (${userEmail}) loaded Cart Page | IP: ${clientIp}`);
@@ -75,6 +77,8 @@ export const loadCartPage = async (req, res) => {
             totalQuantity: cartData.totalQuantity,
             stockExceededItem: cartData.stockExceededItem,
             bannerText,
+            wishlistCount: headerCounts.wishlistCount,
+            cartCount: headerCounts.cartCount,
             csrfToken: req.csrfToken ? req.csrfToken() : ''
         });
 

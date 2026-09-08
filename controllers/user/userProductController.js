@@ -1,6 +1,6 @@
 import * as productService from '../../services/user/userProductService.js';
 import * as wishlistService from '../../services/user/wishlistService.js';
-import Category from '../../models/Category.js';
+import * as reviewService from '../../services/user/reviewService.js';
 import { getActivePromoBanner } from '../../services/user/bannerService.js';
 import { getUserHeaderCounts } from '../../services/user/badgeService.js';
 import logger from '../../utils/logger.js';
@@ -91,18 +91,22 @@ export const loadProductDetailViewPage = async (req, res) => {
     try {
         const { id } = req.params;
         const user = req.user || null;
+        const userId = user ? user._id : null;
 
         if (!id) {
+            logger.warn(`Product detail request rejected: ID parameter missing | IP: ${req.ip}`);
             return res.status(400).json({ success: false, message: "Target resource context ID reference is missing." });
         }
 
-        const [catalogContext, bannerText, userWishlist] = await Promise.all([
+        const [catalogContext, bannerText, userWishlist, headerCounts, reviewData] = await Promise.all([
             productService.getValidatedProductDetails(id),
             getActivePromoBanner(),
-            wishlistService.getUserWishlistArray(user ? user._id : null)
+            wishlistService.getUserWishlistArray(userId),
+            getUserHeaderCounts(userId),
+            reviewService.getProductReviewsPreview(id)
         ]);
 
-        logger.info(`Product detailed profile views rendered accurately for ID: ${id} by Session User: ${user ? user.email : 'Guest'}`);
+        logger.info(`Product detail view loaded successfully for ID: ${id} by User: ${user ? user.email : 'Guest'} | IP: ${req.ip}`);
 
         return res.render('user/productdetails', {
             user,
@@ -111,18 +115,22 @@ export const loadProductDetailViewPage = async (req, res) => {
             related: catalogContext.relatedProducts,
             bannerText,
             userWishlist,
-            csrfToken: req.csrfToken(),
+            wishlistCount: headerCounts.wishlistCount,
+            cartCount: headerCounts.cartCount,
+            reviews: reviewData.reviews,
+            totalReviewsCount: reviewData.totalReviewsCount,
+            csrfToken: req.csrfToken ? req.csrfToken() : '',
             errorAlert: null
         });
 
     } catch (error) {
         if (error.reason === 'UNAVAILABLE' || error.reason === 'OUT_OF_STOCK') {
-            logger.warn(`Product profile delivery rejected on constraint checkpoints: ${error.message}`);
+            logger.warn(`Product detail unavailable for ID (${req.params.id}): ${error.message}`);
             
             if (req.session) {
                 req.session.serverAlert = {
                     type: 'warning',
-                    title: 'Product Unvailable',
+                    title: 'Product Unavailable',
                     message: error.message
                 };
             }
@@ -130,21 +138,70 @@ export const loadProductDetailViewPage = async (req, res) => {
             return res.redirect('/products');
         }
 
-        logger.error(`Critical parsing breakdown inside Product profile mapping subroutine: ${error.message}`);
+        logger.error(`Error loading Product details (ID: ${req.params.id}): ${error.message}\nStack: ${error.stack}`);
         return res.status(500).json({ success: false, message: "An unexpected internal server error occurred." });
+    }
+};
+
+export const loadAllProductReviewsPage = async (req, res) => {
+    try {
+        const { id } = req.params;
+        const user = req.user || null;
+        const userId = user ? user._id : null;
+
+        if (!id) {
+            logger.warn(`Access to reviews page failed: Missing Product ID | IP: ${req.ip}`);
+            return res.status(400).json({ success: false, message: "Target product reference ID is missing." });
+        }
+
+        const page = parseInt(req.query.page, 10) || 1;
+        const sortMode = req.query.sort ? String(req.query.sort).trim() : 'relevant';
+        const limit = 5;
+
+        const [productContext, reviewData, bannerText, headerCounts] = await Promise.all([
+            productService.getValidatedProductDetails(id),
+            reviewService.getProductReviewsPaginated(id, page, limit, sortMode),
+            getActivePromoBanner(),
+            getUserHeaderCounts(userId)
+        ]);
+
+        logger.info(`Reviews page loaded for Product ID: ${id} | Page: ${page} | Sort: ${sortMode} | User: ${user ? user.email : 'Guest'} | IP: ${req.ip}`);
+
+        return res.render('user/review', {
+            user,
+            product: productContext.product,
+            reviews: reviewData.reviews,
+            totalReviews: reviewData.totalReviews,
+            totalPages: reviewData.totalPages,
+            currentPage: reviewData.currentPage,
+            averageRating: reviewData.averageRating,
+            currentSort: sortMode,
+            bannerText,
+            wishlistCount: headerCounts.wishlistCount,
+            cartCount: headerCounts.cartCount,
+            csrfToken: req.csrfToken ? req.csrfToken() : ''
+        });
+
+    } catch (error) {
+        logger.error(`Error loading all reviews for Product ID ${req.params.id}: ${error.message}\nStack: ${error.stack}`);
+        return res.status(500).json({ 
+            success: false, 
+            message: "An internal server error occurred while retrieving customer reviews." 
+        });
     }
 };
 
 export const executeCatalogSearchPage = async (req, res) => {
     try {
         const user = req.user || null;
+        const userId = user ? user._id : null;
         
         const searchQuery = req.query.q ? String(req.query.q).trim() : '';
         const currentSort = req.query.sort ? String(req.query.sort).trim() : 'all';
         const page = Math.max(1, parseInt(req.query.page, 10) || 1);
         const limit = 8;
 
-        const [searchResults, bannerText, userWishlist] = await Promise.all([
+        const [searchResults, bannerText, userWishlist, headerCounts] = await Promise.all([
             productService.searchActiveProductsCatalog({
                 query: searchQuery,
                 sort: currentSort,
@@ -152,7 +209,8 @@ export const executeCatalogSearchPage = async (req, res) => {
                 limit
             }),
             getActivePromoBanner(),
-            wishlistService.getUserWishlistArray(user ? user._id : null)
+            wishlistService.getUserWishlistArray(userId),
+            getUserHeaderCounts(userId)
         ]);
 
         logger.info(`User [${user ? user.email : 'Guest'}] queried active tokens: "${searchQuery}" - Returned ${searchResults.totalItems} entries.`);
@@ -167,7 +225,9 @@ export const executeCatalogSearchPage = async (req, res) => {
             currentSort,
             bannerText,
             userWishlist,
-            csrfToken: req.csrfToken()
+            wishlistCount: headerCounts.wishlistCount,
+            cartCount: headerCounts.cartCount,
+            csrfToken: req.csrfToken ? req.csrfToken() : ''
         });
 
     } catch (error) {

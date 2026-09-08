@@ -1,0 +1,108 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Customer Reviews - <%= product.name %></title>
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,600;0,700;1,600&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="icon" type="image/x-icon" href="https://res.cloudinary.com/dz7fuqwnr/image/upload/v1778395481/WhatsApp_Image_2026-05-10_at_12.12.36_nra5vk.jpg">
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <link rel="stylesheet" href="/css/user/home.css">
+    <link rel="stylesheet" href="/css/user/review.css">
+</head>
+
+<body>
+    <input type="hidden" id="csrfToken" value="<%= typeof csrfToken !== 'undefined' ? csrfToken : '' %>">
+    <input type="hidden" id="productIdHidden" value="<%= product._id %>">
+
+    <%- include('../partials/user/promoBar') %>
+
+    <%- include('../partials/user/header', { activePage: '' }) %>
+
+    <main class="container reviews-main-page">
+        <div class="reviews-container">
+            <div class="reviews-header">
+                <div class="reviews-header-left">
+                    <h1 class="reviews-main-title">Customer Reviews</h1>
+                    <div class="overall-rating">
+                        <strong><%= averageRating %> / 5.0</strong> based on <%= totalReviews %> <%= totalReviews === 1 ? 'Review' : 'Reviews' %>
+                    </div>
+                </div>
+                <div class="reviews-sort">
+                    <label for="sortReviews">Sort by:</label>
+                    <select id="sortReviews" class="sort-dropdown">
+                        <option value="relevant" <%= currentSort === 'relevant' ? 'selected' : '' %>>Most Relevant</option>
+                        <option value="lowest" <%= currentSort === 'lowest' ? 'selected' : '' %>>Lowest</option>
+                        <option value="highest" <%= currentSort === 'highest' ? 'selected' : '' %>>Highest</option>
+                        <option value="newest" <%= currentSort === 'newest' ? 'selected' : '' %>>Newest</option>
+                    </select>
+                </div>
+            </div>
+
+            <div class="reviews-list-wrapper">
+                <% if (reviews && reviews.length > 0) { %>
+                    <% reviews.forEach(review => { %>
+                        <div class="review-item">
+                            <div class="review-meta">
+                                <div>
+                                    <h4 class="reviewer-name"><%= review.userId ? review.userId.fullName : 'Verified Customer' %></h4>
+                                    <div class="review-stars">
+                                        <% for (let s = 1; s <= 5; s++) { %>
+                                            <i class="fa-solid fa-star <%= s <= review.rating ? 'active-star' : 'empty-star' %>"></i>
+                                        <% } %>
+                                    </div>
+                                </div>
+                                <span class="review-date">
+                                    <%= new Date(review.createdAt).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' }) %>
+                                </span>
+                            </div>
+                            <p class="review-text"><%= review.comment %></p>
+                        </div>
+                    <% }) %>
+                <% } else { %>
+                    <div class="no-reviews-state">
+                        <p>No reviews found for this product yet.</p>
+                    </div>
+                <% } %>
+            </div>
+
+            <% if (typeof totalPages !== 'undefined' && totalPages > 1) { %>
+                <div class="pagination">
+                    <% if (currentPage > 1) { %>
+                        <a href="/products/<%= product._id %>/reviews?page=<%= currentPage - 1 %>&sort=<%= currentSort %>" class="page-link">
+                            <i class="fa-solid fa-chevron-left"></i> Prev
+                        </a>
+                    <% } %>
+
+                    <% for (let i = 1; i <= totalPages; i++) { %>
+                        <a href="/products/<%= product._id %>/reviews?page=<%= i %>&sort=<%= currentSort %>" 
+                           class="page-link <%= i === currentPage ? 'active' : '' %>">
+                            <%= i %>
+                        </a>
+                    <% } %>
+
+                    <% if (currentPage < totalPages) { %>
+                        <a href="/products/<%= product._id %>/reviews?page=<%= currentPage + 1 %>&sort=<%= currentSort %>" class="page-link">
+                            Next <i class="fa-solid fa-chevron-right"></i>
+                        </a>
+                    <% } %>
+                </div>
+            <% } %>
+
+            <div class="back-link-wrapper">
+                <a href="/products/<%= product._id %>" class="back-link">
+                    <i class="fa-solid fa-arrow-left"></i> Back to Product
+                </a>
+            </div>
+        </div>
+    </main>
+
+    <%- include('../partials/user/footer') %>
+
+    <script src="/js/user/review.js"></script>
+</body>
+
+</html>

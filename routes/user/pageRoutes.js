@@ -1,7 +1,7 @@
 import express from 'express';
 import { checkOptionalAuth } from '../../middlewares/auth.js';
 import {noCache} from '../../middlewares/cache.js';
-import { loadProductsCatalogPage, loadProductDetailViewPage, executeCatalogSearchPage, loadTopDealsPage, loadBestsellersPage } from '../../controllers/user/userProductController.js';
+import { loadProductsCatalogPage, loadProductDetailViewPage, executeCatalogSearchPage, loadTopDealsPage, loadBestsellersPage, loadAllProductReviewsPage } from '../../controllers/user/userProductController.js';
 import { loadHomePage, loadContactPage, submitContactInquiryForm, loadPrivacyPolicyPage } from '../../controllers/user/pageController.js';
 import { toggleWishlistItem, deleteWishlistItem } from '../../controllers/user/wishlistController.js';
 import { addToCartController } from '../../controllers/user/cartController.js';
@@ -20,6 +20,7 @@ router.post('/cart/add', checkOptionalAuth, addToCartController);
 router.post('/wishlist/remove', checkOptionalAuth, deleteWishlistItem);
 
 router.get('/products/:id', checkOptionalAuth, loadProductDetailViewPage);
+router.get('/products/:id/reviews', checkOptionalAuth, loadAllProductReviewsPage);
 router.get('/search', checkOptionalAuth, executeCatalogSearchPage);
 
 router.get('/contact', checkOptionalAuth, loadContactPage);

@@ -1,6 +1,7 @@
 import logger from '../../utils/logger.js';
 import * as errorService from '../../services/user/errorService.js';
 import * as bannerService from '../../services/user/bannerService.js';
+import { getUserHeaderCounts } from '../../services/user/badgeService.js';
 
 export const handleNotFound = async (req, res) => {
     try {
@@ -32,12 +33,20 @@ export const handleNotFound = async (req, res) => {
             });
         }
 
-        const promoBannerText = await bannerService.getActivePromoBanner();
+        const user = (req.isAuthenticated && req.isAuthenticated()) ? req.user : (req.user || null);
+        const userId = user ? user._id : null;
+
+        const [promoBannerText, headerCounts] = await Promise.all([
+            bannerService.getActivePromoBanner(),
+            getUserHeaderCounts(userId)
+        ]);
 
         return res.status(404).render('user/404error', {
             pageTitle: 'HomeStation - Page Not Found',
-            promoBanner: promoBannerText, 
-            user: (req.isAuthenticated && req.isAuthenticated()) ? req.user : (req.user || null),
+            bannerText: promoBannerText, 
+            user,
+            wishlistCount: headerCounts.wishlistCount,
+            cartCount: headerCounts.cartCount,
             csrfToken: req.csrfToken ? req.csrfToken() : ''
         });
 

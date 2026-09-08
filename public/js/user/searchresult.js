@@ -2,12 +2,17 @@ document.addEventListener("DOMContentLoaded", () => {
     const csrfToken = document.getElementById("csrfToken")?.value || "";
 
     function executeFilterQuery(targetPage = 1) {
-        const queryValue = document.getElementById("searchInput").value.trim();
-        const sortValue = document.getElementById("priceSort").value;
+        const queryInput = document.getElementById("searchInput");
+        const cacheInput = document.getElementById("activeSearchQueryCache");
+        const queryValue = (queryInput ? queryInput.value.trim() : "") || (cacheInput ? cacheInput.value.trim() : "");
+        const sortSelect = document.getElementById("priceSort");
+        const sortValue = sortSelect ? sortSelect.value : "all";
 
+        let url = `/search?page=${targetPage}&sort=${encodeURIComponent(sortValue)}`;
         if (queryValue) {
-            window.location.href = `/search?q=${encodeURIComponent(queryValue)}&sort=${sortValue}&page=${targetPage}`;
+            url += `&q=${encodeURIComponent(queryValue)}`;
         }
+        window.location.href = url;
     }
 
     const priceSort = document.getElementById("priceSort");
@@ -18,7 +23,7 @@ document.addEventListener("DOMContentLoaded", () => {
     document.querySelectorAll(".navigate-page-btn").forEach(btn => {
         btn.addEventListener("click", function() {
             const requestedPageNum = this.getAttribute("data-page");
-            executeFilterQuery(requestedPageNum);
+            if (requestedPageNum) executeFilterQuery(requestedPageNum);
         });
     });
 
@@ -37,6 +42,7 @@ document.addEventListener("DOMContentLoaded", () => {
     document.querySelectorAll(".wishlist-btn").forEach(btn => {
         btn.addEventListener("click", async function(e) {
             e.preventDefault();
+            e.stopPropagation();
             const variantId = this.getAttribute("data-variant-id");
             const icon = this.querySelector("i");
             const isLiked = this.classList.contains("liked");
@@ -48,7 +54,8 @@ document.addEventListener("DOMContentLoaded", () => {
                     method: "POST",
                     headers: {
                         "Content-Type": "application/json",
-                        "CSRF-Token": csrfToken
+                        "CSRF-Token": csrfToken,
+                        "x-csrf-token": csrfToken
                     },
                     body: JSON.stringify({ variantId })
                 });
@@ -62,12 +69,32 @@ document.addEventListener("DOMContentLoaded", () => {
                 if (data.success) {
                     this.classList.toggle("liked");
                     if (icon) icon.className = isLiked ? "fa-regular fa-heart" : "fa-solid fa-heart";
-                    Swal.fire({ icon: "success", title: "Success", text: data.message, timer: 1500, showConfirmButton: false, heightAuto: false });
+
+                    Swal.fire({ 
+                        icon: "success", 
+                        title: isLiked ? "Removed!" : "Added!", 
+                        text: data.message, 
+                        timer: 1200, 
+                        showConfirmButton: false, 
+                        heightAuto: false 
+                    }).then(() => {
+                        window.location.reload();
+                    });
                 } else {
-                    Swal.fire({ icon: "warning", title: "Notice", text: data.message, heightAuto: false });
+                    Swal.fire({ 
+                        icon: "warning", 
+                        title: "Notice", 
+                        text: data.message, 
+                        heightAuto: false 
+                    });
                 }
             } catch (error) {
-                Swal.fire({ icon: "error", title: "Network Error", text: "Failed to connect to the server.", heightAuto: false });
+                Swal.fire({ 
+                    icon: "error", 
+                    title: "Network Error", 
+                    text: "Failed to connect to the server.", 
+                    heightAuto: false 
+                });
             }
         });
     });
@@ -75,6 +102,7 @@ document.addEventListener("DOMContentLoaded", () => {
     document.querySelectorAll(".add-to-cart-btn").forEach(btn => {
         btn.addEventListener("click", async function(e) {
             e.preventDefault();
+            e.stopPropagation();
             const variantId = this.getAttribute("data-variant-id");
 
             try {
@@ -82,7 +110,8 @@ document.addEventListener("DOMContentLoaded", () => {
                     method: "POST",
                     headers: {
                         "Content-Type": "application/json",
-                        "CSRF-Token": csrfToken
+                        "CSRF-Token": csrfToken,
+                        "x-csrf-token": csrfToken
                     },
                     body: JSON.stringify({ variantId })
                 });
@@ -94,12 +123,31 @@ document.addEventListener("DOMContentLoaded", () => {
 
                 const data = await response.json();
                 if (data.success) {
-                    Swal.fire({ icon: "success", title: "Added!", text: data.message, timer: 1500, showConfirmButton: false, heightAuto: false });
+                    Swal.fire({ 
+                        icon: "success", 
+                        title: "Added to Cart!", 
+                        text: data.message, 
+                        timer: 1200, 
+                        showConfirmButton: false, 
+                        heightAuto: false 
+                    }).then(() => {
+                        window.location.reload();
+                    });
                 } else {
-                    Swal.fire({ icon: "warning", title: "Notice", text: data.message, heightAuto: false });
+                    Swal.fire({ 
+                        icon: "warning", 
+                        title: "Notice", 
+                        text: data.message, 
+                        heightAuto: false 
+                    });
                 }
             } catch (error) {
-                Swal.fire({ icon: "error", title: "Network Error", text: "Could not add item to cart.", heightAuto: false });
+                Swal.fire({ 
+                    icon: "error", 
+                    title: "Network Error", 
+                    text: "Could not add item to cart.", 
+                    heightAuto: false 
+                });
             }
         });
     });

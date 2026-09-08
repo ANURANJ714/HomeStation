@@ -6,219 +6,160 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>HomeStation</title>
     <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&display=swap" rel="stylesheet">
-    <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,600;0,700;1,600&display=swap"
-        rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,600;0,700;1,600&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
-    <link rel="icon" type="image/x-icon"
-        href="https://res.cloudinary.com/dz7fuqwnr/image/upload/v1778395481/WhatsApp_Image_2026-05-10_at_12.12.36_nra5vk.jpg">
+    <link rel="icon" type="image/x-icon" href="https://res.cloudinary.com/dz7fuqwnr/image/upload/v1778395481/WhatsApp_Image_2026-05-10_at_12.12.36_nra5vk.jpg">
+    <link rel="stylesheet" href="/css/user/home.css">
     <link rel="stylesheet" href="/css/user/profile.css">
 </head>
 
 <body class="shared-bg">
-    <% if (bannerText) { %>
-        <div class="promo-bar">
-            <b><%- bannerText %></b>
-        </div>
-        <% } %>
+    <input type="hidden" id="csrfToken" value="<%= typeof csrfToken !== 'undefined' ? csrfToken : '' %>">
 
-            <header class="header">
-                <div class="container-fluid header-container">
-                    <a href="/home" class="logo">HomeStation</a>
-                    <nav class="nav">
-                        <ul class="nav-list">
-                            <li><a href="/home" class="nav-link">Home</a></li>
-                            <li><a href="/products" class="nav-link">World of Mattress</a></li>
-                            <li><a href="/deals" class="nav-link">Top Deals</a></li>
-                            <li><a href="/bestsellers" class="nav-link">Best Sellers</a></li>
-                            <li><a href="/contact" class="nav-link">Contact Us</a></li>
-                        </ul>
-                    </nav>
-                    <div class="search-container">
-                        <input type="text" placeholder="Search for products, brands and more..." id="searchInput">
-                        <button id="searchBtn" type="button"><i class="fa-solid fa-magnifying-glass"></i></button>
-                    </div>
-                    <div class="header-actions">
-                        <a href="/user/wishlist" class="icon-link wishlist-link"><i class="fa-regular fa-heart"></i>
-                            Wishlist</a>
-                        <a href="/user/profile" class="icon-link"><i class="fa-solid fa-user"></i> Profile</a>
-                        <a href="/user/cart" class="icon-link"><i class="fa-solid fa-cart-shopping"></i> Cart</a>
+    <%- include('../partials/user/promoBar') %>
+
+    <%- include('../partials/user/header', { activePage: '' }) %>
+
+    <section class="profile-section">
+        <div class="container profile-layout">
+
+            <aside class="profile-sidebar" id="appSidebar">
+                <div class="profile-user-info">
+                    <img src="<%= user.profileImage || 'https://cdn.pixabay.com/photo/2015/10/05/22/37/blank-profile-picture-973460_1280.png' %>"
+                        alt="Profile" class="sidebar-avatar">
+                    <div class="user-greeting">
+                        <span class="hello-text">Hello,</span>
+                        <span class="user-name" id="sidebarName">
+                            <%= user.fullName || 'User' %>
+                        </span>
                     </div>
                 </div>
-            </header>
 
-            <section class="profile-section">
-                <div class="container profile-layout">
+                <hr class="sidebar-divider">
+                <div class="sidebar-menu">
+                    <h3>Account Settings</h3>
+                    <ul>
+                        <li><a href="/user/profile" class="active">Profile information</a></li>
+                        <li><a href="/user/addresses">Manage addresses</a></li>
+                    </ul>
+                    <hr class="sidebar-divider">
+                    <h3>My Stuffs</h3>
+                    <ul>
+                        <li><a href="/user/orders">My Orders</a></li>
+                        <li><a href="/user/wishlist">My Wishlists</a></li>
+                        <li><a href="/user/wallet">My Wallet</a></li>
+                        <li><a href="/user/coupons">Coupons Available</a></li>
+                    </ul>
+                    <hr class="sidebar-divider">
 
-                    <aside class="profile-sidebar" id="appSidebar">
-                        <div class="profile-user-info">
-                            <img src="<%= user.profileImage || 'https://cdn.pixabay.com/photo/2015/10/05/22/37/blank-profile-picture-973460_1280.png' %>"
-                                alt="Profile" class="sidebar-avatar">
-                            <div class="user-greeting">
-                                <span class="hello-text">Hello,</span>
-                                <span class="user-name" id="sidebarName">
-                                    <%= user.fullName || 'User' %>
-                                </span>
+                    <div class="logout-wrapper">
+                        <form action="/user/logout" method="POST" id="logoutForm" class="m-0">
+                            <input type="hidden" name="_csrf" value="<%= typeof csrfToken !== 'undefined' ? csrfToken : '' %>">
+                            <button type="submit" class="logout-link">
+                                <i class="fa-solid fa-power-off"></i> Logout
+                            </button>
+                        </form>
+                    </div>
+                </div>
+            </aside>
+
+            <main class="profile-content">
+                <div class="profile-header-flex">
+                    <h2 class="edit-profile-title m-0">Profile Information</h2>
+                    <button id="editBtn" class="btn profile-edit-trigger">Edit Profile</button>
+                </div>
+
+                <div class="profile-info-section">
+                    <div class="profile-edit-pic">
+                        <img src="<%= user.profileImage || 'https://cdn.pixabay.com/photo/2015/10/05/22/37/blank-profile-picture-973460_1280.png' %>"
+                            alt="Profile" class="main-avatar" id="profileImagePreview">
+                        <input type="file" id="imageUploadInput"
+                            accept="image/png, image/jpeg, image/jpg, image/webp" class="d-none">
+                        <button type="button" class="btn-upload d-none" id="uploadBtn">
+                            <i class="fa-solid fa-camera"></i> Upload Photo
+                        </button>
+                    </div>
+
+                    <form class="profile-form" id="profileForm" novalidate>
+                        <div class="form-row">
+                            <div class="form-col form-group">
+                                <label for="fullName">Full Name</label>
+                                <input type="text" id="fullName" name="fullName" class="form-control"
+                                    value="<%= user.fullName %>" disabled>
+                            </div>
+                            <div class="form-col form-group">
+                                <label for="phone">Phone Number</label>
+                                <input type="tel" id="phone" name="phone" class="form-control"
+                                    value="<%= user.phone %>" disabled>
                             </div>
                         </div>
 
-                        <hr class="sidebar-divider">
-                        <div class="sidebar-menu">
-                            <h3>Account Settings</h3>
-                            <ul>
-                                <li><a href="/user/profile" class="active">Profile information</a></li>
-                                <li><a href="/user/addresses">Manage addresses</a></li>
-                            </ul>
-                            <hr class="sidebar-divider">
-                            <h3>My Stuffs</h3>
-                            <ul>
-                                <li><a href="/user/orders">My Orders</a></li>
-                                <li><a href="/user/wishlist">My Wishlists</a></li>
-                                <li><a href="/user/wallet">My Wallet</a></li>
-                                <li><a href="/user/coupons">Coupons Available</a></li>
-                            </ul>
-                            <hr class="sidebar-divider">
+                        <div class="form-group">
+                            <label for="email">Email Address</label>
+                            <input type="email" id="email" name="email" class="form-control"
+                                value="<%= user.email %>" disabled data-provider="<%= user.authProvider %>">
 
-                            <div class="logout-wrapper">
-                                <form action="/user/logout" method="POST" id="logoutForm" class="m-0">
-                                    <input type="hidden" name="_csrf" value="<%= csrfToken %>">
-                                    <button type="submit" class="logout-link">
-                                        <i class="fa-solid fa-power-off"></i> Logout
-                                    </button>
-                                </form>
-                            </div>
-                        </div>
-                    </aside>
-
-                    <main class="profile-content">
-                        <input type="hidden" id="csrfToken" value="<%= csrfToken %>">
-                        <div class="profile-header-flex">
-                            <h2 class="edit-profile-title m-0">Profile Information</h2>
-                            <button id="editBtn" class="btn profile-edit-trigger">Edit Profile</button>
+                            <% if (user.authProvider === 'google') { %>
+                                <small class="google-auth-warning">
+                                    <i class="fa-brands fa-google"></i> Email linked to your Google account cannot be changed.
+                                </small>
+                            <% } %>
                         </div>
 
-                        <div class="profile-info-section">
-                            <div class="profile-edit-pic">
-                                <img src="<%= user.profileImage || 'https://cdn.pixabay.com/photo/2015/10/05/22/37/blank-profile-picture-973460_1280.png' %>"
-                                    alt="Profile" class="main-avatar" id="profileImagePreview">
-                                <input type="file" id="imageUploadInput"
-                                    accept="image/png, image/jpeg, image/jpg, image/webp" class="d-none">
-                                <button type="button" class="btn-upload d-none" id="uploadBtn">
-                                    <i class="fa-solid fa-camera"></i> Upload Photo
-                                </button>
-                            </div>
+                        <div class="profile-actions" id="profileActions">
+                            <button type="button" class="btn-cancel-gray" id="cancelBtn">Cancel</button>
+                            <button type="submit" class="btn-save">Save Changes</button>
+                        </div>
+                    </form>
 
-                            <form class="profile-form" id="profileForm" novalidate>
-                                <div class="form-row">
-                                    <div class="form-col form-group">
-                                        <label for="fullName">Full Name</label>
-                                        <input type="text" id="fullName" name="fullName" class="form-control"
-                                            value="<%= user.fullName %>" disabled>
-                                    </div>
-                                    <div class="form-col form-group">
-                                        <label for="phone">Phone Number</label>
-                                        <input type="tel" id="phone" name="phone" class="form-control"
-                                            value="<%= user.phone %>" disabled>
+                    <% if (user.authProvider === 'local') { %>
+                        <div class="profile-form mt-50">
+                            <form id="passwordForm" class="password-section" novalidate>
+                                <h3 class="section-title">Change Password</h3>
+
+                                <div class="form-group">
+                                    <label for="oldPassword">Old Password</label>
+                                    <div class="password-input-relative">
+                                        <input type="password" id="oldPassword" name="oldPassword"
+                                            class="form-control" required>
+                                        <i class="fa-regular fa-eye-slash toggle-password"></i>
                                     </div>
                                 </div>
 
                                 <div class="form-group">
-                                    <label for="email">Email Address</label>
-                                    <input type="email" id="email" name="email" class="form-control"
-                                        value="<%= user.email %>" disabled data-provider="<%= user.authProvider %>">
-
-                                    <% if (user.authProvider==='google' ) { %>
-                                        <small class="google-auth-warning">
-                                            <i class="fa-brands fa-google"></i> Email linked to your Google account
-                                            cannot be changed.
-                                        </small>
-                                        <% } %>
+                                    <label for="newPassword">New Password</label>
+                                    <div class="password-input-relative">
+                                        <input type="password" id="newPassword" name="newPassword"
+                                            class="form-control" required>
+                                        <i class="fa-regular fa-eye-slash toggle-password"></i>
+                                    </div>
                                 </div>
 
-                                <div class="profile-actions" id="profileActions">
-                                    <button type="button" class="btn-cancel-gray" id="cancelBtn">Cancel</button>
-                                    <button type="submit" class="btn-save">Save Changes</button>
+                                <div class="form-group">
+                                    <label for="confirmPassword">Confirm New Password</label>
+                                    <div class="password-input-relative">
+                                        <input type="password" id="confirmPassword" name="confirmPassword"
+                                            class="form-control" required>
+                                        <i class="fa-regular fa-eye-slash toggle-password"></i>
+                                    </div>
+                                </div>
+
+                                <div class="password-actions">
+                                    <button type="button" class="btn-cancel-gray" id="clearPasswordBtn">Clear</button>
+                                    <button type="submit" class="btn-save change-password-submit-btn">Update Password</button>
                                 </div>
                             </form>
-
-                            <% if (user.authProvider==='local' ) { %>
-                                <div class="profile-form mt-50">
-                                    <form id="passwordForm" class="password-section" novalidate>
-                                        <h3 class="section-title">Change Password</h3>
-
-                                        <div class="form-group">
-                                            <label for="oldPassword">Old Password</label>
-                                            <div class="password-input-relative">
-                                                <input type="password" id="oldPassword" name="oldPassword"
-                                                    class="form-control" required>
-                                                <i class="fa-regular fa-eye-slash toggle-password"></i>
-                                            </div>
-                                        </div>
-
-                                        <div class="form-group">
-                                            <label for="newPassword">New Password</label>
-                                            <div class="password-input-relative">
-                                                <input type="password" id="newPassword" name="newPassword"
-                                                    class="form-control" required>
-                                                <i class="fa-regular fa-eye-slash toggle-password"></i>
-                                            </div>
-                                        </div>
-
-                                        <div class="form-group">
-                                            <label for="confirmPassword">Confirm New Password</label>
-                                            <div class="password-input-relative">
-                                                <input type="password" id="confirmPassword" name="confirmPassword"
-                                                    class="form-control" required>
-                                                <i class="fa-regular fa-eye-slash toggle-password"></i>
-                                            </div>
-                                        </div>
-
-                                        <div class="password-actions">
-                                            <button type="button" class="btn-cancel-gray"
-                                                id="clearPasswordBtn">Clear</button>
-                                            <button type="submit" class="btn-save change-password-submit-btn">Update
-                                                Password</button>
-                                        </div>
-                                    </form>
-                                </div>
-                                <% } %>
                         </div>
-                    </main>
+                    <% } %>
                 </div>
-            </section>
+            </main>
+        </div>
+    </section>
 
-            <footer class="footer">
-                <div class="container-fluid footer-container">
-                    <div class="footer-left">
-                        <a href="/home" class="logo footer-logo">HomeStation</a>
-                        <p>Your premier destination for high-quality mattresses and sleep essentials, crafted to bring
-                            cloud-like comfort to every night.</p>
-                    </div>
-                    <div class="footer-links-wrapper">
-                        <div class="footer-column">
-                            <h4>Shop</h4>
-                            <ul>
-                                <li><a href="/products">World of Mattress</a></li>
-                                <li><a href="/deals">Top Deals</a></li>
-                                <li><a href="/bestsellers">Best Sellers</a></li>
-                            </ul>
-                        </div>
-                        <div class="footer-column">
-                            <h4>Support</h4>
-                            <ul>
-                                <li><a href="/user/orders">Track Your Orders</a></li>
-                                <li><a href="/privacy-policy">Privacy Policy</a></li>
-                                <li><a href="/contact">Contact Us</a></li>
-                            </ul>
-                        </div>
-                    </div>
-                </div>
-                <div class="container-fluid copyright">
-                    <p>&copy; 2026 HomeStation Store. All rights reserved.</p>
-                </div>
-            </footer>
+    <%- include('../partials/user/footer') %>
 
-            <script src="/js/user/profile.js"></script>
+    <script src="/js/user/profile.js"></script>
 </body>
 
 </html>

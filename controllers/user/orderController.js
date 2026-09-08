@@ -2,6 +2,7 @@ import logger from '../../utils/logger.js';
 import * as orderService from '../../services/user/orderService.js';
 import * as reviewService from '../../services/user/reviewService.js';
 import { getActivePromoBanner } from '../../services/user/bannerService.js';
+import { getUserHeaderCounts } from '../../services/user/badgeService.js';
 
 export const loadUserOrdersPage = async (req, res) => {
     try {
@@ -22,9 +23,10 @@ export const loadUserOrdersPage = async (req, res) => {
 
         const timeFilter = req.query.time || '';
 
-        const [data, bannerText] = await Promise.all([
+        const [data, bannerText, headerCounts] = await Promise.all([
             orderService.getUserOrdersPageData(userId, page, limit, searchQuery, statusFilters, timeFilter),
-            getActivePromoBanner()
+            getActivePromoBanner(),
+            getUserHeaderCounts(userId)
         ]);
 
         logger.info(`User (${userEmail}) viewed Orders list page | IP: ${clientIp}`);
@@ -40,6 +42,8 @@ export const loadUserOrdersPage = async (req, res) => {
             statusFilters,
             timeFilter,
             bannerText,
+            wishlistCount: headerCounts.wishlistCount,
+            cartCount: headerCounts.cartCount,
             csrfToken: req.csrfToken ? req.csrfToken() : ''
         });
 
@@ -59,9 +63,10 @@ export const loadUserOrderDetailPage = async (req, res) => {
         const userId = req.user._id;
         const { orderId } = req.params;
 
-        const [order, bannerText] = await Promise.all([
+        const [order, bannerText, headerCounts] = await Promise.all([
             orderService.getUserOrderFullDetails(userId, orderId),
-            getActivePromoBanner()
+            getActivePromoBanner(),
+            getUserHeaderCounts(userId)
         ]);
 
         if (!order || !order.orderItems || order.orderItems.length === 0) {
@@ -153,6 +158,8 @@ export const loadUserOrderDetailPage = async (req, res) => {
             returnSteps,
             currentReturnStepIndex,
             bannerText,
+            wishlistCount: headerCounts.wishlistCount,
+            cartCount: headerCounts.cartCount,
             csrfToken: req.csrfToken ? req.csrfToken() : ''
         });
 

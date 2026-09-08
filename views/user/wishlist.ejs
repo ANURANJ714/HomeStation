@@ -10,52 +10,25 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
     <link rel="icon" type="image/x-icon" href="https://res.cloudinary.com/dz7fuqwnr/image/upload/v1778395481/WhatsApp_Image_2026-05-10_at_12.12.36_nra5vk.jpg">
+    <link rel="stylesheet" href="/css/user/home.css">
     <link rel="stylesheet" href="/css/user/wishlist.css">
 </head>
 
 <body class="shared-bg">
     <input type="hidden" id="csrfToken" value="<%= typeof csrfToken !== 'undefined' ? csrfToken : '' %>">
     
-    <% if (typeof bannerText !== 'undefined' && bannerText) { %>
-        <div class="promo-bar">
-            <b><%- bannerText %></b>
-        </div>
-    <% } %>
+    <%- include('../partials/user/promoBar') %>
 
-    <header class="header">
-        <div class="container-fluid header-container">
-            <a href="/home" class="logo">HomeStation</a>
-            <nav class="nav">
-                <ul class="nav-list">
-                    <li><a href="/home" class="nav-link">Home</a></li>
-                    <li><a href="/products" class="nav-link">World of Mattress</a></li>
-                    <li><a href="/deals" class="nav-link">Top Deals</a></li>
-                    <li><a href="/bestsellers" class="nav-link">Best Sellers</a></li>
-                    <li><a href="/contact" class="nav-link">Contact Us</a></li>
-                </ul>
-            </nav>
-
-            <div class="search-container">
-                <input type="text" placeholder="Search for products, brands and more..." id="searchInput">
-                <button id="searchBtn" type="button"><i class="fa-solid fa-magnifying-glass"></i></button>
-            </div>
-
-            <div class="header-actions">
-                <a href="/user/wishlist" class="icon-link wishlist-link active"><i class="fa-solid fa-heart"></i> Wishlist</a>
-                <a href="/user/profile" class="icon-link"><i class="fa-solid fa-user"></i> Profile</a>
-                <a href="/user/cart" class="icon-link"><i class="fa-solid fa-cart-shopping"></i> Cart</a>
-            </div>
-        </div>
-    </header>
+    <%- include('../partials/user/header', { activePage: '' }) %>
 
     <section class="profile-section">
         <div class="container profile-layout">
             <aside class="profile-sidebar" id="appSidebar">
                 <div class="profile-user-info">
-                    <img src="<%= user.profileImage || 'https://cdn.pixabay.com/photo/2015/10/05/22/37/blank-profile-picture-973460_1280.png' %>" alt="Profile Image" class="sidebar-avatar">
+                    <img src="<%= (user && user.profileImage) ? user.profileImage : 'https://cdn.pixabay.com/photo/2015/10/05/22/37/blank-profile-picture-973460_1280.png' %>" alt="Profile Image" class="sidebar-avatar">
                     <div class="user-greeting">
                         <span class="hello-text">Hello,</span>
-                        <span class="user-name"><%= user.fullName || 'User' %></span>
+                        <span class="user-name"><%= (user && user.fullName) ? user.fullName : 'User' %></span>
                     </div>
                 </div>
                 <hr class="sidebar-divider">
@@ -76,7 +49,7 @@
                     <hr class="sidebar-divider">
                     <div class="logout-wrapper">
                         <form action="/user/logout" method="POST" id="logoutForm" class="m-0">
-                            <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+                            <input type="hidden" name="_csrf" value="<%= typeof csrfToken !== 'undefined' ? csrfToken : '' %>">
                             <button type="submit" class="logout-link">
                                 <i class="fa-solid fa-power-off"></i> Logout
                             </button>
@@ -156,35 +129,7 @@
         </div>
     </div>
 
-    <footer class="footer">
-        <div class="container-fluid footer-container">
-            <div class="footer-left">
-                <a href="/home" class="logo footer-logo">HomeStation</a>
-                <p>Your premier destination for high-quality mattresses and sleep essentials, crafted to bring cloud-like comfort to every night.</p>
-            </div>
-            <div class="footer-links-wrapper">
-                <div class="footer-column">
-                    <h4>Shop</h4>
-                    <ul>
-                        <li><a href="/products">World of Mattress</a></li>
-                        <li><a href="/deals">Top Deals</a></li>
-                        <li><a href="/bestsellers">Best Sellers</a></li>
-                    </ul>
-                </div>
-                <div class="footer-column">
-                    <h4>Support</h4>
-                    <ul>
-                        <li><a href="#">Track Your Orders</a></li>
-                        <li><a href="/privacy-policy">Privacy Policy</a></li>
-                        <li><a href="/contact">Contact Us</a></li>
-                    </ul>
-                </div>
-            </div>
-        </div>
-        <div class="container-fluid copyright">
-            <p>&copy; 2026 HomeStation Store. All rights reserved.</p>
-        </div>
-    </footer>
+    <%- include('../partials/user/footer') %>
 
     <script src="/js/user/wishlist.js"></script>
 </body>

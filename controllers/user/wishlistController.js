@@ -1,5 +1,6 @@
 import * as wishlistService from '../../services/user/wishlistService.js'; 
 import {getActivePromoBanner} from '../../services/user/bannerService.js';
+import { getUserHeaderCounts } from '../../services/user/badgeService.js';
 import logger from '../../utils/logger.js';
 
 export const toggleWishlistItem = async (req, res) => {
@@ -48,9 +49,10 @@ export const loadWishlistPage = async (req, res) => {
         const page = parseInt(req.query.page, 10) || 1;
         const limit = 6; 
 
-        const [wishlistData, bannerText] = await Promise.all([
+        const [wishlistData, bannerText, headerCounts] = await Promise.all([
             wishlistService.getWishlistItemsPaginated(userId, page, limit),
-            getActivePromoBanner()
+            getActivePromoBanner(),
+            getUserHeaderCounts(userId)
         ]);
 
         return res.render('user/wishlist', {
@@ -59,7 +61,10 @@ export const loadWishlistPage = async (req, res) => {
             currentPage: wishlistData.currentPage,
             totalPages: wishlistData.totalPages,
             totalItems: wishlistData.totalItems,
-            bannerText
+            bannerText,
+            wishlistCount: headerCounts.wishlistCount,
+            cartCount: headerCounts.cartCount,
+            csrfToken: req.csrfToken ? req.csrfToken() : ''
         });
 
     } catch (error) {

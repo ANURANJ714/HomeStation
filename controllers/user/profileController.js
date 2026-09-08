@@ -3,20 +3,29 @@ import crypto from 'crypto';
 import {sendOtpEmail} from '../../services/user/emailService.js'
 import logger from '../../utils/logger.js';
 import {getActivePromoBanner} from '../../services/user/bannerService.js';
+import { getUserHeaderCounts } from '../../services/user/badgeService.js';
 import * as profileService from '../../services/user/profileService.js';
 
 export const getProfile = async (req, res) => { 
     try {
         const clientIp = req.ip;
-        const userEmail = req.user?.email || 'Unknown User';
+        const user = req.user || null;
+        const userId = user ? user._id : null;
+        const userEmail = user?.email || 'Unknown User';
 
-        const bannerText = await getActivePromoBanner();
+        const [bannerText, headerCounts] = await Promise.all([
+            getActivePromoBanner(),
+            getUserHeaderCounts(userId)
+        ]);
 
         logger.info(`User profile page accessed by ${userEmail}. IP: ${clientIp}`);
 
-        res.render('user/profile', { 
-            user: req.user,
-            bannerText: bannerText 
+        return res.render('user/profile', { 
+            user,
+            bannerText,
+            wishlistCount: headerCounts.wishlistCount,
+            cartCount: headerCounts.cartCount,
+            csrfToken: req.csrfToken ? req.csrfToken() : ''
         });
 
     } catch (error) {
@@ -186,7 +195,9 @@ export const updatePassword = async (req, res) => {
 export const loadVerifyEmailPage = async (req, res) => {
     try {
         const clientIp = req.ip;
-        const userEmail = req.user?.email || 'Unknown User';
+        const user = req.user || null;
+        const userId = user ? user._id : null;
+        const userEmail = user?.email || 'Unknown User';
         const pendingEmail = req.session.newEmailPending;
 
         if (!pendingEmail) {
@@ -194,14 +205,20 @@ export const loadVerifyEmailPage = async (req, res) => {
             return res.redirect('/user/profile'); 
         }
 
-        const bannerText = await getActivePromoBanner();
+        const [bannerText, headerCounts] = await Promise.all([
+            getActivePromoBanner(),
+            getUserHeaderCounts(userId)
+        ]);
 
         logger.info(`User (${userEmail}) accessed verify-email page to confirm new email: ${pendingEmail}. IP: ${clientIp}`);
 
-        res.render('user/verify-email', { 
-            user: req.user, 
+        return res.render('user/verify-email', { 
+            user, 
             newEmail: pendingEmail,
-            bannerText: bannerText
+            bannerText,
+            wishlistCount: headerCounts.wishlistCount,
+            cartCount: headerCounts.cartCount,
+            csrfToken: req.csrfToken ? req.csrfToken() : ''
         });
 
     } catch (error) {

@@ -1,5 +1,6 @@
 import Review from '../../models/Review.js';
 import Product from '../../models/Products.js';
+import mongoose from 'mongoose';
 
 export const saveOrUpdateReview = async (userId, productId, rating, comment) => {
     try {
@@ -64,5 +65,79 @@ export const getUserReviewsForProducts = async (userId, productIds) => {
         return reviewMap;
     } catch (error) {
         throw new Error(`Failed to fetch user reviews: ${error.message}`);
+    }
+};
+
+export const getProductReviewsPreview = async (productId) => {
+    try {
+        const reviews = await Review.find({ productId })
+            .populate('userId', 'fullName profileImage')
+            .sort({ createdAt: -1 })
+            .limit(2)
+            .lean();
+
+        const totalReviewsCount = await Review.countDocuments({ productId });
+
+        return {
+            reviews,
+            totalReviewsCount
+        };
+    } catch (error) {
+        throw new Error(`Database error while fetching reviews preview: ${error.message}`);
+    }
+};
+
+export const getProductReviewsPaginated = async (productId, page = 1, limit = 5, sortMode = 'relevant') => {
+    try {
+        const query = { productId: new mongoose.Types.ObjectId(productId) };
+
+        let sortOption = {};
+        if (sortMode === 'lowest') {
+            sortOption = { rating: 1, createdAt: -1 };
+        } else if (sortMode === 'highest') {
+            sortOption = { rating: -1, createdAt: -1 };
+        } else if (sortMode === 'newest') {
+            sortOption = { createdAt: -1 };
+        } else {
+            sortOption = {};
+        }
+
+        const totalReviews = await Review.countDocuments(query);
+        const totalPages = Math.ceil(totalReviews / limit) || 1;
+        const safePage = Math.max(1, Math.min(page, totalPages));
+        const skip = (safePage - 1) * limit;
+
+        let reviewsQuery = Review.find(query)
+            .populate('userId', 'fullName profileImage')
+            .skip(skip)
+            .limit(limit);
+
+        if (Object.keys(sortOption).length > 0) {
+            reviewsQuery = reviewsQuery.sort(sortOption);
+        }
+
+        const reviews = await reviewsQuery.lean();
+
+        const stats = await Review.aggregate([
+            { $match: query },
+            {
+                $group: {
+                    _id: null,
+                    avgRating: { $avg: '$rating' }
+                }
+            }
+        ]);
+
+        const averageRating = stats.length > 0 ? stats[0].avgRating.toFixed(1) : '0.0';
+
+        return {
+            reviews,
+            totalReviews,
+            totalPages,
+            currentPage: safePage,
+            averageRating
+        };
+    } catch (error) {
+        throw new Error(`Database error while fetching paginated reviews: ${error.message}`);
     }
 };

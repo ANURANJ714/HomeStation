@@ -5,14 +5,12 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>
-        <%= typeof pageTitle !=='undefined' ? pageTitle : 'HomeStation - Order Review & Checkout' %>
+        <%= typeof pageTitle !== 'undefined' ? pageTitle : 'HomeStation - Order Review & Checkout' %>
     </title>
     <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&display=swap" rel="stylesheet">
-    <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,600;0,700;1,600&display=swap"
-        rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,600;0,700;1,600&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <link rel="icon" type="image/x-icon"
-        href="https://res.cloudinary.com/dz7fuqwnr/image/upload/v1778395481/WhatsApp_Image_2026-05-10_at_12.12.36_nra5vk.jpg">
+    <link rel="icon" type="image/x-icon" href="https://res.cloudinary.com/dz7fuqwnr/image/upload/v1778395481/WhatsApp_Image_2026-05-10_at_12.12.36_nra5vk.jpg">
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
     <link rel="stylesheet" href="/css/user/home.css">
     <link rel="stylesheet" href="/css/user/orderreview.css">
@@ -21,306 +19,196 @@
 <body>
     <input type="hidden" id="csrfToken" value="<%= typeof csrfToken !== 'undefined' ? csrfToken : '' %>">
 
-    <% if (typeof bannerText !=='undefined' && bannerText) { %>
-        <div class="promo-bar">
-            <b><%- bannerText %></b>
-        </div>
-        <% } %>
+    <%- include('../partials/user/promoBar') %>
 
-            <header class="header">
-                <div class="container-fluid header-container">
-                    <a href="/home" class="logo">HomeStation</a>
-                    <nav class="nav">
-                        <ul class="nav-list">
-                            <li><a href="/home" class="nav-link">Home</a></li>
-                            <li><a href="/products" class="nav-link">World of Mattress</a></li>
-                            <li><a href="/deals" class="nav-link">Top Deals</a></li>
-                            <li><a href="/bestsellers" class="nav-link">Best Sellers</a></li>
-                            <li><a href="/contact" class="nav-link">Contact Us</a></li>
-                        </ul>
-                    </nav>
-                    <div class="search-container">
-                        <input type="text" placeholder="Search for products, brands and more..." id="searchInput">
-                        <button id="searchBtn" type="button"><i class="fa-solid fa-magnifying-glass"></i></button>
-                    </div>
-                    <div class="header-actions">
-                        <a href="/user/wishlist" class="icon-link wishlist-link">
-                            <i class="fa-regular fa-heart"></i>
-                            <span class="action-text">Wishlist</span>
-                            <% if (typeof user !=='undefined' && user && typeof wishlistCount !=='undefined' &&
-                                wishlistCount> 0) { %>
-                                <span class="count-pill-badge wishlist-badge" id="headerWishlistBadge">
-                                    <%= wishlistCount %>
-                                </span>
-                                <% } %>
-                        </a>
-                        <a href="/user/profile" class="icon-link">
-                            <i class="fa-regular fa-user"></i>
-                            <span class="action-text">Profile</span>
-                        </a>
-                        <a href="/user/cart" class="icon-link cart-link">
-                            <i class="fa-solid fa-cart-shopping"></i>
-                            <span class="action-text">Cart</span>
-                            <% if (typeof user !=='undefined' && user && typeof cartCount !=='undefined' && cartCount>
-                                0) { %>
-                                <span class="count-pill-badge cart-badge" id="headerCartBadge">
-                                    <%= cartCount %>
-                                </span>
-                                <% } %>
-                        </a>
-                    </div>
-                </div>
-            </header>
+    <%- include('../partials/user/header', { activePage: '' }) %>
 
-            <main class="checkout-main">
-                <div class="container">
+    <main class="checkout-main">
+        <div class="container">
 
-                    <div class="checkout-steps">
-                        <div class="step completed"><i class="fa-solid fa-circle-check"></i> Cart</div>
-                        <div class="step completed"><i class="fa-solid fa-circle-check"></i> Address</div>
-                        <div class="step completed"><i class="fa-solid fa-circle-check"></i> Payment</div>
-                        <div class="step active">4. Order Review</div>
-                    </div>
+            <div class="checkout-steps">
+                <div class="step completed"><i class="fa-solid fa-circle-check"></i> Cart</div>
+                <div class="step completed"><i class="fa-solid fa-circle-check"></i> Address</div>
+                <div class="step completed"><i class="fa-solid fa-circle-check"></i> Payment</div>
+                <div class="step active">4. Order Review</div>
+            </div>
 
-                    <div class="page-header">
-                        <h1 class="page-title">Final Order Verification</h1>
-                    </div>
+            <div class="page-header">
+                <h1 class="page-title">Final Order Verification</h1>
+            </div>
 
-                    <div class="checkout-grid">
+            <div class="checkout-grid">
 
-                        <div class="checkout-details-column">
+                <div class="checkout-details-column">
 
-                            <section class="checkout-section">
-                                <h2 class="section-title"><i class="fa-solid fa-cart-shopping text-accent"></i> Cart
-                                    Items (<%= totalQuantity %>)</h2>
-                                <div class="cart-items-wrapper">
-                                    <% if (cartItems && cartItems.length> 0) { %>
-                                        <% cartItems.forEach(item=> {
-                                            const variant = item.productVariantId;
-                                            const product = variant.productId;
-                                            const calculatedPrice = Math.round(variant.originalPrice * (1 -
-                                            (variant.discount || 0) / 100));
-                                            %>
-                                            <div class="review-cart-item">
-                                                <div class="item-img-container">
-                                                    <img src="<%= (product.images && product.images[0]) ? product.images[0] : 'https://placehold.co/150' %>"
-                                                        alt="<%= product.name %>">
-                                                </div>
-                                                <div class="item-info-container">
-                                                    <div class="item-meta-top">
-                                                        <h3 class="item-name">
-                                                            <%= product.name %>
-                                                        </h3>
-                                                        <div class="item-price-block">
-                                                            <% if (variant.discount> 0) { %>
-                                                                <span class="discount-badge">
-                                                                    <%= variant.discount %>% OFF
-                                                                </span>
-                                                                <% } %>
-                                                                    <span class="current-price">₹<%= (calculatedPrice *
-                                                                            item.quantity).toLocaleString('en-IN') %>
-                                                                            </span>
-                                                                    <% if (variant.discount> 0) { %>
-                                                                        <span class="original-price">₹<%=
-                                                                                (variant.originalPrice *
-                                                                                item.quantity).toLocaleString('en-IN')
-                                                                                %></span>
-                                                                        <% } %>
-                                                        </div>
-                                                    </div>
-                                                    <div class="item-variant">Variant: <%= variant.variantName %>
-                                                    </div>
-                                                    <div class="item-qty-row">
-                                                        <span class="qty-label">Quantity: <strong class="qty-value">
-                                                                <%= item.quantity %>
-                                                            </strong></span>
-                                                        <span class="tax-info">(₹<%=
-                                                                calculatedPrice.toLocaleString('en-IN') %> each)</span>
-                                                    </div>
+                    <section class="checkout-section">
+                        <h2 class="section-title"><i class="fa-solid fa-cart-shopping text-accent"></i> Cart Items (<%= totalQuantity %>)</h2>
+                        <div class="cart-items-wrapper">
+                            <% if (cartItems && cartItems.length > 0) { %>
+                                <% cartItems.forEach(item => {
+                                    const variant = item.productVariantId;
+                                    const product = variant.productId;
+                                    const calculatedPrice = Math.round(variant.originalPrice * (1 - (variant.discount || 0) / 100));
+                                %>
+                                    <div class="review-cart-item">
+                                        <div class="item-img-container">
+                                            <img src="<%= (product.images && product.images[0]) ? product.images[0] : 'https://placehold.co/150' %>" alt="<%= product.name %>">
+                                        </div>
+                                        <div class="item-info-container">
+                                            <div class="item-meta-top">
+                                                <h3 class="item-name"><%= product.name %></h3>
+                                                <div class="item-price-block">
+                                                    <% if (variant.discount > 0) { %>
+                                                        <span class="discount-badge"><%= variant.discount %>% OFF</span>
+                                                    <% } %>
+                                                    <span class="current-price">₹<%= (calculatedPrice * item.quantity).toLocaleString('en-IN') %></span>
+                                                    <% if (variant.discount > 0) { %>
+                                                        <span class="original-price">₹<%= (variant.originalPrice * item.quantity).toLocaleString('en-IN') %></span>
+                                                    <% } %>
                                                 </div>
                                             </div>
-                                            <% }) %>
-                                                <% } %>
-                                </div>
-                            </section>
+                                            <div class="item-variant">Variant: <%= variant.variantName %></div>
+                                            <div class="item-qty-row">
+                                                <span class="qty-label">Quantity: <strong class="qty-value"><%= item.quantity %></strong></span>
+                                                <span class="tax-info">(₹<%= calculatedPrice.toLocaleString('en-IN') %> each)</span>
+                                            </div>
+                                        </div>
+                                    </div>
+                                <% }) %>
+                            <% } %>
+                        </div>
+                    </section>
 
-                            <section class="checkout-section">
-                                <h2 class="section-title"><i class="fa-solid fa-location-dot text-accent"></i> Delivery
-                                    Address</h2>
-                                <div class="summary-address-card">
-                                    <% if (typeof shippingAddress !=='undefined' && shippingAddress) { %>
-                                        <div class="address-header">
-                                            <span
-                                                class="address-type <%= (shippingAddress.addressType || 'Home').toLowerCase() %>">
-                                                <% const type=(shippingAddress.addressType || 'Home' ).toLowerCase(); %>
-                                                    <% if (type==='work' ) { %>
-                                                        <i class="fa-solid fa-briefcase"></i> Work
-                                                        <% } else if (type==='other' ) { %>
-                                                            <i class="fa-solid fa-location-dot"></i> Other
-                                                            <% } else { %>
-                                                                <i class="fa-solid fa-house"></i> Home
-                                                                <% } %>
-                                            </span>
-                                            <% if (shippingAddress.isDefault) { %>
-                                                <span class="default-badge">Default</span>
-                                                <% } %>
-                                        </div>
-                                        <div class="address-body">
-                                            <p class="name">
-                                                <%= shippingAddress.name || shippingAddress.fullName %>
-                                            </p>
-                                            <p class="line">
-                                                <%= shippingAddress.fullAddress || shippingAddress.addressLine %>
-                                            </p>
-                                            <p class="line">
-                                                <%= shippingAddress.city %>, <%= shippingAddress.state %> - <%=
-                                                            shippingAddress.pincode %>
-                                            </p>
-                                            <p class="phone"><i class="fa-solid fa-phone"></i>
-                                                <%= shippingAddress.phone %>
-                                            </p>
-                                        </div>
+                    <section class="checkout-section">
+                        <h2 class="section-title"><i class="fa-solid fa-location-dot text-accent"></i> Delivery Address</h2>
+                        <div class="summary-address-card">
+                            <% if (typeof shippingAddress !== 'undefined' && shippingAddress) { %>
+                                <div class="address-header">
+                                    <span class="address-type <%= (shippingAddress.addressType || 'Home').toLowerCase() %>">
+                                        <% const type = (shippingAddress.addressType || 'Home').toLowerCase(); %>
+                                        <% if (type === 'work') { %>
+                                            <i class="fa-solid fa-briefcase"></i> Work
+                                        <% } else if (type === 'other') { %>
+                                            <i class="fa-solid fa-location-dot"></i> Other
                                         <% } else { %>
-                                            <p class="linenotfound">No delivery address selected. <a
-                                                    href="/user/checkout/address">Select Address</a></p>
-                                            <% } %>
-                                </div>
-                            </section>
-
-                            <section class="checkout-section">
-                                <h2 class="section-title"><i class="fa-solid fa-credit-card text-accent"></i> Selected
-                                    Payment Method</h2>
-                                <div class="summary-payment-card">
-                                    <div class="payment-method-header">
-                                        <div class="payment-brand">
-                                            <% if (paymentMode==='razorpay' ) { %>
-                                                <i class="fa-solid fa-credit-card wallet-icon"></i>
-                                                <div class="brand-info">
-                                                    <span class="payment-title">Razorpay Online Payment</span>
-                                                    <span class="payment-desc">Cards, UPI, Netbanking & Wallets</span>
-                                                </div>
-                                                <% } else if (paymentMode==='wallet' ) { %>
-                                                    <i class="fa-solid fa-wallet wallet-icon"></i>
-                                                    <div class="brand-info">
-                                                        <span class="payment-title">HomeStation Wallet</span>
-                                                        <span class="payment-desc">Instant payment from wallet
-                                                            balance</span>
-                                                    </div>
-                                                    <% } else { %>
-                                                        <i class="fa-solid fa-hand-holding-dollar wallet-icon"></i>
-                                                        <div class="brand-info">
-                                                            <span class="payment-title">Cash On Delivery (COD)</span>
-                                                            <span class="payment-desc">Pay cash upon standard
-                                                                delivery</span>
-                                                        </div>
-                                                        <% } %>
-                                        </div>
-                                        <span class="status-badge"><i class="fa-solid fa-circle-check"></i>
-                                            Selected</span>
-                                    </div>
-                                </div>
-                            </section>
-
-                        </div>
-
-                        <div class="checkout-summary-column">
-                            <section class="checkout-section sticky-summary">
-                                <h2 class="section-title"><i class="fa-solid fa-receipt text-accent"></i> Order Review
-                                </h2>
-                                <div class="price-breakdown">
-                                    <div class="breakdown-row">
-                                        <span>Cart Subtotal (<%= totalQuantity %> items)</span>
-                                        <span>₹<%= subtotal.toLocaleString('en-IN') %></span>
-                                    </div>
-                                    <div class="breakdown-row">
-                                        <span class="tax-value">(18% GST Included)</span>
-                                    </div>
-
-                                    <% if (offerDiscount> 0) { %>
-                                        <div class="breakdown-row discount">
-                                            <span>Offers Discount</span>
-                                            <span>-₹<%= offerDiscount.toLocaleString('en-IN') %></span>
-                                        </div>
+                                            <i class="fa-solid fa-house"></i> Home
                                         <% } %>
-
-                                            <% if (couponDiscount> 0) { %>
-                                                <div class="breakdown-row discount">
-                                                    <span>Coupon Discount</span>
-                                                    <span>-₹<%= couponDiscount.toLocaleString('en-IN') %></span>
-                                                </div>
-                                                <% } %>
-
-                                                    <div class="breakdown-row">
-                                                        <span>Delivery Charges</span>
-                                                        <% if (deliveryCharges===0) { %>
-                                                            <span class="free-badge">FREE</span>
-                                                            <% } else { %>
-                                                                <span>₹<%= deliveryCharges.toLocaleString('en-IN') %>
-                                                                        </span>
-                                                                <% } %>
-                                                    </div>
-
-                                                    <hr class="summary-divider">
-
-                                                    <div class="breakdown-row total">
-                                                        <span>Total Payable</span>
-                                                        <span>₹<%= totalPayable.toLocaleString('en-IN') %></span>
-                                                    </div>
+                                    </span>
+                                    <% if (shippingAddress.isDefault) { %>
+                                        <span class="default-badge">Default</span>
+                                    <% } %>
                                 </div>
-
-                                <div class="checkout-guarantee">
-                                    <i class="fa-solid fa-shield-halved"></i>
-                                    <span>100% Safe and Secure Payments. Trust of HomeStation.</span>
+                                <div class="address-body">
+                                    <p class="name"><%= shippingAddress.name || shippingAddress.fullName %></p>
+                                    <p class="line"><%= shippingAddress.fullAddress || shippingAddress.addressLine %></p>
+                                    <p class="line"><%= shippingAddress.city %>, <%= shippingAddress.state %> - <%= shippingAddress.pincode %></p>
+                                    <p class="phone"><i class="fa-solid fa-phone"></i> <%= shippingAddress.phone %></p>
                                 </div>
-                            </section>
+                            <% } else { %>
+                                <p class="linenotfound">No delivery address selected. <a href="/user/checkout/address">Select Address</a></p>
+                            <% } %>
                         </div>
+                    </section>
 
-                    </div>
-
-                    <div class="action-buttons">
-                        <a href="/user/checkout/payment" class="btn-back">
-                            <i class="fa-solid fa-chevron-left"></i> Back to Payment Mode
-                        </a>
-                        <button type="button" class="btn-place-order" id="placeOrderBtn">
-                            Place Order <i class="fa-solid fa-chevron-right"></i>
-                        </button>
-                    </div>
+                    <section class="checkout-section">
+                        <h2 class="section-title"><i class="fa-solid fa-credit-card text-accent"></i> Selected Payment Method</h2>
+                        <div class="summary-payment-card">
+                            <div class="payment-method-header">
+                                <div class="payment-brand">
+                                    <% if (paymentMode === 'razorpay') { %>
+                                        <i class="fa-solid fa-credit-card wallet-icon"></i>
+                                        <div class="brand-info">
+                                            <span class="payment-title">Razorpay Online Payment</span>
+                                            <span class="payment-desc">Cards, UPI, Netbanking & Wallets</span>
+                                        </div>
+                                    <% } else if (paymentMode === 'wallet') { %>
+                                        <i class="fa-solid fa-wallet wallet-icon"></i>
+                                        <div class="brand-info">
+                                            <span class="payment-title">HomeStation Wallet</span>
+                                            <span class="payment-desc">Instant payment from wallet balance</span>
+                                        </div>
+                                    <% } else { %>
+                                        <i class="fa-solid fa-hand-holding-dollar wallet-icon"></i>
+                                        <div class="brand-info">
+                                            <span class="payment-title">Cash On Delivery (COD)</span>
+                                            <span class="payment-desc">Pay cash upon standard delivery</span>
+                                        </div>
+                                    <% } %>
+                                </div>
+                                <span class="status-badge"><i class="fa-solid fa-circle-check"></i> Selected</span>
+                            </div>
+                        </div>
+                    </section>
 
                 </div>
-            </main>
 
-            <footer class="footer">
-                <div class="container-fluid footer-container">
-                    <div class="footer-left">
-                        <a href="/home" class="logo footer-logo">HomeStation</a>
-                        <p>Your premier destination for high-quality mattresses and sleep essentials, crafted to bring
-                            cloud-like comfort to every night.</p>
-                    </div>
-                    <div class="footer-links-wrapper">
-                        <div class="footer-column">
-                            <h4>Shop</h4>
-                            <ul>
-                                <li><a href="/products">World of Mattress</a></li>
-                                <li><a href="/deals">Top Deals</a></li>
-                                <li><a href="/bestsellers">Best Sellers</a></li>
-                            </ul>
-                        </div>
-                        <div class="footer-column">
-                            <h4>Support</h4>
-                            <ul>
-                                <li><a href="/user/orders">Track Your Orders</a></li>
-                                <li><a href="/privacy-policy">Privacy Policy</a></li>
-                                <li><a href="/contact">Contact Us</a></li>
-                            </ul>
-                        </div>
-                    </div>
-                </div>
-                <div class="container-fluid copyright">
-                    <p>&copy; 2026 HomeStation Store. All rights reserved.</p>
-                </div>
-            </footer>
+                <div class="checkout-summary-column">
+                    <section class="checkout-section sticky-summary">
+                        <h2 class="section-title"><i class="fa-solid fa-receipt text-accent"></i> Order Review</h2>
+                        <div class="price-breakdown">
+                            <div class="breakdown-row">
+                                <span>Cart Subtotal (<%= totalQuantity %> items)</span>
+                                <span>₹<%= subtotal.toLocaleString('en-IN') %></span>
+                            </div>
+                            <div class="breakdown-row">
+                                <span class="tax-value">(18% GST Included)</span>
+                            </div>
 
-            <script src="/js/user/orderreview.js"></script>
+                            <% if (typeof offerDiscount !== 'undefined' && offerDiscount > 0) { %>
+                                <div class="breakdown-row discount">
+                                    <span>Offers Discount</span>
+                                    <span>-₹<%= offerDiscount.toLocaleString('en-IN') %></span>
+                                </div>
+                            <% } %>
+
+                            <% if (typeof couponDiscount !== 'undefined' && couponDiscount > 0) { %>
+                                <div class="breakdown-row discount">
+                                    <span>Coupon Discount</span>
+                                    <span>-₹<%= couponDiscount.toLocaleString('en-IN') %></span>
+                                </div>
+                            <% } %>
+
+                            <div class="breakdown-row">
+                                <span>Delivery Charges</span>
+                                <% if (typeof deliveryCharges !== 'undefined' && deliveryCharges === 0) { %>
+                                    <span class="free-badge">FREE</span>
+                                <% } else { %>
+                                    <span>₹<%= (typeof deliveryCharges !== 'undefined' ? deliveryCharges : 0).toLocaleString('en-IN') %></span>
+                                <% } %>
+                            </div>
+
+                            <hr class="summary-divider">
+
+                            <div class="breakdown-row total">
+                                <span>Total Payable</span>
+                                <span>₹<%= totalPayable.toLocaleString('en-IN') %></span>
+                            </div>
+                        </div>
+
+                        <div class="checkout-guarantee">
+                            <i class="fa-solid fa-shield-halved"></i>
+                            <span>100% Safe and Secure Payments. Trust of HomeStation.</span>
+                        </div>
+                    </section>
+                </div>
+
+            </div>
+
+            <div class="action-buttons">
+                <a href="/user/checkout/payment" class="btn-back">
+                    <i class="fa-solid fa-chevron-left"></i> Back to Payment Mode
+                </a>
+                <button type="button" class="btn-place-order" id="placeOrderBtn">
+                    Place Order <i class="fa-solid fa-chevron-right"></i>
+                </button>
+            </div>
+
+        </div>
+    </main>
+
+    <%- include('../partials/user/footer') %>
+
+    <script src="/js/user/orderreview.js"></script>
 </body>
 
 </html>

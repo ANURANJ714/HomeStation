@@ -1,30 +1,36 @@
 import Address from '../../models/Address.js';
 import * as addressService from '../../services/user/addressService.js';
 import {getActivePromoBanner} from '../../services/user/bannerService.js';
+import { getUserHeaderCounts } from '../../services/user/badgeService.js';
 import logger from '../../utils/logger.js';
 
 export const getAddresses = async (req, res) => {
     try {
         const clientIp = req.ip;
-        const userEmail = req.user?.email || 'Unknown User';
-        const userId = req.user._id;
+        const user = req.user || null;
+        const userId = user ? user._id : null;
+        const userEmail = user?.email || 'Unknown User';
 
         const page = parseInt(req.query.page, 10) || 1;
-        const limit = 6; 
+        const limit = 6;
 
-        const [addressData, bannerText] = await Promise.all([
+        const [addressData, bannerText, headerCounts] = await Promise.all([
             addressService.getUserAddressesPaginated(userId, page, limit),
-            getActivePromoBanner()
+            getActivePromoBanner(),
+            getUserHeaderCounts(userId)
         ]);
 
         logger.info(`User (${userEmail}) accessed addresses page (Page: ${page}). IP: ${clientIp}`);
 
-        res.render('user/addresses', { 
-            user: req.user, 
+        return res.render('user/addresses', { 
+            user, 
             addresses: addressData.addresses,
             currentPage: addressData.currentPage,
             totalPages: addressData.totalPages,
-            bannerText: bannerText
+            bannerText,
+            wishlistCount: headerCounts.wishlistCount,
+            cartCount: headerCounts.cartCount,
+            csrfToken: req.csrfToken ? req.csrfToken() : ''
         });
 
     } catch (error) {

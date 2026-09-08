@@ -1,6 +1,5 @@
 document.addEventListener("DOMContentLoaded", () => {
     const csrfToken = document.getElementById("csrfToken")?.value || "";
-    const baseProductId = document.getElementById("productBaseId")?.value;
 
     const searchInput = document.getElementById("searchInput");
     const searchBtn = document.getElementById("searchBtn");
@@ -32,23 +31,6 @@ document.addEventListener("DOMContentLoaded", () => {
             window.location.href = `/products/${productId}`;
         }
     });
-
-    const alertStatus = document.getElementById("serverAlertStatus")?.value;
-    const alertTitle = document.getElementById("serverAlertTitle")?.value;
-    const alertMessage = document.getElementById("serverAlertMessage")?.value;
-
-    if (alertStatus && alertMessage) {
-        Swal.fire({
-            icon: alertStatus,
-            title: alertTitle || "Notice",
-            text: alertMessage,
-            confirmButtonColor: "#222",
-            heightAuto: false
-        }).then(() => {
-            window.location.href = "/products";
-        });
-        return; 
-    }
 
     const imageContainer = document.getElementById("mainImageContainer");
     const mainProductImage = document.getElementById("main-product-image");
@@ -121,27 +103,19 @@ document.addEventListener("DOMContentLoaded", () => {
             if (zoomResult) zoomResult.style.display = "none";
 
             zoomedImg.src = mainProductImage.src;
-            zoomedImg.classList.remove("zoomed");
-            zoomModal.style.display = "flex";
+            zoomModal.classList.add("active");
         });
     }
 
     if (closeZoomBtn && zoomModal) {
         closeZoomBtn.addEventListener("click", () => {
-            zoomModal.style.display = "none";
+            zoomModal.classList.remove("active");
         });
     }
 
     if (zoomModal) {
         zoomModal.addEventListener("click", (e) => {
-            if (e.target === zoomModal) zoomModal.style.display = "none";
-        });
-    }
-
-    if (zoomedImg) {
-        zoomedImg.addEventListener("click", function(e) {
-            e.stopPropagation();
-            this.classList.toggle("zoomed");
+            if (e.target === zoomModal) zoomModal.classList.remove("active");
         });
     }
 
@@ -184,29 +158,33 @@ document.addEventListener("DOMContentLoaded", () => {
     const closeSizeChartModalBtn = document.getElementById("closeSizeChartModalBtn");
 
     if (openSizeChartBtn && sizeChartModal) {
-        openSizeChartBtn.addEventListener("click", () => sizeChartModal.style.display = "flex");
+        openSizeChartBtn.addEventListener("click", (e) => {
+            e.preventDefault();
+            sizeChartModal.classList.add("active");
+        });
     }
-    if (closeSizeChartModalBtn) {
-        closeSizeChartModalBtn.addEventListener("click", () => sizeChartModal.style.display = "none");
+    if (closeSizeChartModalBtn && sizeChartModal) {
+        closeSizeChartModalBtn.addEventListener("click", () => {
+            sizeChartModal.classList.remove("active");
+        });
     }
     if (sizeChartModal) {
         sizeChartModal.addEventListener("click", (e) => {
-            if (e.target === sizeChartModal) sizeChartModal.style.display = "none";
+            if (e.target === sizeChartModal) {
+                sizeChartModal.classList.remove("active");
+            }
         });
     }
 
     const qtyInput = document.getElementById("qty-input");
     const qtyMinusBtn = document.getElementById("qtyMinusBtn");
     const qtyPlusBtn = document.getElementById("qtyPlusBtn");
-
     const MAX_QUANTITY = 5;
 
     if (qtyMinusBtn && qtyInput) {
         qtyMinusBtn.addEventListener("click", () => {
             let val = parseInt(qtyInput.value, 10) || 1;
-            if (val > 1) {
-                qtyInput.value = val - 1;
-            }
+            if (val > 1) qtyInput.value = val - 1;
         });
     }
 
@@ -248,15 +226,27 @@ document.addEventListener("DOMContentLoaded", () => {
                     },
                     body: JSON.stringify({ variantId })
                 });
+
                 if (response.status === 401 || response.status === 403) {
                     window.location.href = "/user/login";
                     return;
                 }
+
                 const data = await response.json();
                 if (data.success) {
                     this.classList.toggle("liked");
                     if (icon) icon.className = isLiked ? "fa-regular fa-heart" : "fa-solid fa-heart";
-                    Swal.fire({ icon: "success", title: "Success", text: data.message, timer: 1500, showConfirmButton: false, heightAuto: false });
+
+                    Swal.fire({
+                        icon: "success",
+                        title: isLiked ? "Removed!" : "Added!",
+                        text: data.message,
+                        timer: 1200,
+                        showConfirmButton: false,
+                        heightAuto: false
+                    }).then(() => {
+                        window.location.reload();
+                    });
                 } else {
                     Swal.fire({ icon: "warning", title: "Notice", text: data.message, heightAuto: false });
                 }
@@ -285,13 +275,24 @@ document.addEventListener("DOMContentLoaded", () => {
                     },
                     body: JSON.stringify({ variantId, quantity }) 
                 });
+
                 if (response.status === 401 || response.status === 403) {
                     window.location.href = "/user/login";
                     return;
                 }
+
                 const data = await response.json();
                 if (data.success) {
-                    Swal.fire({ icon: "success", title: "Added to Cart", text: data.message, timer: 1500, showConfirmButton: false, heightAuto: false });
+                    Swal.fire({
+                        icon: "success",
+                        title: "Added to Cart",
+                        text: data.message,
+                        timer: 1200,
+                        showConfirmButton: false,
+                        heightAuto: false
+                    }).then(() => {
+                        window.location.reload();
+                    });
                 } else {
                     Swal.fire({ icon: "warning", title: "Stock Warning", text: data.message, heightAuto: false });
                 }
@@ -307,6 +308,7 @@ document.addEventListener("DOMContentLoaded", () => {
             e.preventDefault();
             e.stopPropagation();
             const variantId = relCartBtn.getAttribute("data-variant-id");
+
             try {
                 const res = await fetch("/cart/add", {
                     method: "POST",
@@ -317,11 +319,30 @@ document.addEventListener("DOMContentLoaded", () => {
                     },
                     body: JSON.stringify({ variantId, quantity: 1 })
                 });
-                if (res.status === 401 || res.status === 403) { window.location.href = "/user/login"; return; }
+
+                if (res.status === 401 || res.status === 403) {
+                    window.location.href = "/user/login";
+                    return;
+                }
+
                 const data = await res.json();
-                if (data.success) Swal.fire({ icon: "success", title: "Added", text: data.message, timer: 1500, showConfirmButton: false, heightAuto: false });
-                else Swal.fire({ icon: "warning", title: "Unavailable", text: data.message, heightAuto: false });
-            } catch (err) { console.error(err); }
+                if (data.success) {
+                    Swal.fire({
+                        icon: "success",
+                        title: "Added",
+                        text: data.message,
+                        timer: 1200,
+                        showConfirmButton: false,
+                        heightAuto: false
+                    }).then(() => {
+                        window.location.reload();
+                    });
+                } else {
+                    Swal.fire({ icon: "warning", title: "Unavailable", text: data.message, heightAuto: false });
+                }
+            } catch (err) {
+                console.error(err);
+            }
         }
 
         const relWishBtn = e.target.closest(".inline-related-wishlist-toggle");
@@ -343,14 +364,31 @@ document.addEventListener("DOMContentLoaded", () => {
                     },
                     body: JSON.stringify({ variantId })
                 });
-                if (res.status === 401 || res.status === 403) { window.location.href = "/user/login"; return; }
+
+                if (res.status === 401 || res.status === 403) {
+                    window.location.href = "/user/login";
+                    return;
+                }
+
                 const data = await res.json();
                 if (data.success) {
                     relWishBtn.classList.toggle("liked");
                     if (icon) icon.className = isLiked ? "fa-regular fa-heart" : "fa-solid fa-heart";
-                    Swal.fire({ icon: "success", title: "Updated", text: data.message, timer: 1500, showConfirmButton: false, heightAuto: false });
+
+                    Swal.fire({
+                        icon: "success",
+                        title: isLiked ? "Removed!" : "Added!",
+                        text: data.message,
+                        timer: 1200,
+                        showConfirmButton: false,
+                        heightAuto: false
+                    }).then(() => {
+                        window.location.reload();
+                    });
                 }
-            } catch (err) { console.error(err); }
+            } catch (err) {
+                console.error(err);
+            }
         }
     });
 });

@@ -62,11 +62,13 @@ export const loadHomePage = async (req, res) => {
 export const loadContactPage = async (req, res) => {
     try {
         const user = req.user || null;
+        const userId = user ? user._id : null;
         const isAuthenticated = !!(req.user && req.isAuthenticated && req.isAuthenticated());
 
-        const [subjectsList, bannerText] = await Promise.all([
+        const [subjectsList, bannerText, headerCounts] = await Promise.all([
             pageService.getFilteredContactSubjects(isAuthenticated),
-            getActivePromoBanner()
+            getActivePromoBanner(),
+            getUserHeaderCounts(userId)
         ]);
 
         logger.info(`Contact Us interface profile loaded. Context -> [Authenticated: ${isAuthenticated}]`);
@@ -76,6 +78,8 @@ export const loadContactPage = async (req, res) => {
             subjects: subjectsList,
             isAuthenticated,
             bannerText, 
+            wishlistCount: headerCounts.wishlistCount,
+            cartCount: headerCounts.cartCount,
             csrfToken: req.csrfToken()
         });
 
@@ -116,14 +120,20 @@ export const submitContactInquiryForm = async (req, res) => {
 export const loadPrivacyPolicyPage = async (req, res) => {
     try {
         const user = req.user || null;
-        
-        const bannerText = await getActivePromoBanner();
+        const userId = user ? user._id : null;
+
+        const [bannerText, headerCounts] = await Promise.all([
+            getActivePromoBanner(),
+            getUserHeaderCounts(userId)
+        ]);
 
         logger.info(`Privacy policy document view rendered for user profile: [${user ? user.email : 'Guest visitor'}]`);
 
         return res.render('user/privacypolicy', {
             user,
             bannerText,
+            wishlistCount: headerCounts.wishlistCount,
+            cartCount: headerCounts.cartCount,
             csrfToken: req.csrfToken()
         });
 

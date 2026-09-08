@@ -4,12 +4,13 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>HomeStation</title>
+    <title>HomeStation - <%= product.name %></title>
     <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&display=swap" rel="stylesheet">
     <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,600;0,700;1,600&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
     <link rel="icon" type="image/x-icon" href="https://res.cloudinary.com/dz7fuqwnr/image/upload/v1778395481/WhatsApp_Image_2026-05-10_at_12.12.36_nra5vk.jpg">
+    <link rel="stylesheet" href="/css/user/home.css">
     <link rel="stylesheet" href="/css/user/productdetails.css">
 </head>
 
@@ -20,38 +21,9 @@
     <input type="hidden" id="serverAlertTitle" value="<%= errorAlert ? errorAlert.title : '' %>">
     <input type="hidden" id="serverAlertMessage" value="<%= errorAlert ? errorAlert.message : '' %>">
 
-    <% if (typeof bannerText !== 'undefined' && bannerText) { %>
-        <div class="promo-bar">
-            <b><%- bannerText %></b>
-        </div>
-    <% } %>
+    <%- include('../partials/user/promoBar') %>
 
-    <header class="header">
-        <div class="container-fluid header-container">
-            <div class="header-left-group">
-                <a href="/home" class="logo">HomeStation</a>
-            </div>
-
-            <nav class="nav">
-                <ul class="nav-list">
-                    <li><a href="/home" class="nav-link">Home</a></li>
-                    <li><a href="/products" class="nav-link">World of Mattress</a></li>
-                    <li><a href="/deals" class="nav-link">Top Deals</a></li>
-                    <li><a href="/bestsellers" class="nav-link">Best Sellers</a></li>
-                    <li><a href="/contact" class="nav-link">Contact Us</a></li>
-                </ul>
-            </nav>
-            <div class="search-container">
-                <input type="text" placeholder="Search for products, brands and more..." id="searchInput">
-                <button id="searchBtn" type="button"><i class="fa-solid fa-magnifying-glass"></i></button>
-            </div>
-            <div class="header-actions">
-                <a href="/user/wishlist" class="icon-link wishlist-link"><i class="fa-regular fa-heart"></i> Wishlist</a>
-                <a href="/user/profile" class="icon-link"><i class="fa-regular fa-user"></i> Profile</a>
-                <a href="/user/cart" class="icon-link"><i class="fa-solid fa-cart-shopping"></i> Cart</a>
-            </div>
-        </div>
-    </header>
+    <%- include('../partials/user/header', { activePage: '' }) %>
 
     <main class="product-details-main container">
         <div class="product-split-layout">
@@ -80,17 +52,17 @@
             <div id="imageZoomResult" class="image-zoom-result"></div>
 
             <div class="product-info">
-                <h1 class="product-title">
-                    <%= product.name %>
-                </h1>
+                <h1 class="product-title"><%= product.name %></h1>
 
                 <div class="product-meta">
                     <div class="stars">
-                        <i class="fa-solid fa-star"></i><i class="fa-solid fa-star"></i><i
-                            class="fa-solid fa-star"></i><i class="fa-solid fa-star"></i><i
-                            class="fa-regular fa-star-half-stroke"></i>
+                        <i class="fa-solid fa-star"></i>
+                        <i class="fa-solid fa-star"></i>
+                        <i class="fa-solid fa-star"></i>
+                        <i class="fa-solid fa-star"></i>
+                        <i class="fa-regular fa-star-half-stroke"></i>
                     </div>
-                    <span class="review-count">(128 Reviews)</span>
+                    <span class="review-count">(<%= totalReviewsCount || 0 %> Reviews)</span>
                 </div>
 
                 <div class="product-price" id="variantPriceDisplayBox">
@@ -104,9 +76,7 @@
                     <% } %>
                 </div>
 
-                <p class="product-description-short">
-                    <%= product.description %>
-                </p>
+                <p class="product-description-short"><%= product.description %></p>
 
                 <div class="size-selector-container">
                     <div class="size-selector-header">
@@ -140,17 +110,15 @@
                     </button>
 
                     <% const activeWish = typeof userWishlist !== 'undefined' && userWishlist.includes(variants[0]._id.toString()); %>
-                    <button class="wishlist-btn <%= activeWish ? 'liked' : '' %>"
-                        id="primaryToggleWishlistBtn" type="button">
+                    <button class="detail-action-wishlist-btn <%= activeWish ? 'liked' : '' %>"
+                        id="primaryToggleWishlistBtn" type="button" title="Add to Wishlist">
                         <i class="<%= activeWish ? 'fa-solid' : 'fa-regular' %> fa-heart"></i>
                     </button>
                 </div>
 
                 <div class="product-features">
                     <div class="feature-item"><i class="fa-solid fa-truck-fast"></i> Free Delivery within 3-5 Business Days</div>
-                    <div class="feature-item"><i class="fa-solid fa-shield-cat"></i>
-                        <%= product.warranty || 'Standard Warranty Restrictions Apply' %>
-                    </div>
+                    <div class="feature-item"><i class="fa-solid fa-shield-cat"></i> <%= product.warranty || 'Standard Warranty Restrictions Apply' %></div>
                     <div class="feature-item"><i class="fa-solid fa-rotate-left"></i> 15 Days Easy Returns or Exchange</div>
                 </div>
             </div>
@@ -159,44 +127,41 @@
         <div class="specs-reviews-layout">
             <div class="specifications-section">
                 <h3>Product Specifications</h3>
-                <p class="specs-text">
-                    <%= product.specifications %>
-                </p>
+                <p class="specs-text"><%= product.specifications %></p>
             </div>
 
             <div class="reviews-section">
                 <h3>Customer Reviews</h3>
                 <div class="review-list">
-                    <div class="review-card">
-                        <div class="review-header">
-                            <div class="reviewer-info">
-                                <h4>Rahul Sharma</h4>
-                                <div class="stars dummy-review-stars">
-                                    <i class="fa-solid fa-star"></i><i class="fa-solid fa-star"></i><i
-                                        class="fa-solid fa-star"></i><i class="fa-solid fa-star"></i><i
-                                        class="fa-solid fa-star"></i>
+                    <% if (reviews && reviews.length > 0) { %>
+                        <% reviews.forEach(rev => { %>
+                            <div class="review-card">
+                                <div class="review-header">
+                                    <div class="reviewer-info">
+                                        <h4><%= rev.userId?.fullName || 'Customer' %></h4>
+                                        <div class="stars dummy-review-stars">
+                                            <% for (let s = 1; s <= 5; s++) { %>
+                                                <i class="fa-solid fa-star <%= s <= rev.rating ? 'active-star' : 'empty-star' %>"></i>
+                                            <% } %>
+                                        </div>
+                                    </div>
+                                    <span class="review-date"><%= new Date(rev.createdAt).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' }) %></span>
                                 </div>
+                                <p class="review-text"><%= rev.comment %></p>
                             </div>
-                            <span class="review-date">October 12, 2025</span>
+                        <% }) %>
+                    <% } else { %>
+                        <div class="no-reviews-box">
+                            <p>No customer reviews yet. Be the first to review after purchase!</p>
                         </div>
-                        <p class="review-text">Absolutely thrilled with this mattress! It provides amazing support and comfort. Delivery was seamless.</p>
-                    </div>
-                    <div class="review-card">
-                        <div class="review-header">
-                            <div class="reviewer-info">
-                                <h4>Anjali Desai</h4>
-                                <div class="stars dummy-review-stars">
-                                    <i class="fa-solid fa-star"></i><i class="fa-solid fa-star"></i><i
-                                        class="fa-solid fa-star"></i><i class="fa-solid fa-star"></i><i
-                                        class="fa-regular fa-star"></i>
-                                </div>
-                            </div>
-                            <span class="review-date">September 28, 2025</span>
-                        </div>
-                        <p class="review-text">Very comfortable. The edges are slightly firmer than I expected but they are softening up nicely.</p>
-                    </div>
+                    <% } %>
                 </div>
-                <button type="button" class="btn-primary see-all-reviews-disabled">See All</button>
+
+                <% if (totalReviewsCount > 0) { %>
+                    <a href="/products/<%= product._id %>/reviews" class="btn-see-all-reviews">
+                        See All (<%= totalReviewsCount %>)
+                    </a>
+                <% } %>
             </div>
         </div>
     </main>
@@ -207,7 +172,7 @@
                 <h2>You may also like</h2>
             </div>
             <div class="products-grid">
-                <% if (typeof related && related.length > 0) { %>
+                <% if (typeof related !== 'undefined' && related && related.length > 0) { %>
                     <% related.forEach(rel => { %>
                         <% const relVariant = rel.displayVariant; %>
                         <div class="product-card clickable-product-card" data-product-id="<%= rel._id %>">
@@ -229,9 +194,7 @@
                                 </button>
                             </div>
                             <div class="product-info-card">
-                                <h3>
-                                    <%= rel.name %> (<%= relVariant.variantName %>)
-                                </h3>
+                                <h3><%= rel.name %> (<%= relVariant.variantName %>)</h3>
                                 <div class="stars"><i class="fa-solid fa-star"></i> 4.8 (95)</div>
                                 <div class="card-footer">
                                     <p class="price-card">
@@ -278,9 +241,9 @@
                             <td><strong><%= v.variantName %></strong></td>
                             <td><%= v.length || 0 %>"L x <%= v.width || 0 %>"W x <%= v.height || 0 %>"H</td>
                             <td>
-                                <%= (v.length * 2.54).toFixed(1) %> x
-                                <%= (v.width * 2.54).toFixed(1) %> x
-                                <%= (v.height * 2.54).toFixed(1) %> cm
+                                <%= ((v.length || 0) * 2.54).toFixed(1) %> x
+                                <%= ((v.width || 0) * 2.54).toFixed(1) %> x
+                                <%= ((v.height || 0) * 2.54).toFixed(1) %> cm
                             </td>
                         </tr>
                     <% }) %>
@@ -289,35 +252,7 @@
         </div>
     </div>
 
-    <footer class="footer">
-        <div class="container-fluid footer-container">
-            <div class="footer-left">
-                <a href="/home" class="logo footer-logo">HomeStation</a>
-                <p>Your premier destination for high-quality mattresses and sleep essentials, crafted to bring cloud-like comfort to every night.</p>
-            </div>
-            <div class="footer-links-wrapper">
-                <div class="footer-column">
-                    <h4>Shop</h4>
-                    <ul>
-                        <li><a href="/products">World of Mattress</a></li>
-                        <li><a href="/deals">Top Deals</a></li>
-                        <li><a href="/bestsellers">Best Sellers</a></li>
-                    </ul>
-                </div>
-                <div class="footer-column">
-                    <h4>Support</h4>
-                    <ul>
-                        <li><a href="#">Track Your Orders</a></li>
-                        <li><a href="/privacy-policy">Privacy Policy</a></li>
-                        <li><a href="/contact">Contact Us</a></li>
-                    </ul>
-                </div>
-            </div>
-        </div>
-        <div class="container-fluid copyright">
-            <p>&copy; 2026 HomeStation Store. All rights reserved.</p>
-        </div>
-    </footer>
+    <%- include('../partials/user/footer') %>
 
     <script src="/js/user/productdetails.js"></script>
 </body>

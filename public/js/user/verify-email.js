@@ -21,6 +21,17 @@ document.addEventListener("DOMContentLoaded", () => {
         prevInput.focus();
       }
     });
+
+    input.addEventListener("paste", (e) => {
+      e.preventDefault();
+      const pasteData = (e.clipboardData || window.clipboardData).getData("text").trim();
+      if (/^[0-9]{6}$/.test(pasteData)) {
+        pasteData.split("").forEach((char, idx) => {
+          if (otpInputs[idx]) otpInputs[idx].value = char;
+        });
+        otpInputs[5]?.focus();
+      }
+    });
   });
 
   if (emailOtpForm) {
@@ -45,7 +56,7 @@ document.addEventListener("DOMContentLoaded", () => {
       if (otp.length !== 6) {
         return Swal.fire({
           icon: "warning",
-          title: "Incomplete",
+          title: "Incomplete Code",
           text: "Please enter all 6 digits of the verification code.",
           confirmButtonColor: "#222",
           heightAuto: false,
@@ -54,8 +65,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
       const submitBtn = emailOtpForm.querySelector('button[type="submit"]');
       const originalText = submitBtn.innerText;
-      submitBtn.innerHTML =
-        '<i class="fa-solid fa-spinner fa-spin"></i> Verifying...';
+      submitBtn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Verifying...';
       submitBtn.disabled = true;
 
       try {
@@ -111,8 +121,7 @@ document.addEventListener("DOMContentLoaded", () => {
       e.preventDefault();
 
       const originalBtnText = resendOtpBtn.innerHTML;
-      resendOtpBtn.innerHTML =
-        '<i class="fa-solid fa-spinner fa-spin"></i> Sending...';
+      resendOtpBtn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Sending...';
       resendOtpBtn.style.pointerEvents = "none";
 
       try {
@@ -156,52 +165,6 @@ document.addEventListener("DOMContentLoaded", () => {
       } finally {
         resendOtpBtn.innerHTML = originalBtnText;
         resendOtpBtn.style.pointerEvents = "auto";
-      }
-    });
-  }
-
-  const logoutForm = document.getElementById("logoutForm");
-
-  if (logoutForm) {
-    logoutForm.addEventListener("submit", async (e) => {
-      e.preventDefault();
-
-      const csrfToken =
-        logoutForm.querySelector('input[name="_csrf"]')?.value ||
-        document.getElementById("csrfToken")?.value;
-
-      try {
-        const response = await fetch("/user/logout", {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            "CSRF-Token": csrfToken,
-          },
-        });
-
-        const data = await response.json();
-
-        if (data.success && data.redirectUrl) {
-          Swal.fire({
-            icon: "success",
-            title: "Goodbye!",
-            text: data.message || "Logged out successfully.",
-            timer: 1500, 
-            showConfirmButton: false,
-            heightAuto: false,
-          }).then(() => {
-            window.location.href = data.redirectUrl;
-          });
-        } else {
-          Swal.fire({
-            icon: "error",
-            title: "Logout Failed",
-            text: data.message || "Something went wrong.",
-            heightAuto: false,
-          });
-        }
-      } catch (error) {
-        console.error("Logout fetch error:", error);
       }
     });
   }
