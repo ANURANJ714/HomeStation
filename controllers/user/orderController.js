@@ -214,15 +214,31 @@ export const loadInvoicePage = async (req, res) => {
         const userEmail = req.user?.email || 'Unknown User';
         const userId = req.user._id;
         const { orderId } = req.params;
+        const targetItemId = req.query.itemId || null;
 
         const order = await orderService.getUserDeliveredOrderInvoice(userId, orderId);
 
-        if (!order || order.status !== 'delivered') {
-            logger.warn(`User (${userEmail}) attempted to access invoice for non-delivered order: ${orderId} | IP: ${clientIp}`);
+        if (!order) {
+            logger.warn(`User (${userEmail}) tried to access missing invoice: ${orderId} | IP: ${clientIp}`);
             return res.redirect('/user/orders');
         }
 
-        const subtotal = order.orderItems.reduce((acc, item) => acc + (item.currentPrice * item.quantity), 0);
+        let eligibleItems = order.orderItems.filter(i => 
+            i.itemStatus === 'delivered' && (!i.returnStatus || i.returnStatus === 'none')
+        );
+
+        if (targetItemId) {
+            eligibleItems = eligibleItems.filter(i => i._id.toString() === targetItemId.toString());
+        }
+
+        if (eligibleItems.length === 0) {
+            logger.warn(`User (${userEmail}) attempted to access invoice with no delivered items for order: ${orderId} | IP: ${clientIp}`);
+            return res.redirect('/user/orders');
+        }
+
+        order.orderItems = eligibleItems;
+
+        const subtotal = eligibleItems.reduce((acc, item) => acc + (item.currentPrice * item.quantity), 0);
         const shippingCharges = 0;
         const totalAmount = subtotal + shippingCharges;
 

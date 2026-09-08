@@ -16,7 +16,6 @@ document.addEventListener('DOMContentLoaded', () => {
 
     const returnModalTitle = document.getElementById('returnModalTitle');
     const modalTargetReturnItemId = document.getElementById('modalTargetReturnItemId');
-    const openFullOrderReturnBtn = document.getElementById('openFullOrderReturnBtn');
     const closeReturnModalBtn = document.getElementById('closeReturnModalBtn');
     const cancelReturnBtn = document.getElementById('cancelReturnBtn');
     const confirmReturnBtn = document.getElementById('confirmReturnBtn');
@@ -25,7 +24,6 @@ document.addEventListener('DOMContentLoaded', () => {
 
     const cancelModalTitle = document.getElementById('cancelModalTitle');
     const modalTargetCancelItemId = document.getElementById('modalTargetCancelItemId');
-    const openFullOrderCancelBtn = document.getElementById('openFullOrderCancelBtn');
     const closeCancelOrderModalBtn = document.getElementById('closeCancelOrderModalBtn');
     const cancelCancelOrderBtn = document.getElementById('cancelCancelOrderBtn');
     const submitCancelOrderBtn = document.getElementById('submitCancelOrderBtn');
@@ -173,14 +171,6 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     });
 
-    if (openFullOrderReturnBtn) {
-        openFullOrderReturnBtn.addEventListener('click', () => {
-            modalTargetReturnItemId.value = ''; 
-            returnModalTitle.innerHTML = '<i class="fa-solid fa-rotate-left"></i> Return Entire Order';
-            showModal(returnModal);
-        });
-    }
-
     if (closeReturnModalBtn) closeReturnModalBtn.addEventListener('click', () => hideModal(returnModal));
     if (cancelReturnBtn) cancelReturnBtn.addEventListener('click', () => hideModal(returnModal));
 
@@ -239,7 +229,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     },
                     body: JSON.stringify({
                         orderId: currentOrderId,
-                        orderItemId: modalTargetReturnItemId.value || null,
+                        orderItemId: modalTargetReturnItemId.value,
                         reason: returnReason
                     })
                 });
@@ -288,14 +278,6 @@ document.addEventListener('DOMContentLoaded', () => {
             showModal(cancelOrderModal);
         });
     });
-
-    if (openFullOrderCancelBtn) {
-        openFullOrderCancelBtn.addEventListener('click', () => {
-            modalTargetCancelItemId.value = ''; 
-            cancelModalTitle.innerHTML = '<i class="fa-solid fa-ban"></i> Cancel Entire Order';
-            showModal(cancelOrderModal);
-        });
-    }
 
     if (closeCancelOrderModalBtn) closeCancelOrderModalBtn.addEventListener('click', () => hideModal(cancelOrderModal));
     if (cancelCancelOrderBtn) cancelCancelOrderBtn.addEventListener('click', () => hideModal(cancelOrderModal));
@@ -355,7 +337,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     },
                     body: JSON.stringify({
                         orderId: currentOrderId,
-                        orderItemId: modalTargetCancelItemId.value || null,
+                        orderItemId: modalTargetCancelItemId.value,
                         reason: cancellationReason
                     })
                 });

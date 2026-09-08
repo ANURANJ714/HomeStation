@@ -4,7 +4,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>HomeStation</title>
+    <title>HomeStation - Order Details</title>
     <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&display=swap" rel="stylesheet">
     <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,600;0,700;1,600&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
@@ -120,6 +120,7 @@
                                 const productId = product?._id ? product._id.toString() : '';
                                 const existingReview = (typeof userReviews !== 'undefined' && userReviews && userReviews[productId]) ? userReviews[productId] : null;
                                 const hasReturn = item.returnStatus && item.returnStatus !== 'none';
+                                const cleanOrderId = order.orderId ? order.orderId.replace(/^#/, '') : '';
                             %>
                                 <div class="detail-item full-width product-main-info">
                                     <div class="product-text-details">
@@ -137,30 +138,30 @@
                                                     <span class="badge-status-prominent badge-orange">
                                                         <i class="fa-solid fa-rotate-left"></i> <%= item.returnStatus.charAt(0).toUpperCase() + item.returnStatus.slice(1) %>
                                                     </span>
-                                                <% } else if (item.itemStatus === 'delivered' && item.returnStatus === 'none') { %>
+                                                <% } else if (item.itemStatus === 'delivered' && (!item.returnStatus || item.returnStatus === 'none')) { %>
                                                     <span class="badge-status-prominent badge-success">
                                                         <i class="fa-solid fa-circle-check"></i> Delivered
                                                     </span>
                                                     <% if (isReturnEligible) { %>
                                                         <span class="item-return-window-note"><i class="fa-solid fa-clock-rotate-left"></i> Return eligible until <%= formattedReturnDeadline %></span>
                                                     <% } %>
-                                                <% } else if (item.itemStatus === 'cancelled' && item.returnStatus === 'none') { %>
+                                                <% } else if (item.itemStatus === 'cancelled') { %>
                                                     <span class="badge-status-prominent badge-danger">
                                                         <i class="fa-solid fa-circle-xmark"></i> Cancelled
                                                     </span>
-                                                <% } else if (item.itemStatus === 'packed' && item.returnStatus === 'none') { %>
+                                                <% } else if (item.itemStatus === 'packed') { %>
                                                     <span class="badge-status-prominent badge-warning">
                                                         <i class="fa-solid fa-box"></i> Packed
                                                     </span>
-                                                <% } else if (item.itemStatus === 'shipped' && item.returnStatus === 'none') { %>
+                                                <% } else if (item.itemStatus === 'shipped') { %>
                                                     <span class="badge-status-prominent badge-info">
                                                         <i class="fa-solid fa-truck"></i> Shipped
                                                     </span>
-                                                <% } else if (item.itemStatus === 'on the way' && item.returnStatus === 'none') { %>
+                                                <% } else if (item.itemStatus === 'on the way') { %>
                                                     <span class="badge-status-prominent badge-info">
                                                         <i class="fa-solid fa-truck-fast"></i> On the Way
                                                     </span>
-                                                <% } else if (item.itemStatus === 'out for delivery' && item.returnStatus === 'none') { %>
+                                                <% } else if (item.itemStatus === 'out for delivery') { %>
                                                     <span class="badge-status-prominent badge-warning">
                                                         <i class="fa-solid fa-person-biking"></i> Out for Delivery
                                                     </span>
@@ -182,7 +183,11 @@
                                         </div>
 
                                         <div class="item-actions-row">
-                                            <% if (item.itemStatus === 'delivered' && item.returnStatus === 'none') { %>
+                                            <% if (item.itemStatus === 'delivered' && (!item.returnStatus || item.returnStatus === 'none')) { %>
+                                                <a href="/user/orders/invoice/<%= cleanOrderId %>?itemId=<%= item._id %>" class="btn-modal-action btn-invoice">
+                                                    <i class="fa-solid fa-file-invoice"></i> Download Invoice
+                                                </a>
+
                                                 <button type="button" class="btn-modal-action btn-review trigger-review-modal-btn"
                                                     data-product-id="<%= productId %>"
                                                     data-product-name="<%= product?.name || 'Product' %>"
@@ -225,27 +230,6 @@
                                 <p class="address-phone"><i class="fa-solid fa-phone"></i> <%= order.shippingAddress.phone %></p>
                             </div>
                         </div>
-                    </div>
-
-                    <div class="action-buttons-row">
-                        <% if (overallReturnStatus !== 'none') { %>
-                        <% } else { %>
-                            <% if (overallStatus === 'delivered') { %>
-                                <% if (isReturnEligible && hasReturnableItems) { %>
-                                    <button type="button" class="btn-modal-action btn-return" id="openFullOrderReturnBtn">
-                                        <i class="fa-solid fa-rotate-left"></i> Return Entire Order
-                                    </button>
-                                <% } %>
-                                <% const cleanOrderId = order.orderId ? order.orderId.replace(/^#/, '') : ''; %>
-                                <a href="/user/orders/invoice/<%= cleanOrderId %>" class="btn-modal-action btn-invoice">
-                                    <i class="fa-solid fa-file-invoice"></i> Download Invoice
-                                </a>
-                            <% } else if (overallStatus !== 'cancelled' && hasCancellableItems) { %>
-                                <button type="button" class="btn-modal-action btn-cancel" id="openFullOrderCancelBtn">
-                                    <i class="fa-solid fa-ban"></i> Cancel Entire Order
-                                </button>
-                            <% } %>
-                        <% } %>
                     </div>
                 </div>
             </div>
