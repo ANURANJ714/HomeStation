@@ -1,0 +1,170 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>HomeStation - My Wallet</title>
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,600;0,700;1,600&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <link rel="icon" type="image/x-icon" href="https://res.cloudinary.com/dz7fuqwnr/image/upload/v1778395481/WhatsApp_Image_2026-05-10_at_12.12.36_nra5vk.jpg">
+    <link rel="stylesheet" href="/css/user/home.css">
+    <link rel="stylesheet" href="/css/user/wallet.css">
+</head>
+
+<body class="shared-bg">
+    <input type="hidden" id="csrfToken" value="<%= typeof csrfToken !== 'undefined' ? csrfToken : '' %>">
+
+    <%- include('../partials/user/promoBar') %>
+
+    <%- include('../partials/user/header', { activePage: '' }) %>
+
+    <section class="profile-section">
+        <div class="container profile-layout">
+
+            <aside class="profile-sidebar" id="appSidebar">
+                <div class="profile-user-info">
+                    <img src="<%= (user && user.profileImage) ? user.profileImage : 'https://cdn.pixabay.com/photo/2015/10/05/22/37/blank-profile-picture-973460_1280.png' %>"
+                        alt="Profile Image" class="sidebar-avatar">
+                    <div class="user-greeting">
+                        <span class="hello-text">Hello,</span>
+                        <span class="user-name"><%= (user && user.fullName) ? user.fullName : 'User' %></span>
+                    </div>
+                </div>
+
+                <hr class="sidebar-divider">
+
+                <div class="sidebar-menu">
+                    <h3>Account Settings</h3>
+                    <ul>
+                        <li><a href="/user/profile">Profile information</a></li>
+                        <li><a href="/user/addresses">Manage addresses</a></li>
+                    </ul>
+
+                    <hr class="sidebar-divider">
+
+                    <h3>My Stuffs</h3>
+                    <ul>
+                        <li><a href="/user/orders">My Orders</a></li>
+                        <li><a href="/user/wishlist">My Wishlists</a></li>
+                        <li><a href="/user/wallet" class="active">My Wallet</a></li>
+                        <li><a href="/user/coupons">Coupons Available</a></li>
+                    </ul>
+
+                    <hr class="sidebar-divider">
+
+                    <div class="logout-wrapper">
+                        <form action="/user/logout" method="POST" id="logoutForm" class="m-0">
+                            <input type="hidden" name="_csrf" value="<%= typeof csrfToken !== 'undefined' ? csrfToken : '' %>">
+                            <button type="submit" class="logout-link">
+                                <i class="fa-solid fa-power-off"></i> Logout
+                            </button>
+                        </form>
+                    </div>
+                </div>
+            </aside>
+
+            <main class="profile-content">
+                <h1 class="wallet-title">My Wallet</h1>
+
+                <div class="wallet-balance-card">
+                    <div class="balance-info">
+                        <span class="balance-label">Current Balance</span>
+                        <h2 class="balance-amount">₹<%= balance.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) %></h2>
+                    </div>
+                    <div class="wallet-icon">
+                        <i class="fa-solid fa-wallet"></i>
+                    </div>
+                </div>
+
+                <div class="add-money-section">
+                    <h3 class="section-title">Add money to Wallet</h3>
+
+                    <div class="add-money-form-container">
+                        <div class="money-input-wrapper">
+                            <span class="currency-symbol">₹</span>
+                            <input type="number" id="manualAmount" placeholder="Enter amount" class="amount-input" min="1">
+                        </div>
+
+                        <div class="quick-add-buttons">
+                            <button type="button" class="quick-btn" data-value="500">₹500</button>
+                            <button type="button" class="quick-btn" data-value="1000">₹1000</button>
+                            <button type="button" class="quick-btn" data-value="2000">₹2000</button>
+                        </div>
+
+                        <button type="button" class="btn-add-money" id="addMoneyTriggerBtn">Add money</button>
+                    </div>
+                </div>
+
+                <div class="transactions-section">
+                    <h3 class="section-title">Transaction History</h3>
+                    <div class="transactions-list">
+                        <% if (transactions && transactions.length > 0) { %>
+                            <% transactions.forEach(txn => { %>
+                                <div class="transaction-item">
+                                    <div class="trans-left">
+                                        <% if (txn.purpose === 'refund' || txn.purpose === 'cancelled_order') { %>
+                                            <div class="trans-icon refund"><i class="fa-solid fa-rotate-left"></i></div>
+                                        <% } else if (txn.type === 'credit') { %>
+                                            <div class="trans-icon add"><i class="fa-solid fa-plus"></i></div>
+                                        <% } else { %>
+                                            <div class="trans-icon purchase"><i class="fa-solid fa-bag-shopping"></i></div>
+                                        <% } %>
+
+                                        <div class="trans-info">
+                                            <p class="trans-desc"><%= txn.description %></p>
+                                            <p class="trans-date">
+                                                <%= new Date(txn.date).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' }) %>
+                                            </p>
+                                        </div>
+                                    </div>
+                                    <div class="trans-right">
+                                        <% if (txn.type === 'credit') { %>
+                                            <span class="amount positive">+₹<%= txn.amount.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) %></span>
+                                        <% } else { %>
+                                            <span class="amount negative">-₹<%= txn.amount.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) %></span>
+                                        <% } %>
+                                    </div>
+                                </div>
+                            <% }) %>
+                        <% } else { %>
+                            <div class="no-transactions-state">
+                                <p>No transaction history found in your wallet.</p>
+                            </div>
+                        <% } %>
+                    </div>
+                    
+                    <% if (typeof totalPages !== 'undefined' && totalPages > 1) { %>
+                        <div class="pagination">
+                            <% if (currentPage > 1) { %>
+                                <a href="/user/wallet?page=<%= currentPage - 1 %>" class="page-link">
+                                    <i class="fa-solid fa-chevron-left"></i>
+                                </a>
+                            <% } %>
+
+                            <% for (let i = 1; i <= totalPages; i++) { %>
+                                <a href="/user/wallet?page=<%= i %>" class="page-link <%= i === currentPage ? 'active' : '' %>">
+                                    <%= i %>
+                                </a>
+                            <% } %>
+
+                            <% if (currentPage < totalPages) { %>
+                                <a href="/user/wallet?page=<%= currentPage + 1 %>" class="page-link">
+                                    <i class="fa-solid fa-chevron-right"></i>
+                                </a>
+                            <% } %>
+                        </div>
+                    <% } %>
+                </div>
+            </main>
+        </div>
+    </section>
+
+    <%- include('../partials/user/footer') %>
+
+    <script src="/js/user/wallet.js"></script>
+</body>
+
+</html>
