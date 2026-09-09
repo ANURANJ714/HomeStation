@@ -40,10 +40,18 @@ export const processLogin = (req, res, next) => {
             }
 
             if (!user) {
-                logger.warn(`Failed login attempt for ${emailAttempt} (IP: ${clientIp}): ${info.message}`);
+                logger.warn(`Failed login attempt for ${emailAttempt} (IP: ${clientIp}): ${info?.message || 'Unauthorized'}`);
                 return res.status(401).json({ 
                     success: false, 
-                    message: info.message 
+                    message: info?.message || "Invalid credentials." 
+                });
+            }
+
+            if (user.role === 'Admin') {
+                logger.warn(`Admin login attempted on customer endpoint by ${user.email} (IP: ${clientIp})`);
+                return res.status(403).json({
+                    success: false,
+                    message: "Admin accounts cannot sign in through the customer portal. Please use the Admin Portal."
                 });
             }
             

@@ -179,6 +179,7 @@ export const postCheckoutPaymentMode = async (req, res) => {
     try {
         const clientIp = req.ip;
         const userEmail = req.user?.email || 'Unknown User';
+
         const { paymentMode } = req.body;
 
         const allowedModes = ['razorpay', 'wallet', 'cod'];
