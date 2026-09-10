@@ -1,6 +1,9 @@
 import dotenv from 'dotenv';
 dotenv.config();
 
+import process from 'process';
+process.setMaxListeners(20);
+
 import express from 'express';
 import path from 'path';
 import { fileURLToPath } from 'url';

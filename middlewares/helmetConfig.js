@@ -1,24 +1,41 @@
 import helmet from "helmet";
 
 const helmetMiddleware = helmet({
-
     contentSecurityPolicy: {
-
         directives: {
-
             defaultSrc: ["'self'"],
 
             scriptSrc: [
                 "'self'",
                 "https://cdn.jsdelivr.net",
-                "https://cdnjs.cloudflare.com"
+                "https://cdnjs.cloudflare.com",
+                "https://checkout.razorpay.com",
+                "https://*.razorpay.com"
+            ],
+
+            frameSrc: [
+                "'self'",
+                "https://api.razorpay.com",
+                "https://checkout.razorpay.com",
+                "https://*.razorpay.com"
+            ],
+
+            childSrc: [
+                "'self'",
+                "blob:",
+                "https://*.razorpay.com"
+            ],
+
+            workerSrc: [
+                "'self'",
+                "blob:"
             ],
 
             styleSrc: [
                 "'self'",
-                "'unsafe-inline'", 
+                "'unsafe-inline'",
                 "https://fonts.googleapis.com",
-                "https://cdnjs.cloudflare.com",
+                "https://cdnjs.cloudflare.com"
             ],
 
             fontSrc: [
@@ -33,14 +50,19 @@ const helmetMiddleware = helmet({
                 "blob:",
                 "https://res.cloudinary.com",
                 "https://images.unsplash.com",
-                "https://cdn.pixabay.com/photo/2015/10/05/22/37/blank-profile-picture-973460_1280.png",
-                "https://www.gravatar.com/avatar/00000000000000000000000000000000?d=mp&f=y",
-                "https://placehold.co/",
-                "https://upload.wikimedia.org/wikipedia/commons/c/c1/Google_%22G%22_logo.svg"
+                "https://cdn.pixabay.com",
+                "https://www.gravatar.com",
+                "https://placehold.co",
+                "https://upload.wikimedia.org",
+                "https://*.razorpay.com"
             ],
 
             connectSrc: [
-                "'self'"
+                "'self'",
+                "https://api.razorpay.com",
+                "https://lumberjack.razorpay.com",
+                "https://lumberjack-cx.razorpay.com",
+                "https://*.razorpay.com"
             ],
 
             objectSrc: ["'none'"],
@@ -49,13 +71,14 @@ const helmetMiddleware = helmet({
 
             frameAncestors: ["'none'"],
 
-            formAction: ["'self'"],
+            formAction: ["'self'", "https://*.razorpay.com", "https://api.razorpay.com"],
 
             upgradeInsecureRequests: []
         }
     },
 
-    crossOriginEmbedderPolicy: false
+    crossOriginEmbedderPolicy: false,
+    crossOriginOpenerPolicy: { policy: "same-origin-allow-popups" }
 });
 
 export default helmetMiddleware;

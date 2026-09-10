@@ -9,6 +9,7 @@
     <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,600;0,700;1,600&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <script src="https://checkout.razorpay.com/v1/checkout.js"></script>
     <link rel="icon" type="image/x-icon" href="https://res.cloudinary.com/dz7fuqwnr/image/upload/v1778395481/WhatsApp_Image_2026-05-10_at_12.12.36_nra5vk.jpg">
     <link rel="stylesheet" href="/css/user/home.css">
     <link rel="stylesheet" href="/css/user/wallet.css">
@@ -85,7 +86,7 @@
                     <div class="add-money-form-container">
                         <div class="money-input-wrapper">
                             <span class="currency-symbol">₹</span>
-                            <input type="number" id="manualAmount" placeholder="Enter amount" class="amount-input" min="1">
+                            <input type="number" id="manualAmount" placeholder="Enter amount" class="amount-input" min="1" max="50000">
                         </div>
 
                         <div class="quick-add-buttons">
@@ -94,7 +95,9 @@
                             <button type="button" class="quick-btn" data-value="2000">₹2000</button>
                         </div>
 
-                        <button type="button" class="btn-add-money" id="addMoneyTriggerBtn">Add money</button>
+                        <button type="button" class="btn-add-money" id="addMoneyTriggerBtn">
+                            Add money
+                        </button>
                     </div>
                 </div>
 
