@@ -57,24 +57,22 @@ export const ensureAddressSelected = async (req, res, next) => {
             return res.redirect('/user/login');
         }
 
-        const userId = req.user._id;
-
-        if (!req.session.checkoutActive) {
-            req.session.cartAlertMessage = 'Please verify your cart items and click Proceed to Checkout.';
+        if (!req.session.checkoutActive || !req.session.checkoutOrder) {
+            req.session.cartAlertMessage = 'Please proceed to checkout from your cart.';
             return res.redirect('/user/cart');
         }
 
-        const cartStatus = await checkoutService.validateCartForCheckout(userId);
-        if (!cartStatus.isValid) {
+        const validation = await checkoutService.validateCheckoutSessionOrder(req.session.checkoutOrder);
+        if (!validation.isValid) {
             delete req.session.checkoutActive;
             delete req.session.checkoutOrder;
-            req.session.cartAlertMessage = cartStatus.message;
+            req.session.cartAlertMessage = validation.message;
             return res.redirect('/user/cart');
         }
 
-        if (!req.session.checkoutOrder || !req.session.checkoutOrder.shippingAddressId) {
-            logger.warn(`Payment mode access blocked for (${req.user.email}): Shipping address not selected.`);
-            req.session.cartAlertMessage = 'Please select a delivery address before choosing a payment mode.';
+        if (!req.session.checkoutOrder.shippingAddressId) {
+            logger.warn(`Payment mode blocked for (${req.user.email}): Address missing.`);
+            req.session.cartAlertMessage = 'Please select a delivery address.';
             return res.redirect('/user/checkout/address');
         }
 
@@ -86,7 +84,7 @@ export const ensureAddressSelected = async (req, res, next) => {
     }
 };
 
-export const ensurePaymentModeSelected = (req, res, next) => {
+export const ensurePaymentModeSelected = async (req, res, next) => {
     try {
         if (!req.isAuthenticated || !req.isAuthenticated()) {
             req.session.returnTo = '/user/cart';
@@ -95,8 +93,16 @@ export const ensurePaymentModeSelected = (req, res, next) => {
 
         const checkout = req.session.checkoutOrder;
 
-        if (!req.session.checkoutActive || !checkout || !checkout.cartItems || checkout.cartItems.length === 0) {
-            req.session.cartAlertMessage = 'Please verify your cart items and proceed to checkout.';
+        if (!req.session.checkoutActive || !checkout) {
+            req.session.cartAlertMessage = 'Please proceed to checkout from your cart.';
+            return res.redirect('/user/cart');
+        }
+
+        const validation = await checkoutService.validateCheckoutSessionOrder(checkout);
+        if (!validation.isValid) {
+            delete req.session.checkoutActive;
+            delete req.session.checkoutOrder;
+            req.session.cartAlertMessage = validation.message;
             return res.redirect('/user/cart');
         }
 
@@ -112,7 +118,7 @@ export const ensurePaymentModeSelected = (req, res, next) => {
 
         next();
     } catch (error) {
-        logger.error(`Error in ensurePaymentModeSelected: ${error.message}`);
+        logger.error(`Error in ensurePaymentModeSelected middleware: ${error.message}`);
         req.session.cartAlertMessage = 'An unexpected error occurred. Please verify your cart.';
         return res.redirect('/user/cart');
     }

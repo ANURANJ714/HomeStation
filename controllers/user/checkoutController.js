@@ -42,21 +42,27 @@ export const postCartItems = async (req, res) => {
             });
         }
 
+        const subtotal = result.cartItems.reduce((acc, item) => {
+            const variant = item.productVariantId;
+            const price = Math.round(variant.originalPrice * (1 - (variant.discount || 0) / 100));
+            return acc + (price * item.quantity);
+        }, 0);
+
+        const shippingCharges = subtotal <= 500 ? 100 : 0;
+        const totalPayable = subtotal + shippingCharges;
+
         req.session.checkoutActive = true;
         req.session.checkoutOrder = {
             cartItems: result.cartItems,
             totalQuantity: result.cartItems.reduce((acc, item) => acc + item.quantity, 0),
-            subtotal: result.cartItems.reduce((acc, item) => {
-                const variant = item.productVariantId;
-                const price = Math.round(variant.originalPrice * (1 - (variant.discount || 0) / 100));
-                return acc + (price * item.quantity);
-            }, 0),
+            subtotal,
             offerDiscount: 0,
             couponDiscount: 0,
-            shippingCharges: 0
+            shippingCharges,
+            totalPayable
         };
 
-        logger.info(`Cart validated successfully for (${userEmail}). Proceeding to address.`);
+        logger.info(`Cart validated successfully for (${userEmail}). Subtotal: ₹${subtotal}, Shipping: ₹${shippingCharges}. Proceeding to address.`);
 
         return res.status(200).json({
             success: true,
@@ -114,6 +120,9 @@ export const loadCheckoutAddress = async (req, res) => {
 
 export const postCheckoutAddress = async (req, res) => {
     try {
+        const userId = req.user._id;
+        const userEmail = req.user?.email || 'Unknown User';
+        const clientIp = req.ip;
         const { selectedAddressId } = req.body;
 
         if (!selectedAddressId) {
@@ -123,17 +132,44 @@ export const postCheckoutAddress = async (req, res) => {
             });
         }
 
+        const validation = await checkoutService.validateCheckoutSessionOrder(req.session.checkoutOrder);
+        if (!validation.isValid) {
+            logger.warn(`Address selection halted: ${validation.message} for (${userEmail}) | IP: ${clientIp}`);
+            return res.status(400).json({
+                success: false,
+                message: validation.message,
+                redirectUrl: '/user/cart'
+            });
+        }
+
+        const address = await addressService.getAddressById(userId, selectedAddressId);
+        if (!address) {
+            return res.status(404).json({
+                success: false,
+                message: 'Selected delivery address was not found.'
+            });
+        }
+
+        const shippingCharges = validation.subtotal <= 500 ? 100 : 0;
+        const totalPayable = validation.subtotal + shippingCharges;
+
         req.session.checkoutOrder = {
             ...req.session.checkoutOrder,
-            shippingAddressId: selectedAddressId
+            shippingAddressId: selectedAddressId,
+            subtotal: validation.subtotal,
+            shippingCharges,
+            totalPayable
         };
+
+        logger.info(`User (${userEmail}) selected address [${selectedAddressId}] | IP: ${clientIp}`);
 
         return res.status(200).json({
             success: true,
+            message: 'Delivery address confirmed.',
             redirectUrl: '/user/checkout/payment'
         });
     } catch (error) {
-        logger.error(`Error saving checkout address: ${error.message}`);
+        logger.error(`Error saving checkout address for (${req.user?.email || 'Unknown'}): ${error.message}`);
         return res.status(500).json({
             success: false,
             message: 'Unable to select address. Please try again.'
@@ -179,7 +215,6 @@ export const postCheckoutPaymentMode = async (req, res) => {
     try {
         const clientIp = req.ip;
         const userEmail = req.user?.email || 'Unknown User';
-
         const { paymentMode } = req.body;
 
         const allowedModes = ['razorpay', 'wallet', 'cod'];
@@ -190,11 +225,26 @@ export const postCheckoutPaymentMode = async (req, res) => {
             });
         }
 
+        const validation = await checkoutService.validateCheckoutSessionOrder(req.session.checkoutOrder);
+        if (!validation.isValid) {
+            logger.warn(`Payment mode selection halted: ${validation.message} for (${userEmail}) | IP: ${clientIp}`);
+            return res.status(400).json({
+                success: false,
+                message: validation.message,
+                redirectUrl: '/user/cart'
+            });
+        }
+
+        const shippingCharges = validation.subtotal <= 500 ? 100 : 0;
+        const totalPayable = validation.subtotal + shippingCharges;
+
         req.session.checkoutOrder = {
             ...req.session.checkoutOrder,
-            paymentMode: paymentMode
+            paymentMode,
+            subtotal: validation.subtotal,
+            shippingCharges,
+            totalPayable
         };
-
 
         logger.info(`User (${userEmail}) selected payment mode: [${paymentMode}]. IP: ${clientIp}`);
 
@@ -206,7 +256,6 @@ export const postCheckoutPaymentMode = async (req, res) => {
 
     } catch (error) {
         logger.error(`Error saving payment mode for ${req.user?.email || 'Unknown'} (IP: ${req.ip}): ${error.message}\nStack: ${error.stack}`);
-
         return res.status(500).json({
             success: false,
             message: 'Failed to process payment selection. Please try again.'
@@ -290,6 +339,26 @@ export const placeOrder = async (req, res) => {
             });
         }
 
+        const validation = await checkoutService.validateCheckoutSessionOrder(checkout);
+        if (!validation.isValid) {
+            logger.warn(`Place order aborted: ${validation.message} for (${userEmail}) | IP: ${clientIp}`);
+            return res.status(400).json({
+                success: false,
+                message: validation.message,
+                redirectUrl: '/user/cart'
+            });
+        }
+
+        if (checkout.paymentMode === 'wallet') {
+            const wallet = await walletService.getOrCreateUserWalletPaginated(userId, 1, 1);
+            if (wallet.balance < validation.totalPayable) {
+                return res.status(400).json({
+                    success: false,
+                    message: `Insufficient wallet balance. Total payable is ₹${validation.totalPayable}, but your balance is ₹${wallet.balance}.`
+                });
+            }
+        }
+
         const [shippingAddress, defaultBillingAddress] = await Promise.all([
             addressService.getAddressById(userId, checkout.shippingAddressId),
             addressService.getDefaultAddress(userId)
@@ -304,7 +373,19 @@ export const placeOrder = async (req, res) => {
 
         const billingAddress = defaultBillingAddress || shippingAddress;
 
-        const order = await orderService.createNewOrder(userId, checkout, shippingAddress, billingAddress);
+        const createdData = await orderService.createNewOrder(
+            userId,
+            validation,
+            shippingAddress,
+            billingAddress,
+            checkout.paymentMode
+        );
+
+        const order = createdData.order;
+
+        if (checkout.paymentMode === 'wallet') {
+            await walletService.deductWalletBalance(userId, validation.totalPayable, order.orderId);
+        }
 
         logger.info(`Order placed successfully! ID: ${order.orderId} for User (${userEmail}) | IP: ${clientIp}`);
 
@@ -324,7 +405,7 @@ export const placeOrder = async (req, res) => {
 
         req.session.orderFailed = true;
         req.session.orderFailureTimestamp = Date.now();
-        
+
         return res.status(400).json({
             success: false,
             message: error.message || 'Payment or order processing failed.',

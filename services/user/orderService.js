@@ -1,7 +1,6 @@
 import Order from '../../models/Order.js';
 import ProductVariant from '../../models/ProductVariant.js';
 import Product from '../../models/Products.js';
-import Category from '../../models/Category.js';
 import Cart from '../../models/Cart.js';
 
 const generateNextOrderId = async () => {
@@ -10,58 +9,42 @@ const generateNextOrderId = async () => {
     return `#ORD-${nextNum.toString().padStart(5, '0')}`;
 };
 
-export const createNewOrder = async (userId, checkoutSessionData, shippingAddr, billingAddr) => {
+export const createNewOrder = async (userId, validatedCheckoutData, shippingAddr, billingAddr, paymentMode) => {
     try {
-        const cartItems = checkoutSessionData.cartItems;
+        const { validItems, subtotal, deliveryCharges, totalPayable } = validatedCheckoutData;
 
-        if (!cartItems || cartItems.length === 0) {
-            throw new Error('No items found in checkout session.');
+        if (!validItems || validItems.length === 0) {
+            throw new Error('No valid items found for creating the order.');
         }
 
         const formattedOrderItems = [];
 
-        for (const item of cartItems) {
-            const variantId = item.productVariantId?._id || item.productVariantId;
-            const variant = await ProductVariant.findById(variantId).populate({
-                path: 'productId',
-                populate: { path: 'categoryId' }
-            });
+        for (const item of validItems) {
+            const variantId = item.productVariantId._id;
+            const quantity = item.quantity;
 
-            if (!variant) {
-                throw new Error('A product variant in your cart no longer exists.');
+            const updatedVariant = await ProductVariant.findOneAndUpdate(
+                { _id: variantId, stock: { $gte: quantity } },
+                { $inc: { stock: -quantity } },
+                { new: true }
+            );
+
+            if (!updatedVariant) {
+                throw new Error(`Stock mismatch for variant: ${item.productVariantId.variantName}. Please re-check your order.`);
             }
-
-            const product = variant.productId;
-            const category = product?.categoryId;
-
-            if (!product || product.isDeleted || !category || category.isDeleted) {
-                throw new Error(`"${product?.name || 'Product'}" is no longer available.`);
-            }
-
-            if (variant.stock <= 0 || variant.stock < item.quantity) {
-                throw new Error(`"${product.name} (${variant.variantName})" is out of stock.`);
-            }
-
-            const currentPrice = Math.round(variant.originalPrice * (1 - (variant.discount || 0) / 100));
 
             formattedOrderItems.push({
-                productVariantId: variant._id,
-                quantity: item.quantity,
-                currentPrice,
-                originalPrice: variant.originalPrice,
-                discount: variant.discount || 0,
+                productVariantId: updatedVariant._id,
+                quantity,
+                currentPrice: item.currentPrice,
+                originalPrice: item.originalPrice,
+                discount: item.discount,
                 itemStatus: 'processing',
                 returnStatus: 'none',
                 cancellationReason: null,
                 returnReason: null,
                 cancelledAt: null,
                 returnedAt: null
-            });
-        }
-
-        for (const item of formattedOrderItems) {
-            await ProductVariant.findByIdAndUpdate(item.productVariantId, {
-                $inc: { stock: -item.quantity }
             });
         }
 
@@ -89,16 +72,19 @@ export const createNewOrder = async (userId, checkoutSessionData, shippingAddr, 
                 fullAddress: billingAddr.fullAddress || billingAddr.addressLine,
                 addressType: billingAddr.addressType || 'Home'
             },
-            paymentMode: checkoutSessionData.paymentMode,
-            status: 'processing',
-            returnStatus: 'none'
+            paymentMode
         });
 
         await Cart.deleteMany({ userId });
 
-        return newOrder;
+        return {
+            order: newOrder,
+            subtotal,
+            deliveryCharges,
+            totalPayable
+        };
     } catch (error) {
-        throw new Error(`Order Service failure: ${error.message}`);
+        throw new Error(`Order creation service failure: ${error.message}`);
     }
 };
 
