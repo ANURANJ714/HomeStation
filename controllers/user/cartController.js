@@ -1,6 +1,7 @@
 import * as cartService from '../../services/user/cartService.js';
 import {getActivePromoBanner} from '../../services/user/bannerService.js';
 import { getUserHeaderCounts } from '../../services/user/badgeService.js';
+import { getMultipleProductReviewSummaries } from '../../services/user/reviewService.js';
 import logger from '../../utils/logger.js';
 
 export const addToCartController = async (req, res) => {
@@ -68,6 +69,12 @@ export const loadCartPage = async (req, res) => {
             getUserHeaderCounts(userId)
         ]);
 
+        const productIds = (cartData.cartItems || [])
+            .map(item => item.productVariantId?.productId?._id || item.productVariantId?.productId)
+            .filter(Boolean);
+
+        const productRatingsMap = await getMultipleProductReviewSummaries(productIds);
+
         logger.info(`User (${userEmail}) loaded Cart Page | IP: ${clientIp}`);
 
         return res.render('user/cart', {
@@ -76,6 +83,7 @@ export const loadCartPage = async (req, res) => {
             subtotal: cartData.subtotal,
             totalQuantity: cartData.totalQuantity,
             stockExceededItem: cartData.stockExceededItem,
+            productRatingsMap,
             bannerText,
             wishlistCount: headerCounts.wishlistCount,
             cartCount: headerCounts.cartCount,

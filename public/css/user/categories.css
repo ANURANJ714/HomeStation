@@ -285,6 +285,27 @@ img {
     box-shadow: 0 4px 12px rgba(0, 0, 0, 0.02);
 }
 
+.stars .active-star {
+    color: #f5a623 !important;
+}
+
+.stars .empty-star {
+    color: #d1d5db !important;
+}
+
+.card-review-stat {
+    color: #555;
+    font-size: 13px;
+    font-weight: 500;
+    margin-left: 5px;
+}
+
+.no-card-reviews {
+    color: #888;
+    font-size: 12.5px;
+    font-style: italic;
+}
+
 .filter-group {
     margin-bottom: 30px;
 }

@@ -3,6 +3,7 @@ import { getActivePromoBanner } from '../../services/user/bannerService.js';
 import { toggleVariantInWishlist, getUserWishlistArray } from '../../services/user/wishlistService.js';
 import { getUserHeaderCounts } from '../../services/user/badgeService.js';
 import * as cartService from '../../services/user/cartService.js';
+import * as reviewService from '../../services/user/reviewService.js';
 import logger from '../../utils/logger.js';
 
 export const loadHomePage = async (req, res) => {
@@ -38,11 +39,19 @@ export const loadHomePage = async (req, res) => {
 
         const { categories, bestSellers, topDeals } = homePageData;
 
+        const productIds = [
+            ...(bestSellers || []).map(p => p._id),
+            ...(topDeals || []).map(d => d.product?._id).filter(Boolean)
+        ];
+
+        const productRatingsMap = await reviewService.getMultipleProductReviewSummaries(productIds);
+
         return res.render('user/home', { 
             user,
             categories,
             bestSellers,
             topDeals,
+            productRatingsMap,
             bannerText,
             userWishlist,
             wishlistCount: headerCounts.wishlistCount,

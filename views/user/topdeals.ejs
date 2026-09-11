@@ -39,7 +39,11 @@
                 <div class="products-grid">
                     <% if (typeof variants !== 'undefined' && variants.length > 0) { %>
                         <% variants.forEach(v => { %>
-                            <div class="product-card clickable-product-card" data-product-id="<%= v.productId._id %>">
+                            <% 
+                                const prodIdStr = (v.productId._id || v.productId).toString();
+                                const pReview = (typeof productRatingsMap !== 'undefined' && productRatingsMap[prodIdStr]) ? productRatingsMap[prodIdStr] : null;
+                            %>
+                            <div class="product-card clickable-product-card" data-product-id="<%= prodIdStr %>">
                                 <div class="product-image">
                                     <img src="<%= (v.productId.images && v.productId.images.length > 0) ? v.productId.images[0] : 'https://placehold.co/400' %>" alt="<%= v.productId.name %>">
                                     <span class="badge discount">-<%= v.discount %>%</span>
@@ -53,10 +57,27 @@
                                 </div>
                                 <div class="product-info">
                                     <h3><%= v.productId.name %> (<%= v.variantName %>)</h3>
-                                    <div class="stars"><i class="fa-solid fa-star"></i> 4.8 (190)</div>
+                                    <div class="stars">
+                                        <% if (pReview && pReview.count > 0) { %>
+                                            <% for (let rStar = 1; rStar <= 5; rStar++) { %>
+                                                <% if (pReview.avgRating >= rStar) { %>
+                                                    <i class="fa-solid fa-star active-star"></i>
+                                                <% } else if (pReview.avgRating >= rStar - 0.5) { %>
+                                                    <i class="fa-solid fa-star-half-stroke active-star"></i>
+                                                <% } else { %>
+                                                    <i class="fa-regular fa-star empty-star"></i>
+                                                <% } %>
+                                            <% } %>
+                                            <span class="card-review-stat"><%= pReview.avgRating %> (<%= pReview.count %>)</span>
+                                        <% } else { %>
+                                            <span class="no-card-reviews">No reviews yet</span>
+                                        <% } %>
+                                    </div>
                                     <div class="card-footer">
                                         <div class="price-wrapper">
-                                            <span class="old-price">₹<%= v.originalPrice.toLocaleString('en-IN') %></span>
+                                            <% if (v.discount > 0) { %>
+                                                <span class="old-price">₹<%= v.originalPrice.toLocaleString('en-IN') %></span>
+                                            <% } %>
                                             <p class="price">₹<%= v.calculatedPrice.toLocaleString('en-IN') %></p>
                                         </div>
                                         <button class="add-to-cart-btn" type="button" data-variant-id="<%= variantIdStr %>">

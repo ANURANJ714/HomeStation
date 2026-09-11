@@ -70,20 +70,66 @@ export const getUserReviewsForProducts = async (userId, productIds) => {
 
 export const getProductReviewsPreview = async (productId) => {
     try {
-        const reviews = await Review.find({ productId })
-            .populate('userId', 'fullName profileImage')
-            .sort({ createdAt: -1 })
-            .limit(2)
-            .lean();
+        const prodObjectId = new mongoose.Types.ObjectId(productId);
 
-        const totalReviewsCount = await Review.countDocuments({ productId });
+        const [reviews, totalReviewsCount, ratingStats] = await Promise.all([
+            Review.find({ productId: prodObjectId })
+                .populate('userId', 'fullName profileImage')
+                .sort({ createdAt: -1 })
+                .limit(2)
+                .lean(),
+            Review.countDocuments({ productId: prodObjectId }),
+            Review.aggregate([
+                { $match: { productId: prodObjectId } },
+                {
+                    $group: {
+                        _id: null,
+                        avgRating: { $avg: '$rating' }
+                    }
+                }
+            ])
+        ]);
+
+        const averageRating = ratingStats.length > 0 ? parseFloat(ratingStats[0].avgRating.toFixed(1)) : 0;
 
         return {
             reviews,
-            totalReviewsCount
+            totalReviewsCount,
+            averageRating
         };
     } catch (error) {
         throw new Error(`Database error while fetching reviews preview: ${error.message}`);
+    }
+};
+
+export const getMultipleProductReviewSummaries = async (productIds) => {
+    try {
+        if (!productIds || productIds.length === 0) return {};
+
+        const objectIds = productIds.map(id => new mongoose.Types.ObjectId(id));
+
+        const summaries = await Review.aggregate([
+            { $match: { productId: { $in: objectIds } } },
+            {
+                $group: {
+                    _id: '$productId',
+                    avgRating: { $avg: '$rating' },
+                    count: { $sum: 1 }
+                }
+            }
+        ]);
+
+        const ratingsMap = {};
+        summaries.forEach(s => {
+            ratingsMap[s._id.toString()] = {
+                avgRating: parseFloat(s.avgRating.toFixed(1)),
+                count: s.count
+            };
+        });
+
+        return ratingsMap;
+    } catch (error) {
+        throw new Error(`Database error fetching product rating summaries: ${error.message}`);
     }
 };
 

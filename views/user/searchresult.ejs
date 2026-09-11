@@ -47,7 +47,11 @@
             <div class="products-grid" id="searchResultsGrid">
                 <% if (typeof products !== 'undefined' && products.length > 0) { %>
                     <% products.forEach(product => { %>
-                        <% const variant = product.displayVariant; %>
+                        <% 
+                            const variant = product.displayVariant; 
+                            const pIdStr = product._id.toString();
+                            const pReview = (typeof productRatingsMap !== 'undefined' && productRatingsMap[pIdStr]) ? productRatingsMap[pIdStr] : null;
+                        %>
                         <div class="product-card clickable-product-card" data-product-id="<%= product._id %>">
                             <div class="product-image">
                                 <a href="/products/<%= product._id %>">
@@ -68,7 +72,24 @@
                             </div>
                             <div class="product-info">
                                 <h3><a href="/products/<%= product._id %>"><%= product.name %> (<%= variant.variantName %>)</a></h3>
-                                <div class="stars"><i class="fa-solid fa-star"></i> 4.8 (150)</div>
+                                
+                                <div class="stars">
+                                    <% if (pReview && pReview.count > 0) { %>
+                                        <% for (let rStar = 1; rStar <= 5; rStar++) { %>
+                                            <% if (pReview.avgRating >= rStar) { %>
+                                                <i class="fa-solid fa-star active-star"></i>
+                                            <% } else if (pReview.avgRating >= rStar - 0.5) { %>
+                                                <i class="fa-solid fa-star-half-stroke active-star"></i>
+                                            <% } else { %>
+                                                <i class="fa-regular fa-star empty-star"></i>
+                                            <% } %>
+                                        <% } %>
+                                        <span class="card-review-stat"><%= pReview.avgRating %> (<%= pReview.count %>)</span>
+                                    <% } else { %>
+                                        <span class="no-card-reviews">No reviews yet</span>
+                                    <% } %>
+                                </div>
+
                                 <div class="card-footer">
                                     <p class="price">
                                         <% if (variant.discount > 0) { %>

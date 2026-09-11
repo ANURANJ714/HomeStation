@@ -54,6 +54,9 @@ export const loadProductsCatalogPage = async (req, res) => {
             getUserHeaderCounts(userId)
         ]);
 
+        const catalogProductIds = (catalogResult.products || []).map(p => p._id);
+        const productRatingsMap = await reviewService.getMultipleProductReviewSummaries(catalogProductIds);
+
         logger.info(`Catalog rendered safely for categories [${selectedCategoriesArray.join(', ')}] by User: ${user ? user.email : 'Guest'}`);
 
         return res.render('user/categories', {
@@ -61,6 +64,7 @@ export const loadProductsCatalogPage = async (req, res) => {
             categories: metaData.categories,
             brands: uniqueBrands,
             products: catalogResult.products,
+            productRatingsMap,
             currentPage: page,
             totalPages: catalogResult.totalPages,
             totalItems: catalogResult.totalItems,
@@ -106,19 +110,24 @@ export const loadProductDetailViewPage = async (req, res) => {
             reviewService.getProductReviewsPreview(id)
         ]);
 
-        logger.info(`Product detail view loaded successfully for ID: ${id} by User: ${user ? user.email : 'Guest'} | IP: ${req.ip}`);
+        const relatedProductIds = (catalogContext.relatedProducts || []).map(p => p._id);
+        const relatedRatingsMap = await reviewService.getMultipleProductReviewSummaries(relatedProductIds);
+
+        logger.info(`Product detail view loaded successfully for ID: ${id} | Reviews: ${reviewData.totalReviewsCount} | Avg: ${reviewData.averageRating} | User: ${user ? user.email : 'Guest'}`);
 
         return res.render('user/productdetails', {
             user,
             product: catalogContext.product,
             variants: catalogContext.variants,
             related: catalogContext.relatedProducts,
+            relatedRatingsMap,
             bannerText,
             userWishlist,
             wishlistCount: headerCounts.wishlistCount,
             cartCount: headerCounts.cartCount,
             reviews: reviewData.reviews,
             totalReviewsCount: reviewData.totalReviewsCount,
+            averageRating: reviewData.averageRating,
             csrfToken: req.csrfToken ? req.csrfToken() : '',
             errorAlert: null
         });
@@ -213,6 +222,9 @@ export const executeCatalogSearchPage = async (req, res) => {
             getUserHeaderCounts(userId)
         ]);
 
+        const productIds = (searchResults.products || []).map(p => p._id).filter(Boolean);
+        const productRatingsMap = await reviewService.getMultipleProductReviewSummaries(productIds);
+
         logger.info(`User [${user ? user.email : 'Guest'}] queried active tokens: "${searchQuery}" - Returned ${searchResults.totalItems} entries.`);
 
         return res.render('user/searchresult', {
@@ -223,6 +235,7 @@ export const executeCatalogSearchPage = async (req, res) => {
             currentPage: page,
             searchQuery,
             currentSort,
+            productRatingsMap,
             bannerText,
             userWishlist,
             wishlistCount: headerCounts.wishlistCount,
@@ -251,6 +264,12 @@ export const loadTopDealsPage = async (req, res) => {
             getUserHeaderCounts(userId)
         ]);
 
+        const productIds = (dealsData.variants || [])
+            .map(v => v.productId?._id || v.productId)
+            .filter(Boolean);
+
+        const productRatingsMap = await reviewService.getMultipleProductReviewSummaries(productIds);
+
         logger.info(`Top Deals view aggregated for [${user ? user.email : 'Guest'}] - Applied Price Sort Filter: [${priceSort}]`);
 
         return res.render('user/topdeals', {
@@ -260,6 +279,7 @@ export const loadTopDealsPage = async (req, res) => {
             totalPages: dealsData.totalPages,
             currentPage: dealsData.currentPage,
             currentPriceSort: priceSort,
+            productRatingsMap,
             bannerText,
             userWishlist,
             wishlistCount: headerCounts.wishlistCount,
@@ -287,6 +307,12 @@ export const loadBestsellersPage = async (req, res) => {
             getUserHeaderCounts(userId)
         ]);
 
+        const productIds = (catalogData.variants || [])
+            .map(v => v.productId?._id || v.productId)
+            .filter(Boolean);
+
+        const productRatingsMap = await reviewService.getMultipleProductReviewSummaries(productIds);
+
         logger.info(`Bestsellers catalog rendered for [${user ? user.email : 'Guest'}] - Applied Price Sort: [${priceSort}]`);
 
         return res.render('user/bestseller', {
@@ -296,6 +322,7 @@ export const loadBestsellersPage = async (req, res) => {
             totalPages: catalogData.totalPages,
             currentPage: catalogData.currentPage,
             currentPriceSort: priceSort,
+            productRatingsMap,
             bannerText,
             userWishlist,
             wishlistCount: headerCounts.wishlistCount,

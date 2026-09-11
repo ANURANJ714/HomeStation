@@ -341,6 +341,27 @@ ul {
     color: #8b0000;
 }
 
+.item-rating .active-star {
+    color: #f5a623 !important;
+}
+
+.item-rating .empty-star {
+    color: #d1d5db !important;
+}
+
+.item-rating .card-review-stat {
+    color: #555;
+    font-size: 13px;
+    font-weight: 500;
+    margin-left: 5px;
+}
+
+.item-rating .no-card-reviews {
+    color: #888;
+    font-size: 12.5px;
+    font-style: italic;
+}
+
 .original-price {
     font-size: 14px;
     text-decoration: line-through;
