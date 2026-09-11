@@ -1,11 +1,10 @@
-import User from '../../models/User.js'; 
 import { validateRegistrationData, createLocalUser } from '../../services/user/authService.js';
 import * as userService from '../../services/admin/adminUserService.js';
 import logger from '../../utils/logger.js';
 
 export const getUserManagement = async (req, res) => {
     try {
-        const page = parseInt(req.query.page) || 1;
+        const page = parseInt(req.query.page, 10) || 1;
         const limit = 5;
         const search = req.query.search ? String(req.query.search).trim() : '';
         const role = req.query.role ? String(req.query.role).trim() : '';
@@ -16,23 +15,42 @@ export const getUserManagement = async (req, res) => {
         const adminEmail = adminObj.email || 'Unknown Admin';
 
         const data = await userService.getPaginatedUsers({
-            page, limit, search, role, status, sort
+            page,
+            limit,
+            search,
+            role,
+            status,
+            sort
+        });
+
+        const userIds = data.users.map(u => u._id);
+
+        const metricsMap = await userService.getUsersOrderAndSpendMetrics(userIds);
+
+        const usersWithMetrics = data.users.map(user => {
+            const metrics = metricsMap[user._id.toString()] || { totalOrders: 0, totalSpent: 0 };
+            return {
+                ...user,
+                totalOrders: metrics.totalOrders,
+                totalSpent: metrics.totalSpent
+            };
         });
 
         logger.info(`Admin (${adminEmail}) loaded user management (Page: ${data.pagination.page}, Role: ${role || 'All'}, Status: ${status || 'All'}, Search: "${search}")`);
 
-        res.render('admin/usermanagement', {
-            admin: req.admin, 
-            users: data.users,
+        return res.render('admin/usermanagement', {
+            admin: req.admin,
+            users: usersWithMetrics,
             stats: data.stats,
             filters: { search, role, status, sort },
-            pagination: data.pagination
+            pagination: data.pagination,
+            csrfToken: req.csrfToken ? req.csrfToken() : ''
         });
 
     } catch (error) {
         logger.error(`Error loading User Management page: ${error.message}\nStack: ${error.stack}`);
-        
-        res.status(500).json({
+
+        return res.status(500).json({
             success: false,
             title: "Server Error",
             message: "An internal server error occurred while loading the user management page."

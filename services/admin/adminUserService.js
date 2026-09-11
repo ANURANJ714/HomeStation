@@ -1,4 +1,5 @@
 import User from '../../models/User.js';
+import Order from '../../models/Order.js';
 
 export const getPaginatedUsers = async (params) => {
     try {
@@ -81,5 +82,58 @@ export const toggleUserBlockStatus = async (userId) => {
 
     } catch (error) {
         throw new Error(`Database error while toggling user status: ${error.message}`);
+    }
+};
+
+export const getUsersOrderAndSpendMetrics = async (userIds) => {
+    try {
+        if (!userIds || userIds.length === 0) {
+            return {};
+        }
+
+        const orders = await Order.find({ userId: { $in: userIds } }).lean();
+
+        const metricsMap = {};
+
+        userIds.forEach((id) => {
+            metricsMap[id.toString()] = {
+                totalOrders: 0,
+                totalSpent: 0
+            };
+        });
+
+        orders.forEach((order) => {
+            const uid = order.userId.toString();
+            if (!metricsMap[uid]) return;
+
+            metricsMap[uid].totalOrders += 1;
+
+            const paymentMode = (order.paymentMode || '').toLowerCase();
+
+            (order.orderItems || []).forEach((item) => {
+                const itemStatus = (item.itemStatus || '').toLowerCase();
+                const returnStatus = (item.returnStatus || '').toLowerCase();
+                const itemTotal = (item.currentPrice || 0) * (item.quantity || 1);
+
+                if ((paymentMode === 'razorpay' || paymentMode === 'wallet') &&
+                    (itemStatus === 'cancelled' || returnStatus === 'item reached')) {
+                    return;
+                }
+
+                if (paymentMode === 'cod' && itemStatus !== 'delivered' && returnStatus === 'none') {
+                    return;
+                }
+
+                if (paymentMode === 'cod' && itemStatus === 'delivered' && returnStatus === 'item reached') {
+                    return;
+                }
+
+                metricsMap[uid].totalSpent += itemTotal;
+            });
+        });
+
+        return metricsMap;
+    } catch (error) {
+        throw new Error(`Database error while calculating user metrics: ${error.message}`);
     }
 };
