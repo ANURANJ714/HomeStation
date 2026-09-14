@@ -158,6 +158,38 @@ const generateProductId = async () => {
     return `PRD-${nextIdNumber.toString().padStart(4, '0')}`;
 };
 
+export const softDeleteProductById = async (idFromFrontend) => {
+    try {
+        const query = {
+            $or: [{ productId: idFromFrontend }]
+        };
+
+        if (mongoose.isValidObjectId(idFromFrontend)) {
+            query.$or.push({ _id: idFromFrontend });
+        }
+
+        const product = await Product.findOne(query);
+
+        if (!product) {
+            return {
+                isFound: false,
+                message: 'Product not found in the database.'
+            };
+        }
+
+        product.isDeleted = true;
+        await product.save();
+
+        return {
+            isFound: true,
+            productName: product.name,
+            message: 'Product successfully moved to Recycle Bin.'
+        };
+    } catch (error) {
+        throw new Error(`Database error while soft deleting product: ${error.message}`);
+    }
+};
+
 export const validateProductInput = async (productData, variantData, imageUrls) => {
     try {
         const errorMessages = [];

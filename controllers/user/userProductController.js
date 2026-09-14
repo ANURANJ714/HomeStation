@@ -1,8 +1,10 @@
+import mongoose from 'mongoose';
 import * as productService from '../../services/user/userProductService.js';
 import * as wishlistService from '../../services/user/wishlistService.js';
 import * as reviewService from '../../services/user/reviewService.js';
 import { getActivePromoBanner } from '../../services/user/bannerService.js';
 import { getUserHeaderCounts } from '../../services/user/badgeService.js';
+import { notFoundMiddleware } from '../../middlewares/notFoundMiddleware.js';
 import logger from '../../utils/logger.js';
 
 export const loadProductsCatalogPage = async (req, res) => {
@@ -97,9 +99,9 @@ export const loadProductDetailViewPage = async (req, res) => {
         const user = req.user || null;
         const userId = user ? user._id : null;
 
-        if (!id) {
-            logger.warn(`Product detail request rejected: ID parameter missing | IP: ${req.ip}`);
-            return res.status(400).json({ success: false, message: "Target resource context ID reference is missing." });
+        if (!id || !mongoose.Types.ObjectId.isValid(id)) {
+            logger.warn(`Product detail 404: Invalid or malformed ObjectId provided [${id}] | IP: ${req.ip}`);
+            return notFoundMiddleware(req, res);
         }
 
         const [catalogContext, bannerText, userWishlist, headerCounts, reviewData] = await Promise.all([
@@ -109,6 +111,11 @@ export const loadProductDetailViewPage = async (req, res) => {
             getUserHeaderCounts(userId),
             reviewService.getProductReviewsPreview(id)
         ]);
+
+        if (!catalogContext || !catalogContext.product) {
+            logger.warn(`Product detail 404: Product ID not found in database [${id}] | IP: ${req.ip}`);
+            return notFoundMiddleware(req, res);
+        }
 
         const relatedProductIds = (catalogContext.relatedProducts || []).map(p => p._id);
         const relatedRatingsMap = await reviewService.getMultipleProductReviewSummaries(relatedProductIds);
@@ -145,6 +152,11 @@ export const loadProductDetailViewPage = async (req, res) => {
             }
 
             return res.redirect('/products');
+        }
+
+        if (error.name === 'CastError' || error.name === 'BSONError' || error.message.includes('24 character hex string')) {
+            logger.warn(`Product detail 404: Cast/BSON parse error for ID (${req.params.id}) | IP: ${req.ip}`);
+            return notFoundMiddleware(req, res);
         }
 
         logger.error(`Error loading Product details (ID: ${req.params.id}): ${error.message}\nStack: ${error.stack}`);

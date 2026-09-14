@@ -1,9 +1,6 @@
-import Product from "../../models/Products.js";
-import ProductVariant from "../../models/ProductVariant.js";
-import Category from "../../models/Category.js";
 import logger from '../../utils/logger.js';
 import * as productService from "../../services/admin/productService.js";
-import mongoose from "mongoose";
+import { notFoundMiddleware } from '../../middlewares/notFoundMiddleware.js';
 
 export const loadProducts = async (req, res) => {
     try {
@@ -129,28 +126,39 @@ export const viewProduct = async (req, res) => {
     const { product_id } = req.params;
     const adminEmail = req.user ? req.user.email : 'Unknown Admin';
 
-    const result = await productService.getProductDetailsForView(product_id);
+    if (!product_id || !product_id.trim()) {
+      logger.warn(`Admin product view 404: Missing product_id parameter | Attempted by: ${adminEmail}`);
+      return notFoundMiddleware(req, res);
+    }
 
-    if (!result) {
-      logger.warn(`Product view blocked: ID ${product_id} not found or deleted. Attempted by: ${adminEmail}`);
-      return res.status(404).json({ 
-        success: false, 
-        message: "Product not found." 
-      });
+    const result = await productService.getProductDetailsForView(product_id.trim());
+
+    if (!result || !result.productData) {
+      logger.warn(`Admin product view 404: Product ID "${product_id}" not found or deleted | Attempted by: ${adminEmail}`);
+      return notFoundMiddleware(req, res);
     }
 
     logger.info(`Admin (${adminEmail}) viewed details for product "${result.productData.name}" (ID: ${product_id})`);
 
-    res.render("admin/viewproduct", {
+    return res.render("admin/viewproduct", {
       product: result.productData,
       totalStock: result.totalStock,
       priceDisplay: result.priceDisplay,
     });
     
   } catch (error) {
+    if (
+      error.name === 'CastError' || 
+      error.name === 'BSONError' || 
+      error.message.includes('24 character hex string')
+    ) {
+      logger.warn(`Admin product view 404: Malformed ID cast error for ID "${req.params.product_id}" | Error: ${error.message}`);
+      return notFoundMiddleware(req, res);
+    }
+
     logger.error(`Error viewing product ID ${req.params.product_id}: ${error.message}\nStack: ${error.stack}`);
     
-    res.status(500).json({ 
+    return res.status(500).json({ 
       success: false, 
       title: "Server Error", 
       message: "An internal server error occurred." 
@@ -163,28 +171,39 @@ export const getEditProductPage = async (req, res) => {
         const { product_id } = req.params;
         const adminEmail = req.user ? req.user.email : 'Unknown Admin';
 
-        const result = await productService.getProductDetailsForEdit(product_id);
+        if (!product_id || !product_id.trim()) {
+            logger.warn(`Admin edit product 404: Missing product_id parameter | Attempted by: ${adminEmail}`);
+            return notFoundMiddleware(req, res);
+        }
 
-        if (result.isNotFound) {
-            logger.warn(`Edit product page access blocked: Product ID ${product_id} not found. Attempted by: ${adminEmail}`);
-            return res.status(404).json({ 
-                success: false, 
-                message: "Product not found!" 
-            });
+        const result = await productService.getProductDetailsForEdit(product_id.trim());
+
+        if (!result || result.isNotFound || !result.product) {
+            logger.warn(`Admin edit product 404: Product ID "${product_id}" not found. Attempted by: ${adminEmail}`);
+            return notFoundMiddleware(req, res);
         }
 
         logger.info(`Admin (${adminEmail}) accessed the Edit page for product "${result.product.name}" (ID: ${product_id}).`);
 
-        res.render("admin/editproduct", {
+        return res.render("admin/editproduct", {
             product: result.product,
             categories: result.categories,
             variants: result.variants,
         });
 
     } catch (error) {
+        if (
+            error.name === 'CastError' || 
+            error.name === 'BSONError' || 
+            error.message.includes('24 character hex string')
+        ) {
+            logger.warn(`Admin edit product 404: Malformed ID cast error for ID "${req.params.product_id}" | Error: ${error.message}`);
+            return notFoundMiddleware(req, res);
+        }
+
         logger.error(`Error loading edit product page (ID: ${req.params.product_id}): ${error.message}\nStack: ${error.stack}`);
         
-        res.status(500).json({
+        return res.status(500).json({
             success: false, 
             title: "Server Error", 
             message: "An internal server error occurred while loading the page."
@@ -260,52 +279,46 @@ export const updateProduct = async (req, res) => {
 };
 
 export const softDeleteProduct = async (req, res) => {
-  try {
-    const idFromFrontend = req.params.product_id.trim();
+    try {
+        const adminEmail = req.user ? req.user.email : 'Unknown Admin';
+        const idFromFrontend = req.params.product_id ? req.params.product_id.trim() : '';
 
-    if (
-      idFromFrontend === "null" ||
-      idFromFrontend === "undefined" ||
-      !idFromFrontend
-    ) {
-      return res
-        .status(400)
-        .json({ success: false, message: "Invalid ID sent to server." });
-    }
+        if (
+            !idFromFrontend ||
+            idFromFrontend === 'null' ||
+            idFromFrontend === 'undefined'
+        ) {
+            logger.warn(`Soft delete rejected: Invalid ID parameter [${idFromFrontend}] by Admin (${adminEmail})`);
+            return res.status(400).json({
+                success: false,
+                message: 'Invalid ID sent to server.'
+            });
+        }
 
-    const query = {
-      $or: [{ productId: idFromFrontend }],
-    };
+        const result = await productService.softDeleteProductById(idFromFrontend);
 
-    if (mongoose.isValidObjectId(idFromFrontend)) {
-      query.$or.push({ _id: idFromFrontend });
-    }
+        if (!result.isFound) {
+            logger.warn(`Soft delete failed: Product not found for ID [${idFromFrontend}] by Admin (${adminEmail})`);
+            return res.status(404).json({
+                success: false,
+                message: result.message
+            });
+        }
 
-    const product = await Product.findOne(query);
+        logger.info(`Admin (${adminEmail}) soft deleted product "${result.productName}" (ID: ${idFromFrontend})`);
 
-    if (!product) {
-      return res
-        .status(404)
-        .json({
-          success: false,
-          message: "Product not found in the database.",
+        return res.status(200).json({
+            success: true,
+            message: result.message
+        });
+
+    } catch (error) {
+        logger.error(`Error soft deleting product (ID: ${req.params.product_id}): ${error.message}\nStack: ${error.stack}`);
+        return res.status(500).json({
+            success: false,
+            message: 'An error occurred while deleting the product.'
         });
     }
-
-    product.isDeleted = true;
-    await product.save();
-    
-    return res.json({
-      success: true,
-      message: "Product successfully moved to Recycle Bin.",
-    });
-  } catch (error) {
-    console.error("Error soft deleting product:", error);
-    return res.status(500).json({
-      success: false,
-      message: "An error occurred while deleting the product.",
-    });
-  }
 };
 
 export const loadDeletedProducts = async (req, res) => {

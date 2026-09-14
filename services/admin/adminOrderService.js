@@ -165,7 +165,7 @@ export const getOrderDetailsByOrderIdAndItemId = async (orderId, orderItemId = n
     try {
         if (!orderId) return null;
 
-        const formattedId = formatOrderId(orderId);
+        const formattedId = orderId.startsWith('#') ? orderId : `#${orderId}`;
 
         const order = await Order.findOne({ 
             $or: [{ orderId: formattedId }, { orderId }] 
@@ -180,14 +180,19 @@ export const getOrderDetailsByOrderIdAndItemId = async (orderId, orderItemId = n
             })
             .lean();
 
-        if (!order) return null;
-
-        let targetItem = null;
-        if (orderItemId) {
-            targetItem = order.orderItems.find(i => i._id.toString() === orderItemId.toString());
+        if (!order || !order.orderItems || order.orderItems.length === 0) {
+            return null;
         }
 
-        if (!targetItem && order.orderItems && order.orderItems.length > 0) {
+        let targetItem = null;
+
+        if (orderItemId) {
+            targetItem = order.orderItems.find(i => i._id && i._id.toString() === orderItemId.toString()) || null;
+            
+            if (!targetItem) {
+                return null;
+            }
+        } else {
             targetItem = order.orderItems[0];
         }
 

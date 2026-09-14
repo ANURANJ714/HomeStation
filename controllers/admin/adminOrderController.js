@@ -1,5 +1,7 @@
 import logger from '../../utils/logger.js';
+import mongoose from 'mongoose';
 import * as adminOrderService from '../../services/admin/adminOrderService.js';
+import { notFoundMiddleware } from '../../middlewares/notFoundMiddleware.js';
 
 export const loadOrdersPage = async (req, res) => {
     try {
@@ -41,13 +43,30 @@ export const loadViewOrderPage = async (req, res) => {
         const clientIp = req.ip;
         const adminEmail = req.user?.email || req.session?.admin?.email || 'Unknown Admin';
         const { orderId } = req.params;
-        const orderItemId = req.query._id || req.query.itemId || null;
+        const rawItemId = req.query._id || req.query.itemId || null;
 
-        const result = await adminOrderService.getOrderDetailsByOrderIdAndItemId(orderId, orderItemId);
+        if (!orderId || !orderId.trim()) {
+            logger.warn(`Admin view order 404: Missing orderId path parameter | IP: ${clientIp}`);
+            return notFoundMiddleware(req, res);
+        }
+
+        let cleanItemId = null;
+        if (rawItemId) {
+            const trimmedItemId = rawItemId.trim();
+            if (!mongoose.Types.ObjectId.isValid(trimmedItemId)) {
+                logger.warn(`Admin view order 404: Malformed query item ObjectId [${rawItemId}] for Order [${orderId}] | IP: ${clientIp}`);
+                return notFoundMiddleware(req, res);
+            }
+            cleanItemId = trimmedItemId;
+        }
+
+        const cleanOrderId = orderId.trim();
+
+        const result = await adminOrderService.getOrderDetailsByOrderIdAndItemId(cleanOrderId, cleanItemId);
 
         if (!result || !result.order || !result.item) {
-            logger.warn(`Admin (${adminEmail}) tried to view non-existing order/item: ${orderId} | IP: ${clientIp}`);
-            return res.redirect('/admin/orders');
+            logger.warn(`Admin view order 404: Order [${cleanOrderId}] or Item [${cleanItemId || 'default'}] not found | Attempted by: ${adminEmail} | IP: ${clientIp}`);
+            return notFoundMiddleware(req, res);
         }
 
         const { order, item } = result;
@@ -86,6 +105,15 @@ export const loadViewOrderPage = async (req, res) => {
         });
 
     } catch (error) {
+        if (
+            error.name === 'CastError' || 
+            error.name === 'BSONError' || 
+            error.message.includes('24 character hex string')
+        ) {
+            logger.warn(`Admin view order 404: Malformed query ID cast error for Order (${req.params?.orderId}) | Error: ${error.message}`);
+            return notFoundMiddleware(req, res);
+        }
+
         logger.error(`Error loading view order page for Order (${req.params?.orderId}): ${error.message}\nStack: ${error.stack}`);
         return res.status(500).json({
             success: false,

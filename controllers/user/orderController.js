@@ -3,6 +3,7 @@ import * as orderService from '../../services/user/orderService.js';
 import * as reviewService from '../../services/user/reviewService.js';
 import { getActivePromoBanner } from '../../services/user/bannerService.js';
 import { getUserHeaderCounts } from '../../services/user/badgeService.js';
+import { notFoundMiddleware } from '../../middlewares/notFoundMiddleware.js';
 
 export const loadUserOrdersPage = async (req, res) => {
     try {
@@ -63,15 +64,22 @@ export const loadUserOrderDetailPage = async (req, res) => {
         const userId = req.user._id;
         const { orderId } = req.params;
 
+        if (!orderId || !orderId.trim()) {
+            logger.warn(`User order detail 404: Missing orderId parameter | User: ${userEmail} | IP: ${clientIp}`);
+            return notFoundMiddleware(req, res);
+        }
+
+        const cleanOrderId = orderId.trim();
+
         const [order, bannerText, headerCounts] = await Promise.all([
-            orderService.getUserOrderFullDetails(userId, orderId),
+            orderService.getUserOrderFullDetails(userId, cleanOrderId),
             getActivePromoBanner(),
             getUserHeaderCounts(userId)
         ]);
 
         if (!order || !order.orderItems || order.orderItems.length === 0) {
-            logger.warn(`User (${userEmail}) attempted to access invalid order: ${orderId} | IP: ${clientIp}`);
-            return res.redirect('/user/orders');
+            logger.warn(`User order detail 404: Order [${cleanOrderId}] not found for (${userEmail}) | IP: ${clientIp}`);
+            return notFoundMiddleware(req, res);
         }
 
         const itemStatuses = order.orderItems.map(i => i.itemStatus);
@@ -189,6 +197,15 @@ export const loadUserOrderDetailPage = async (req, res) => {
         });
 
     } catch (error) {
+        if (
+            error.name === 'CastError' || 
+            error.name === 'BSONError' || 
+            error.message.includes('24 character hex string')
+        ) {
+            logger.warn(`User order detail 404: Cast/BSON parse error for Order (${req.params?.orderId}) | Error: ${error.message}`);
+            return notFoundMiddleware(req, res);
+        }
+
         logger.error(`Error loading order details for (${req.user?.email || 'Unknown'}): ${error.message}\nStack: ${error.stack}`);
         return res.status(500).json({
             success: false,
