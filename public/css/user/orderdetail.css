@@ -588,6 +588,33 @@ ul {
   gap: 6px;
 }
 
+.badge-payment-status {
+    display: inline-block;
+    padding: 3px 10px;
+    font-size: 13px;
+    font-weight: 600;
+    border-radius: 4px;
+    text-transform: capitalize;
+}
+
+.badge-payment-paid {
+    background-color: #e8f5e9;
+    color: #2e7d32;
+    border: 1px solid #c8e6c9;
+}
+
+.badge-payment-unpaid {
+    background-color: #fff8e1;
+    color: #f57f17;
+    border: 1px solid #ffecb3;
+}
+
+.badge-payment-refunded {
+    background-color: #ede7f6;
+    color: #512da8;
+    border: 1px solid #d1c4e9;
+}
+
 @media (max-width: 768px) {
   .order-detail-wrapper {
     padding: 30px 0 60px;

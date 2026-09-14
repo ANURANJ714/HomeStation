@@ -108,7 +108,7 @@
                         </div>
                         <div class="detail-item">
                             <span class="detail-label">Payment Mode</span>
-                            <span class="detail-value"><%= paymentModeLabel %> · <%= paymentStatusText %></span>
+                            <span class="detail-value"><%= paymentModeLabel %></span>
                         </div>
 
                         <% if (order.orderItems && order.orderItems.length > 0) { %>
@@ -177,9 +177,19 @@
                                             <span class="detail-label">Category</span>
                                             <span class="detail-value"><%= categoryName %></span>
                                         </div>
+
                                         <div class="info-group">
                                             <span class="detail-label">Price & Quantity</span>
                                             <span class="detail-value">₹<%= item.currentPrice.toLocaleString('en-IN') %> × <%= item.quantity %> = <strong>₹<%= (item.currentPrice * item.quantity).toLocaleString('en-IN') %></strong></span>
+                                        </div>
+
+                                        <div class="info-group">
+                                            <span class="detail-label">Payment Status</span>
+                                            <span class="detail-value">
+                                                <span class="badge-payment-status badge-payment-<%= item.paymentStatusText.toLowerCase() %>">
+                                                    <%= item.paymentStatusText %>
+                                                </span>
+                                            </span>
                                         </div>
 
                                         <div class="item-actions-row">

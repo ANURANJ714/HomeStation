@@ -86,18 +86,44 @@ export const loadUserOrderDetailPage = async (req, res) => {
             : 'none';
 
         let paymentModeLabel = 'COD';
-        let paymentStatusText = 'Unpaid';
-
         if (order.paymentMode === 'razorpay') {
             paymentModeLabel = 'Razorpay Online';
-            paymentStatusText = 'Paid';
         } else if (order.paymentMode === 'wallet') {
             paymentModeLabel = 'Wallet';
-            paymentStatusText = 'Paid';
         } else if (order.paymentMode === 'cod') {
             paymentModeLabel = 'Cash on Delivery';
-            paymentStatusText = overallStatus === 'delivered' ? 'Paid' : 'Unpaid';
         }
+
+        const calculatePaymentStatus = (mode, itemStatus, returnStatus) => {
+            if (returnStatus === 'item reached') {
+                return 'Refunded';
+            }
+
+            if (mode === 'razorpay' || mode === 'wallet') {
+                if (itemStatus === 'cancelled') {
+                    return 'Refunded';
+                }
+                if (itemStatus !== 'cancelled' && returnStatus !== 'item reached') {
+                    return 'Paid';
+                }
+            }
+
+            if (mode === 'cod') {
+                if (itemStatus !== 'delivered' && returnStatus === 'none') {
+                    return 'Unpaid';
+                }
+                if (itemStatus === 'delivered' && returnStatus !== 'item reached') {
+                    return 'Paid';
+                }
+            }
+
+            return 'Unpaid';
+        };
+
+        order.orderItems = order.orderItems.map(item => ({
+            ...item,
+            paymentStatusText: calculatePaymentStatus(order.paymentMode, item.itemStatus, item.returnStatus)
+        }));
 
         const createdDateObj = new Date(order.createdAt);
         const formattedOrderDate = createdDateObj.toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' });
@@ -145,7 +171,6 @@ export const loadUserOrderDetailPage = async (req, res) => {
             overallStatus,
             overallReturnStatus,
             paymentModeLabel,
-            paymentStatusText,
             formattedOrderDate,
             formattedUpdatedDate,
             formattedExpectedDate,
