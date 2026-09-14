@@ -60,20 +60,31 @@ export const getProductsPageData = async (queryOptions) => {
 export const getCatalogPageMetadata = async (selectedCategoriesArray = []) => {
     try {
         const activeCategories = await Category.find({ isDeleted: false }).sort({ name: 1 }).lean();
-        
+
         let pageHeading = 'World of Mattress';
+        let categoryNotFound = false;
+
         if (selectedCategoriesArray.length === 1) {
             const singleCat = activeCategories.find(c => c._id.toString() === selectedCategoriesArray[0]);
             if (singleCat) {
                 pageHeading = singleCat.name;
+            } else {
+                categoryNotFound = true;
             }
         } else if (selectedCategoriesArray.length > 1) {
-            pageHeading = `Selected Categories (${selectedCategoriesArray.length})`;
+            const activeCategoryIds = new Set(activeCategories.map(c => c._id.toString()));
+            const hasInvalidCategory = selectedCategoriesArray.some(catId => !activeCategoryIds.has(catId));
+            if (hasInvalidCategory) {
+                categoryNotFound = true;
+            } else {
+                pageHeading = `Selected Categories (${selectedCategoriesArray.length})`;
+            }
         }
 
         return {
             categories: activeCategories,
-            pageHeading
+            pageHeading,
+            categoryNotFound
         };
     } catch (error) {
         throw new Error(`Database error while fetching catalog metadata: ${error.message}`);

@@ -1,4 +1,3 @@
-import bcrypt from 'bcryptjs';
 import crypto from 'crypto';
 import {sendOtpEmail} from '../../services/user/emailService.js'
 import logger from '../../utils/logger.js';

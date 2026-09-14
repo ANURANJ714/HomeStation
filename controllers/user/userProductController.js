@@ -27,6 +27,13 @@ export const loadProductsCatalogPage = async (req, res) => {
             selectedCategoriesArray = [String(req.query.category).trim()];
         }
 
+        for (const catId of selectedCategoriesArray) {
+            if (!mongoose.Types.ObjectId.isValid(catId)) {
+                logger.warn(`Catalog 404: Malformed Category ObjectId [${catId}] | IP: ${req.ip}`);
+                return notFoundMiddleware(req, res);
+            }
+        }
+
         const currentSort = req.query.sort ? String(req.query.sort).trim() : 'all';
         const searchQuery = req.query.q ? String(req.query.q).trim() : '';
         const page = Math.max(1, parseInt(req.query.page, 10) || 1);
@@ -56,6 +63,11 @@ export const loadProductsCatalogPage = async (req, res) => {
             getUserHeaderCounts(userId)
         ]);
 
+        if (metaData.categoryNotFound) {
+            logger.warn(`Catalog 404: Requested category not found [${selectedCategoriesArray.join(', ')}] | IP: ${req.ip}`);
+            return notFoundMiddleware(req, res);
+        }
+
         const catalogProductIds = (catalogResult.products || []).map(p => p._id);
         const productRatingsMap = await reviewService.getMultipleProductReviewSummaries(catalogProductIds);
 
@@ -80,10 +92,19 @@ export const loadProductsCatalogPage = async (req, res) => {
             wishlistCount: headerCounts.wishlistCount,
             cartCount: headerCounts.cartCount,
             errorAlert: serverAlert,
-            csrfToken: req.csrfToken()
+            csrfToken: req.csrfToken ? req.csrfToken() : ''
         });
 
     } catch (error) {
+        if (
+            error.name === 'CastError' || 
+            error.name === 'BSONError' || 
+            error.message.includes('24 character hex string')
+        ) {
+            logger.warn(`Catalog 404: Cast/BSON error on category query: ${error.message} | IP: ${req.ip}`);
+            return notFoundMiddleware(req, res);
+        }
+
         logger.error(`Critical Product Catalog Controller Failure: ${error.message}\nStack: ${error.stack}`);
         
         return res.status(500).json({ 
