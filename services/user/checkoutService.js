@@ -12,7 +12,7 @@ export const validateCartForCheckout = async (userId) => {
                     populate: { path: 'categoryId' }
                 }
             })
-            .lean(); 
+            .lean();
 
         if (!cartItems || cartItems.length === 0) {
             return {
@@ -23,18 +23,21 @@ export const validateCartForCheckout = async (userId) => {
         }
 
         const validItems = [];
+        const unavailableProductNames = [];
 
         for (const item of cartItems) {
             const variant = item.productVariantId;
-            if (!variant) continue;
+            const product = variant?.productId;
+            const category = product?.categoryId;
 
-            const product = variant.productId;
-            if (!product || product.isDeleted === true) continue;
+            const isVariantMissing = !variant;
+            const isProductDeleted = !product || product.isDeleted === true;
+            const isCategoryDeleted = category && category.isDeleted === true;
+            const isOutOfStock = typeof variant?.stock === 'number' && variant.stock <= 0;
 
-            const category = product.categoryId;
-            if (category && category.isDeleted === true) continue;
-
-            if (typeof variant.stock === 'number' && variant.stock <= 0) {
+            if (isVariantMissing || isProductDeleted || isCategoryDeleted || isOutOfStock) {
+                const name = product ? `${product.name} (${variant?.variantName || 'Item'})` : 'An item';
+                unavailableProductNames.push(name);
                 continue;
             }
 
@@ -60,9 +63,14 @@ export const validateCartForCheckout = async (userId) => {
             };
         }
 
+        const warningNotice = unavailableProductNames.length > 0 
+            ? `${unavailableProductNames.join(', ')} is out of stock or no longer available and was excluded from checkout.`
+            : null;
+
         return {
             isValid: true,
-            cartItems: validItems
+            cartItems: validItems,
+            warningNotice
         };
     } catch (error) {
         throw new Error(`Checkout validation service error: ${error.message}`);
@@ -92,6 +100,7 @@ export const validateCheckoutSessionOrder = async (checkoutOrder) => {
 
         const validItems = [];
         let subtotal = 0;
+        const unavailableProductNames = [];
 
         for (const item of checkoutOrder.cartItems) {
             const variantId = item.productVariantId?._id || item.productVariantId;
@@ -102,15 +111,21 @@ export const validateCheckoutSessionOrder = async (checkoutOrder) => {
                 populate: { path: 'categoryId' }
             }).lean();
 
-            if (!variant) continue;
+            if (!variant) {
+                unavailableProductNames.push('An item');
+                continue;
+            }
 
             const product = variant.productId;
             const category = product?.categoryId;
 
-            if (!product || product.isDeleted === true) continue;
-            if (category && category.isDeleted === true) continue;
+            const isProductDeleted = !product || product.isDeleted === true;
+            const isCategoryDeleted = category && category.isDeleted === true;
+            const isOutOfStock = typeof variant.stock === 'number' && variant.stock <= 0;
 
-            if (typeof variant.stock === 'number' && variant.stock <= 0) {
+            if (isProductDeleted || isCategoryDeleted || isOutOfStock) {
+                const name = product ? `${product.name} (${variant.variantName})` : 'An item';
+                unavailableProductNames.push(name);
                 continue;
             }
 
@@ -119,6 +134,7 @@ export const validateCheckoutSessionOrder = async (checkoutOrder) => {
                     isValid: false,
                     reason: 'STOCK_EXCEEDED',
                     message: `Only ${variant.stock} item(s) are available in stock for ${product.name} (${variant.variantName}).`,
+                    variantId: variant._id.toString(),
                     availableStock: variant.stock,
                     productName: `${product.name} (${variant.variantName})`
                 };
@@ -140,17 +156,66 @@ export const validateCheckoutSessionOrder = async (checkoutOrder) => {
             return {
                 isValid: false,
                 reason: 'NO_ITEMS',
-                message: 'No items available for checkout.'
+                message: 'No available items in cart to checkout.'
             };
         }
+
+        const warningNotice = unavailableProductNames.length > 0
+            ? `${unavailableProductNames.join(', ')} is out of stock or no longer available and was excluded from your order.`
+            : null;
 
         return {
             isValid: true,
             validItems,
-            subtotal
+            subtotal,
+            warningNotice
         };
     } catch (error) {
         throw new Error(`Checkout session validation error: ${error.message}`);
     }
 };
 
+export const applyStockResolutionToSession = async (userId, checkoutOrder, { variantId, action, targetQuantity }) => {
+    try {
+        if (!checkoutOrder || !checkoutOrder.cartItems) return checkoutOrder;
+
+        const targetVariantId = String(variantId);
+
+        if (action === 'set') {
+            const resolvedQty = Math.max(1, parseInt(targetQuantity, 10));
+
+            checkoutOrder.cartItems = checkoutOrder.cartItems.map((item) => {
+                const id = (item.productVariantId?._id || item.productVariantId).toString();
+                if (id === targetVariantId) {
+                    item.quantity = resolvedQty;
+                }
+                return item;
+            });
+
+            if (userId) {
+                await Cart.updateOne(
+                    { userId, productVariantId: targetVariantId },
+                    { $set: { quantity: resolvedQty } }
+                );
+            }
+        } else if (action === 'remove') {
+            checkoutOrder.cartItems = checkoutOrder.cartItems.filter((item) => {
+                const id = (item.productVariantId?._id || item.productVariantId).toString();
+                return id !== targetVariantId;
+            });
+
+            if (userId) {
+                await Cart.deleteOne({ userId, productVariantId: targetVariantId });
+            }
+        }
+
+        checkoutOrder.totalQuantity = checkoutOrder.cartItems.reduce(
+            (acc, item) => acc + (parseInt(item.quantity, 10) || 1),
+            0
+        );
+
+        return checkoutOrder;
+    } catch (error) {
+        throw new Error(`Error syncing stock resolution to cart database: ${error.message}`);
+    }
+};

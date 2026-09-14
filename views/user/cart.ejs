@@ -17,6 +17,10 @@
 <body>
     <input type="hidden" id="csrfToken" value="<%= typeof csrfToken !== 'undefined' ? csrfToken : '' %>">
 
+    <% if (typeof unavailableNotice !== 'undefined' && unavailableNotice) { %>
+        <input type="hidden" id="unavailableNoticePayload" value="<%= encodeURIComponent(JSON.stringify(unavailableNotice)) %>">
+    <% } %>
+
     <% if (typeof stockExceededItem !== 'undefined' && stockExceededItem) { %>
         <input type="hidden" id="stockAlertItemId" value="<%= stockExceededItem.cartItemId %>">
         <input type="hidden" id="stockAlertAvailable" value="<%= stockExceededItem.availableStock %>">

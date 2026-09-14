@@ -21,7 +21,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     const proceedToReviewBtn = document.getElementById('proceedToReviewBtn');
     if (proceedToReviewBtn) {
-        proceedToReviewBtn.addEventListener('click', async () => {
+        async function submitPaymentSelection(stockResolution = null) {
             const selectedRadio = document.querySelector('input[name="payment-mode"]:checked');
             if (!selectedRadio) {
                 return Swal.fire({
@@ -34,7 +34,6 @@ document.addEventListener('DOMContentLoaded', () => {
             }
 
             const paymentMode = selectedRadio.value;
-
             proceedToReviewBtn.disabled = true;
             proceedToReviewBtn.textContent = 'Processing...';
 
@@ -46,26 +45,74 @@ document.addEventListener('DOMContentLoaded', () => {
                         'CSRF-Token': csrfToken,
                         'x-csrf-token': csrfToken
                     },
-                    body: JSON.stringify({ paymentMode })
+                    body: JSON.stringify({ paymentMode, stockResolution })
                 });
 
                 const data = await response.json();
 
-                if (data.success && data.redirectUrl) {
-                    window.location.href = data.redirectUrl;
-                } else {
+                if (data.reason === "STOCK_EXCEEDED") {
+                    const itemLabel = data.productName ? `<b>${data.productName}</b>` : "This product variant";
                     Swal.fire({
-                        icon: 'error',
-                        title: 'Selection Failed',
-                        text: data.message || 'Unable to proceed to review.',
-                        confirmButtonColor: '#222',
-                        heightAuto: false
+                        icon: "warning",
+                        title: "Limited Stock Available",
+                        html: `${itemLabel} has only <b>${data.availableStock}</b> quantity available.<br><br>Do you want to proceed with this quantity or remove the item from the cart?`,
+                        showCancelButton: true,
+                        confirmButtonText: "Proceed",
+                        cancelButtonText: "Remove",
+                        confirmButtonColor: "#222",
+                        cancelButtonColor: "#8b0000",
+                        heightAuto: false,
+                        allowOutsideClick: false,
+                        allowEscapeKey: false,
+                    }).then((res) => {
+                        if (res.isConfirmed) {
+                            submitPaymentSelection({
+                                variantId: data.variantId,
+                                action: "set",
+                                targetQuantity: data.availableStock
+                            });
+                        } else if (res.dismiss === Swal.DismissReason.cancel) {
+                            submitPaymentSelection({
+                                variantId: data.variantId,
+                                action: "remove"
+                            });
+                        }
                     });
-                    proceedToReviewBtn.disabled = false;
-                    proceedToReviewBtn.textContent = 'Proceed to Review';
+                    return;
                 }
+
+                if (data.success && data.redirectUrl) {
+                    if (data.warningNotice) {
+                        return Swal.fire({
+                            icon: "warning",
+                            title: "Notice",
+                            text: data.warningNotice,
+                            confirmButtonText: "OK",
+                            confirmButtonColor: "#222",
+                            heightAuto: false,
+                        }).then(() => {
+                            window.location.href = data.redirectUrl;
+                        });
+                    }
+
+                    window.location.href = data.redirectUrl;
+                    return;
+                }
+
+                if (data.redirectUrl) {
+                    window.location.href = data.redirectUrl;
+                    return;
+                }
+
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Selection Failed',
+                    text: data.message || 'Unable to proceed to review.',
+                    confirmButtonColor: '#222',
+                    heightAuto: false
+                });
+
             } catch (error) {
-                console.error('Error selecting payment mode:', error);
                 Swal.fire({
                     icon: 'error',
                     title: 'Network Error',
@@ -73,9 +120,12 @@ document.addEventListener('DOMContentLoaded', () => {
                     confirmButtonColor: '#222',
                     heightAuto: false
                 });
+            } finally {
                 proceedToReviewBtn.disabled = false;
                 proceedToReviewBtn.textContent = 'Proceed to Review';
             }
-        });
+        }
+
+        proceedToReviewBtn.addEventListener('click', () => submitPaymentSelection());
     }
 });

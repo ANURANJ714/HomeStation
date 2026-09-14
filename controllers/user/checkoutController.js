@@ -31,7 +31,7 @@ export const postCartItems = async (req, res) => {
         const result = await checkoutService.validateCartForCheckout(userId);
 
         if (!result.isValid) {
-            logger.warn(`Checkout validation notice for (${userEmail}): ${result.message} [Reason: ${result.reason}]`);
+            logger.warn(`Checkout validation rejected for (${userEmail}): ${result.message} [Reason: ${result.reason}]`);
             return res.status(400).json({
                 success: false,
                 reason: result.reason,
@@ -62,11 +62,12 @@ export const postCartItems = async (req, res) => {
             totalPayable
         };
 
-        logger.info(`Cart validated successfully for (${userEmail}). Subtotal: ₹${subtotal}, Shipping: ₹${shippingCharges}. Proceeding to address.`);
+        logger.info(`Checkout session prepared for (${userEmail}). Subtotal: ₹${subtotal}, Shipping: ₹${shippingCharges}.`);
 
         return res.status(200).json({
             success: true,
             message: 'Cart verified successfully.',
+            warningNotice: result.warningNotice || null,
             redirectUrl: '/user/checkout/address'
         });
 
@@ -123,7 +124,7 @@ export const postCheckoutAddress = async (req, res) => {
         const userId = req.user._id;
         const userEmail = req.user?.email || 'Unknown User';
         const clientIp = req.ip;
-        const { selectedAddressId } = req.body;
+        const { selectedAddressId, stockResolution } = req.body;
 
         if (!selectedAddressId) {
             return res.status(400).json({
@@ -132,13 +133,33 @@ export const postCheckoutAddress = async (req, res) => {
             });
         }
 
-        const validation = await checkoutService.validateCheckoutSessionOrder(req.session.checkoutOrder);
-        if (!validation.isValid) {
-            logger.warn(`Address selection halted: ${validation.message} for (${userEmail}) | IP: ${clientIp}`);
+        if (!req.session.checkoutOrder) {
             return res.status(400).json({
                 success: false,
-                message: validation.message,
+                reason: 'NO_ITEMS',
+                message: 'Your checkout session has expired. Please verify your cart.',
                 redirectUrl: '/user/cart'
+            });
+        }
+
+        if (stockResolution) {
+            await checkoutService.applyStockResolutionToSession(userId, req.session.checkoutOrder, stockResolution);
+        }
+
+        const validation = await checkoutService.validateCheckoutSessionOrder(req.session.checkoutOrder);
+        if (!validation.isValid) {
+            if (validation.reason === 'NO_ITEMS') {
+                delete req.session.checkoutActive;
+                delete req.session.checkoutOrder;
+            }
+            return res.status(400).json({
+                success: false,
+                reason: validation.reason,
+                message: validation.message,
+                variantId: validation.variantId || null,
+                availableStock: validation.availableStock ?? null,
+                productName: validation.productName || null,
+                redirectUrl: validation.reason === 'NO_ITEMS' ? '/user/cart' : null
             });
         }
 
@@ -155,6 +176,8 @@ export const postCheckoutAddress = async (req, res) => {
 
         req.session.checkoutOrder = {
             ...req.session.checkoutOrder,
+            cartItems: validation.validItems,
+            totalQuantity: validation.validItems.reduce((acc, item) => acc + item.quantity, 0),
             shippingAddressId: selectedAddressId,
             subtotal: validation.subtotal,
             shippingCharges,
@@ -166,13 +189,14 @@ export const postCheckoutAddress = async (req, res) => {
         return res.status(200).json({
             success: true,
             message: 'Delivery address confirmed.',
+            warningNotice: validation.warningNotice || null,
             redirectUrl: '/user/checkout/payment'
         });
     } catch (error) {
-        logger.error(`Error saving checkout address for (${req.user?.email || 'Unknown'}): ${error.message}`);
+        logger.error(`Error saving checkout address for (${req.user?.email || 'Unknown'}): ${error.message}\nStack: ${error.stack}`);
         return res.status(500).json({
             success: false,
-            message: 'Unable to select address. Please try again.'
+            message: error.message || 'Unable to select address. Please try again.'
         });
     }
 };
@@ -213,9 +237,10 @@ export const loadSelectPaymentMode = async (req, res) => {
 
 export const postCheckoutPaymentMode = async (req, res) => {
     try {
+        const userId = req.user._id;
         const clientIp = req.ip;
         const userEmail = req.user?.email || 'Unknown User';
-        const { paymentMode } = req.body;
+        const { paymentMode, stockResolution } = req.body;
 
         const allowedModes = ['razorpay', 'wallet', 'cod'];
         if (!paymentMode || !allowedModes.includes(paymentMode)) {
@@ -225,13 +250,24 @@ export const postCheckoutPaymentMode = async (req, res) => {
             });
         }
 
+        if (stockResolution && req.session.checkoutOrder) {
+            await checkoutService.applyStockResolutionToSession(userId, req.session.checkoutOrder, stockResolution);
+        }
+
         const validation = await checkoutService.validateCheckoutSessionOrder(req.session.checkoutOrder);
         if (!validation.isValid) {
-            logger.warn(`Payment mode selection halted: ${validation.message} for (${userEmail}) | IP: ${clientIp}`);
+            if (validation.reason === 'NO_ITEMS') {
+                delete req.session.checkoutActive;
+                delete req.session.checkoutOrder;
+            }
             return res.status(400).json({
                 success: false,
+                reason: validation.reason,
                 message: validation.message,
-                redirectUrl: '/user/cart'
+                variantId: validation.variantId || null,
+                availableStock: validation.availableStock ?? null,
+                productName: validation.productName || null,
+                redirectUrl: validation.reason === 'NO_ITEMS' ? '/user/cart' : null
             });
         }
 
@@ -240,6 +276,8 @@ export const postCheckoutPaymentMode = async (req, res) => {
 
         req.session.checkoutOrder = {
             ...req.session.checkoutOrder,
+            cartItems: validation.validItems,
+            totalQuantity: validation.validItems.reduce((acc, item) => acc + item.quantity, 0),
             paymentMode,
             subtotal: validation.subtotal,
             shippingCharges,
@@ -251,9 +289,9 @@ export const postCheckoutPaymentMode = async (req, res) => {
         return res.status(200).json({
             success: true,
             message: 'Payment mode selected successfully.',
+            warningNotice: validation.warningNotice || null,
             redirectUrl: '/user/checkout/review'
         });
-
     } catch (error) {
         logger.error(`Error saving payment mode for ${req.user?.email || 'Unknown'} (IP: ${req.ip}): ${error.message}\nStack: ${error.stack}`);
         return res.status(500).json({
@@ -328,6 +366,7 @@ export const placeOrder = async (req, res) => {
         const userId = req.user._id;
         const userEmail = req.user?.email || 'Unknown User';
         const clientIp = req.ip;
+        const { stockResolution } = req.body;
 
         const checkout = req.session.checkoutOrder;
 
@@ -339,22 +378,36 @@ export const placeOrder = async (req, res) => {
             });
         }
 
+        if (stockResolution) {
+            await checkoutService.applyStockResolutionToSession(userId, checkout, stockResolution);
+        }
+
         const validation = await checkoutService.validateCheckoutSessionOrder(checkout);
         if (!validation.isValid) {
-            logger.warn(`Place order aborted: ${validation.message} for (${userEmail}) | IP: ${clientIp}`);
+            if (validation.reason === 'NO_ITEMS') {
+                delete req.session.checkoutActive;
+                delete req.session.checkoutOrder;
+            }
             return res.status(400).json({
                 success: false,
+                reason: validation.reason,
                 message: validation.message,
-                redirectUrl: '/user/cart'
+                variantId: validation.variantId || null,
+                availableStock: validation.availableStock ?? null,
+                productName: validation.productName || null,
+                redirectUrl: validation.reason === 'NO_ITEMS' ? '/user/cart' : null
             });
         }
 
+        const shippingCharges = validation.subtotal <= 500 ? 100 : 0;
+        const totalPayable = validation.subtotal + shippingCharges;
+
         if (checkout.paymentMode === 'wallet') {
             const wallet = await walletService.getOrCreateUserWalletPaginated(userId, 1, 1);
-            if (wallet.balance < validation.totalPayable) {
+            if (wallet.balance < totalPayable) {
                 return res.status(400).json({
                     success: false,
-                    message: `Insufficient wallet balance. Total payable is ₹${validation.totalPayable}, but your balance is ₹${wallet.balance}.`
+                    message: `Insufficient wallet balance. Total payable is ₹${totalPayable}, but your balance is ₹${wallet.balance}.`
                 });
             }
         }
@@ -375,7 +428,7 @@ export const placeOrder = async (req, res) => {
 
         const createdData = await orderService.createNewOrder(
             userId,
-            validation,
+            { ...validation, deliveryCharges: shippingCharges, totalPayable },
             shippingAddress,
             billingAddress,
             checkout.paymentMode
@@ -384,7 +437,7 @@ export const placeOrder = async (req, res) => {
         const order = createdData.order;
 
         if (checkout.paymentMode === 'wallet') {
-            await walletService.deductWalletBalance(userId, validation.totalPayable, order.orderId);
+            await walletService.deductWalletBalance(userId, totalPayable, order.orderId);
         }
 
         logger.info(`Order placed successfully! ID: ${order.orderId} for User (${userEmail}) | IP: ${clientIp}`);
@@ -397,12 +450,11 @@ export const placeOrder = async (req, res) => {
         return res.status(200).json({
             success: true,
             orderId: order.orderId,
+            warningNotice: validation.warningNotice || null,
             redirectUrl: `/user/checkout/success?orderId=${encodeURIComponent(order.orderId)}`
         });
-
     } catch (error) {
         logger.error(`Order Placement Error for (${req.user?.email || 'Unknown'}): ${error.message}\nStack: ${error.stack}`);
-
         req.session.orderFailed = true;
         req.session.orderFailureTimestamp = Date.now();
 

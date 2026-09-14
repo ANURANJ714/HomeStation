@@ -1,5 +1,4 @@
 import logger from '../utils/logger.js';
-import * as checkoutService from '../services/user/checkoutService.js';
 import * as userService from '../services/user/authService.js';
 
 export const ensureCheckoutOrigin = async (req, res, next) => {
@@ -10,6 +9,7 @@ export const ensureCheckoutOrigin = async (req, res, next) => {
         }
 
         const userId = req.user._id;
+        const userEmail = req.user?.email || 'Unknown User';
 
         const userProfile = await userService.getUserById(userId);
 
@@ -18,27 +18,16 @@ export const ensureCheckoutOrigin = async (req, res, next) => {
             const hasPhone = userProfile.phone && userProfile.phone.trim() !== '';
 
             if (!hasFullName || !hasPhone) {
-                logger.warn(`Checkout blocked for Google User (${userProfile.email}): Incomplete profile details.`);
-                
+                logger.warn(`Checkout blocked for Google User (${userEmail}): Incomplete profile details.`);
                 req.session.profileAlertMessage = 'Complete your profile before making your first purchase';
                 return res.redirect('/user/profile');
             }
         }
 
-        if (!req.session.checkoutActive) {
-            logger.warn(`Direct checkout access blocked for (${req.user.email}): Proceed to checkout was not initiated.`);
+        const checkout = req.session.checkoutOrder;
+        if (!req.session.checkoutActive || !checkout || !checkout.cartItems || checkout.cartItems.length === 0) {
+            logger.warn(`Direct checkout access blocked for (${userEmail}): Proceed to checkout was not initiated.`);
             req.session.cartAlertMessage = 'Please verify your cart items and click Proceed to Checkout.';
-            return res.redirect('/user/cart');
-        }
-
-        const cartStatus = await checkoutService.validateCartForCheckout(userId);
-
-        if (!cartStatus.isValid) {
-            logger.warn(`Checkout address blocked for (${req.user.email}): ${cartStatus.message} [${cartStatus.reason}]`);
-            
-            delete req.session.checkoutActive;
-
-            req.session.cartAlertMessage = cartStatus.message;
             return res.redirect('/user/cart');
         }
 
@@ -50,28 +39,22 @@ export const ensureCheckoutOrigin = async (req, res, next) => {
     }
 };
 
-export const ensureAddressSelected = async (req, res, next) => {
+export const ensureAddressSelected = (req, res, next) => {
     try {
         if (!req.isAuthenticated || !req.isAuthenticated()) {
             req.session.returnTo = '/user/cart';
             return res.redirect('/user/login');
         }
 
-        if (!req.session.checkoutActive || !req.session.checkoutOrder) {
-            req.session.cartAlertMessage = 'Please proceed to checkout from your cart.';
+        const checkout = req.session.checkoutOrder;
+
+        if (!req.session.checkoutActive || !checkout || !checkout.cartItems || checkout.cartItems.length === 0) {
+            req.session.cartAlertMessage = 'Please verify your cart items and proceed to checkout.';
             return res.redirect('/user/cart');
         }
 
-        const validation = await checkoutService.validateCheckoutSessionOrder(req.session.checkoutOrder);
-        if (!validation.isValid) {
-            delete req.session.checkoutActive;
-            delete req.session.checkoutOrder;
-            req.session.cartAlertMessage = validation.message;
-            return res.redirect('/user/cart');
-        }
-
-        if (!req.session.checkoutOrder.shippingAddressId) {
-            logger.warn(`Payment mode blocked for (${req.user.email}): Address missing.`);
+        if (!checkout.shippingAddressId) {
+            logger.warn(`Payment mode blocked for (${req.user?.email || 'User'}): Shipping address missing.`);
             req.session.cartAlertMessage = 'Please select a delivery address.';
             return res.redirect('/user/checkout/address');
         }
@@ -84,7 +67,7 @@ export const ensureAddressSelected = async (req, res, next) => {
     }
 };
 
-export const ensurePaymentModeSelected = async (req, res, next) => {
+export const ensurePaymentModeSelected = (req, res, next) => {
     try {
         if (!req.isAuthenticated || !req.isAuthenticated()) {
             req.session.returnTo = '/user/cart';
@@ -93,16 +76,8 @@ export const ensurePaymentModeSelected = async (req, res, next) => {
 
         const checkout = req.session.checkoutOrder;
 
-        if (!req.session.checkoutActive || !checkout) {
-            req.session.cartAlertMessage = 'Please proceed to checkout from your cart.';
-            return res.redirect('/user/cart');
-        }
-
-        const validation = await checkoutService.validateCheckoutSessionOrder(checkout);
-        if (!validation.isValid) {
-            delete req.session.checkoutActive;
-            delete req.session.checkoutOrder;
-            req.session.cartAlertMessage = validation.message;
+        if (!req.session.checkoutActive || !checkout || !checkout.cartItems || checkout.cartItems.length === 0) {
+            req.session.cartAlertMessage = 'Please verify your cart items and proceed to checkout.';
             return res.redirect('/user/cart');
         }
 

@@ -1,7 +1,7 @@
 import express from 'express';
 import { ensureAuthenticated } from '../../middlewares/auth.js';
 import { noCache } from '../../middlewares/cache.js';
-import { loadCartPage, changeQuantityController, removeCartItemController } from '../../controllers/user/cartController.js';
+import { loadCartPage, changeQuantityController, removeCartItemController} from '../../controllers/user/cartController.js';
 import { postCartItems } from '../../controllers/user/checkoutController.js';
 
 const router = express.Router();

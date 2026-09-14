@@ -5,6 +5,31 @@ document.addEventListener("DOMContentLoaded", () => {
   const confirmDeleteBtn = document.getElementById("confirmDelete");
   let currentDeleteCartId = null;
 
+  const noticeNode = document.getElementById("unavailableNoticePayload");
+  if (noticeNode && noticeNode.value) {
+    let noticeObj = null;
+    try {
+      noticeObj = JSON.parse(decodeURIComponent(noticeNode.value));
+    } catch (e) {
+      noticeObj = null;
+    }
+
+    if (noticeObj && noticeObj.message) {
+      Swal.fire({
+        icon: "warning",
+        title: noticeObj.title || "Product Notice",
+        text: noticeObj.message,
+        confirmButtonText: "OK",
+        confirmButtonColor: "#222",
+        heightAuto: false,
+        allowOutsideClick: false,
+        allowEscapeKey: false,
+      }).then(() => {
+        noticeNode.remove();
+      });
+    }
+  }
+
   function promptStockResolution(cartItemId, productName, availableStock) {
     const itemLabel = productName ? `<b>${productName}</b>` : "This product variant";
 
@@ -23,33 +48,60 @@ document.addEventListener("DOMContentLoaded", () => {
     }).then(async (result) => {
       if (result.isConfirmed) {
         try {
-          await fetch("/user/cart/change-quantity", {
+          const res = await fetch("/user/cart/change-quantity", {
             method: "POST",
             headers: {
               "Content-Type": "application/json",
               "CSRF-Token": csrfToken,
+              "x-csrf-token": csrfToken
             },
             body: JSON.stringify({
               cartItemId: cartItemId,
               action: "set",
-              targetQuantity: availableStock,
+              targetQuantity: availableStock
             }),
           });
-          window.location.reload();
+          const data = await res.json();
+          if (data.success) {
+            window.location.reload();
+          } else {
+            Swal.fire({
+              icon: "error",
+              title: "Update Failed",
+              text: data.message || "Failed to adjust quantity.",
+              confirmButtonColor: "#222",
+              heightAuto: false,
+            });
+          }
         } catch (err) {
           window.location.reload();
         }
       } else if (result.dismiss === Swal.DismissReason.cancel) {
         try {
-          await fetch("/user/cart/remove-item", {
+          const res = await fetch("/user/cart/remove-item", {
             method: "POST",
             headers: {
               "Content-Type": "application/json",
               "CSRF-Token": csrfToken,
+              "x-csrf-token": csrfToken
             },
             body: JSON.stringify({ cartItemId: cartItemId }),
           });
-          window.location.reload();
+          const data = await res.json();
+          if (data.success) {
+            Swal.fire({
+              icon: "success",
+              title: "Removed!",
+              text: data.message || "Item removed from your cart successfully.",
+              timer: 1200,
+              showConfirmButton: false,
+              heightAuto: false,
+            }).then(() => {
+              window.location.reload();
+            });
+          } else {
+            window.location.reload();
+          }
         } catch (err) {
           window.location.reload();
         }
@@ -68,7 +120,7 @@ document.addEventListener("DOMContentLoaded", () => {
   document.querySelectorAll(".clickable-cart-card").forEach((card) => {
     card.addEventListener("click", function (e) {
       const excludedTarget = e.target.closest(
-        ".trigger-delete-btn, .quantity-selector, .item-actions",
+        ".trigger-delete-btn, .quantity-selector, .item-actions"
       );
       if (excludedTarget) return;
 
@@ -129,6 +181,7 @@ document.addEventListener("DOMContentLoaded", () => {
         headers: {
           "Content-Type": "application/json",
           "CSRF-Token": csrfToken,
+          "x-csrf-token": csrfToken
         },
         body: JSON.stringify({ cartItemId, action }),
       });
@@ -139,11 +192,20 @@ document.addEventListener("DOMContentLoaded", () => {
           containerItemCard.style.opacity = "0";
           setTimeout(() => {
             containerItemCard.remove();
-            if (document.querySelectorAll(".cart-item").length === 0) {
-              window.location.reload();
-            } else {
-              updateSummaryInvoiceUI(data.totalQuantity, data.subtotal);
-            }
+            Swal.fire({
+              icon: "success",
+              title: "Item Removed",
+              text: data.message || "Item has been removed from your cart.",
+              timer: 1200,
+              showConfirmButton: false,
+              heightAuto: false,
+            }).then(() => {
+              if (document.querySelectorAll(".cart-item").length === 0) {
+                window.location.reload();
+              } else {
+                updateSummaryInvoiceUI(data.totalQuantity, data.subtotal);
+              }
+            });
           }, 300);
         } else {
           qtyInput.value = data.currentQuantity;
@@ -159,7 +221,6 @@ document.addEventListener("DOMContentLoaded", () => {
         });
       }
     } catch (error) {
-      console.error("Quantity change error:", error);
       Swal.fire({
         icon: "error",
         title: "Network Error",
@@ -183,6 +244,7 @@ document.addEventListener("DOMContentLoaded", () => {
           headers: {
             "Content-Type": "application/json",
             "CSRF-Token": csrfToken,
+            "x-csrf-token": csrfToken
           },
           body: JSON.stringify({ cartItemId: targetCartId }),
         });
@@ -190,7 +252,16 @@ document.addEventListener("DOMContentLoaded", () => {
         const data = await response.json();
 
         if (data.success) {
-          window.location.reload();
+          Swal.fire({
+            icon: "success",
+            title: "Item Removed",
+            text: data.message || "Item removed from your cart successfully.",
+            timer: 1200,
+            showConfirmButton: false,
+            heightAuto: false,
+          }).then(() => {
+            window.location.reload();
+          });
         } else {
           Swal.fire({
             icon: "error",
@@ -201,7 +272,6 @@ document.addEventListener("DOMContentLoaded", () => {
           });
         }
       } catch (error) {
-        console.error("Cart deletion error:", error);
         window.location.reload();
       }
     });
@@ -214,14 +284,14 @@ document.addEventListener("DOMContentLoaded", () => {
     }
 
     const labelRow = document.querySelector(
-      ".summary-row:first-of-type span:first-child",
+      ".summary-row:first-of-type span:first-child"
     );
     if (labelRow) {
       labelRow.innerHTML = `Cart Subtotal (${totalQty} items) <br><small>(Inclusive of 18% GST)</small>`;
     }
 
     const priceDisplay = document.querySelector(
-      ".summary-row:first-of-type span:last-child",
+      ".summary-row:first-of-type span:last-child"
     );
     if (priceDisplay) {
       priceDisplay.innerText = `₹${subtotalAmt.toLocaleString("en-IN")}`;
@@ -229,7 +299,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
     const totalPayable = Math.max(subtotalAmt - 1500, 0);
     const totalUI = document.querySelector(
-      ".summary-row.total span:last-child",
+      ".summary-row.total span:last-child"
     );
     if (totalUI) {
       totalUI.innerText = `₹${totalPayable.toLocaleString("en-IN")}`;
@@ -270,28 +340,42 @@ document.addEventListener("DOMContentLoaded", () => {
           });
         }
 
-        if (data.success && data.redirectUrl) {
-          window.location.href = data.redirectUrl;
-          return;
-        } 
-        
         if (data.reason === "STOCK_EXCEEDED") {
           promptStockResolution(data.cartItemId, data.productName, data.availableStock);
           proceedCheckoutBtn.disabled = false;
           proceedCheckoutBtn.innerText = originalText;
-        } else {
-          Swal.fire({
-            icon: "error",
-            title: "Checkout Notice",
-            text: data.message || "Unable to proceed to checkout.",
-            confirmButtonColor: "#222",
-            heightAuto: false,
-          });
-          proceedCheckoutBtn.disabled = false;
-          proceedCheckoutBtn.innerText = originalText;
+          return;
         }
+
+        if (data.success && data.redirectUrl) {
+          if (data.warningNotice) {
+            return Swal.fire({
+              icon: "warning",
+              title: "Notice",
+              text: data.warningNotice,
+              confirmButtonText: "OK",
+              confirmButtonColor: "#222",
+              heightAuto: false,
+            }).then(() => {
+              window.location.href = data.redirectUrl;
+            });
+          }
+
+          window.location.href = data.redirectUrl;
+          return;
+        }
+
+        Swal.fire({
+          icon: "error",
+          title: "Checkout Notice",
+          text: data.message || "Unable to proceed to checkout.",
+          confirmButtonColor: "#222",
+          heightAuto: false,
+        });
+        proceedCheckoutBtn.disabled = false;
+        proceedCheckoutBtn.innerText = originalText;
+
       } catch (error) {
-        console.error("Checkout verification error:", error);
         Swal.fire({
           icon: "error",
           title: "Network Error",

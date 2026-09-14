@@ -376,7 +376,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
   const proceedToPaymentBtn = document.getElementById("proceedToPaymentBtn");
   if (proceedToPaymentBtn) {
-    proceedToPaymentBtn.addEventListener("click", async () => {
+    async function submitAddressSelection(stockResolution = null) {
       const selectedRadio = document.querySelector('input[name="delivery-address"]:checked');
       if (!selectedRadio) {
         return Swal.fire({
@@ -389,7 +389,6 @@ document.addEventListener("DOMContentLoaded", () => {
       }
 
       const selectedAddressId = selectedRadio.value;
-
       proceedToPaymentBtn.disabled = true;
       proceedToPaymentBtn.textContent = "Processing...";
 
@@ -401,36 +400,87 @@ document.addEventListener("DOMContentLoaded", () => {
             "CSRF-Token": csrfToken,
             "x-csrf-token": csrfToken,
           },
-          body: JSON.stringify({ selectedAddressId }),
+          body: JSON.stringify({ selectedAddressId, stockResolution }),
         });
 
         const data = await response.json();
 
-        if (data.success && data.redirectUrl) {
-          window.location.href = data.redirectUrl;
-        } else {
+        if (data.reason === "STOCK_EXCEEDED") {
+          const itemLabel = data.productName ? `<b>${data.productName}</b>` : "This product variant";
           Swal.fire({
             icon: "warning",
-            title: "Notice",
-            text: data.message || "Unable to proceed to payment.",
+            title: "Limited Stock Available",
+            html: `${itemLabel} has only <b>${data.availableStock}</b> quantity available.<br><br>Do you want to proceed with this quantity or remove the item from the cart?`,
+            showCancelButton: true,
+            confirmButtonText: "Proceed",
+            cancelButtonText: "Remove",
             confirmButtonColor: "#222",
+            cancelButtonColor: "#8b0000",
             heightAuto: false,
+            allowOutsideClick: false,
+            allowEscapeKey: false,
+          }).then((res) => {
+            if (res.isConfirmed) {
+              submitAddressSelection({
+                variantId: data.variantId,
+                action: "set",
+                targetQuantity: data.availableStock
+              });
+            } else if (res.dismiss === Swal.DismissReason.cancel) {
+              submitAddressSelection({
+                variantId: data.variantId,
+                action: "remove"
+              });
+            }
           });
-          proceedToPaymentBtn.disabled = false;
-          proceedToPaymentBtn.textContent = "Proceed to Payment";
+          return;
         }
-      } catch (err) {
-        console.error(err);
+
+        if (data.success && data.redirectUrl) {
+          if (data.warningNotice) {
+            return Swal.fire({
+              icon: "warning",
+              title: "Notice",
+              text: data.warningNotice,
+              confirmButtonText: "OK",
+              confirmButtonColor: "#222",
+              heightAuto: false,
+            }).then(() => {
+              window.location.href = data.redirectUrl;
+            });
+          }
+
+          window.location.href = data.redirectUrl;
+          return;
+        }
+
+        if (data.redirectUrl) {
+          window.location.href = data.redirectUrl;
+          return;
+        }
+
         Swal.fire({
-          icon: "error",
-          title: "Error",
-          text: "Network error occurred. Please try again.",
+          icon: "warning",
+          title: "Notice",
+          text: data.message || "Unable to proceed to payment.",
           confirmButtonColor: "#222",
           heightAuto: false,
         });
+
+      } catch (error) {
+        Swal.fire({
+          icon: "error",
+          title: "Network Error",
+          text: "Could not connect to the server. Please try again.",
+          confirmButtonColor: "#222",
+          heightAuto: false,
+        });
+      } finally {
         proceedToPaymentBtn.disabled = false;
         proceedToPaymentBtn.textContent = "Proceed to Payment";
       }
-    });
+    }
+
+    proceedToPaymentBtn.addEventListener("click", () => submitAddressSelection());
   }
 });

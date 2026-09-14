@@ -75,6 +75,17 @@ export const loadCartPage = async (req, res) => {
 
         const productRatingsMap = await getMultipleProductReviewSummaries(productIds);
 
+        let noticeToShow = null;
+        if (cartData.unavailableNotice) {
+            const noticeSignature = cartData.unavailableNotice.message;
+            if (req.session.lastSeenUnavailableNotice !== noticeSignature) {
+                noticeToShow = cartData.unavailableNotice;
+                req.session.lastSeenUnavailableNotice = noticeSignature;
+            }
+        } else {
+            delete req.session.lastSeenUnavailableNotice;
+        }
+
         logger.info(`User (${userEmail}) loaded Cart Page | IP: ${clientIp}`);
 
         return res.render('user/cart', {
@@ -83,6 +94,7 @@ export const loadCartPage = async (req, res) => {
             subtotal: cartData.subtotal,
             totalQuantity: cartData.totalQuantity,
             stockExceededItem: cartData.stockExceededItem,
+            unavailableNotice: noticeToShow,
             productRatingsMap,
             bannerText,
             wishlistCount: headerCounts.wishlistCount,

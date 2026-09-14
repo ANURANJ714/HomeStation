@@ -1,30 +1,7 @@
 import Cart from '../../models/Cart.js';
 import ProductVariant from '../../models/ProductVariant.js';
-import Product from '../../models/Products.js';
 import { removeVariantFromWishlist } from '../../services/user/wishlistService.js';
 import mongoose from 'mongoose';
-
-// export const addVariantToCart = async (userId, productVariantId) => {
-//     try {
-//         let cartItem = await Cart.findOne({ userId, productVariantId });
-
-//         if (cartItem) {
-//             cartItem.quantity += 1;
-//             await cartItem.save();
-//             return { action: 'updated', quantity: cartItem.quantity };
-//         } else {
-//             cartItem = new Cart({
-//                 userId,
-//                 productVariantId,
-//                 quantity: 1
-//             });
-//             await cartItem.save();
-//             return { action: 'added', quantity: 1 };
-//         }
-//     } catch (error) {
-//         throw new Error(`Database error while adding to cart: ${error.message}`);
-//     }
-// };
 
 export const handleAddToCartIntent = async (userId, variantId, quantity = 1) => {
     try {
@@ -110,19 +87,23 @@ export const getCartItems = async (userId) => {
         let totalQuantity = 0;
         const validCartItems = [];
         let stockExceededItem = null;
+        const unavailableNames = [];
 
         for (const item of cartItems) {
             const variant = item.productVariantId;
-            
-            if (!variant) continue;
+            const product = variant?.productId;
+            const category = product?.categoryId;
 
-            const product = variant.productId;
-            if (!product || product.isDeleted === true || product.isDeleted === 'true') continue;
+            const isVariantMissing = !variant;
+            const isProductDeleted = !product || product.isDeleted === true || product.isDeleted === 'true';
+            const isCategoryDeleted = category && (category.isDeleted === true || category.isDeleted === 'true');
+            const isOutOfStock = typeof variant?.stock === 'number' && variant.stock <= 0;
 
-            const category = product.categoryId;
-            if (category && (category.isDeleted === true || category.isDeleted === 'true')) continue;
-
-            if (typeof variant.stock === 'number' && variant.stock <= 0) continue;
+            if (isVariantMissing || isProductDeleted || isCategoryDeleted || isOutOfStock) {
+                const name = product ? `${product.name} (${variant?.variantName || 'Item'})` : 'An item in your cart';
+                unavailableNames.push(name);
+                continue;
+            }
 
             if (typeof variant.stock === 'number' && variant.stock < item.quantity && !stockExceededItem) {
                 stockExceededItem = {
@@ -139,11 +120,17 @@ export const getCartItems = async (userId) => {
             validCartItems.push(item);
         }
 
+        const unavailableNotice = unavailableNames.length > 0 ? {
+            title: "Product Unavailable",
+            message: `${unavailableNames.join(', ')} is currently out of stock or no longer available.`
+        } : null;
+
         return { 
             cartItems: validCartItems, 
             subtotal, 
             totalQuantity,
-            stockExceededItem
+            stockExceededItem,
+            unavailableNotice
         };
 
     } catch (error) {
