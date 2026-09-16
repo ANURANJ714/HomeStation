@@ -48,9 +48,6 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 
     const updateModal = document.getElementById('updateStatusModal');
-    const openStatusModalBtn = document.getElementById('openStatusModalBtn');
-    const closeModalBtn = document.getElementById('closeModalBtn');
-    const cancelModalBtn = document.getElementById('cancelModalBtn');
     const modalTitleText = document.getElementById('modalTitleText');
     const modalLabelText = document.getElementById('modalLabelText');
     const modalStatusOptionsList = document.getElementById('modalStatusOptionsList');
@@ -74,10 +71,11 @@ document.addEventListener('DOMContentLoaded', () => {
         { label: 'Item Reached', value: 'item reached' }
     ];
 
-    function openModal() {
-        if (!openStatusModalBtn) return;
-        const isReturn = openStatusModalBtn.dataset.isReturn === 'true';
-        const currentStatus = openStatusModalBtn.dataset.currentStatus || 'processing';
+    function openModal(btn) {
+        if (!updateModal || !btn) return;
+
+        const isReturn = btn.dataset.isReturn === 'true';
+        const currentStatus = btn.dataset.currentStatus || 'processing';
 
         modalTitleText.textContent = isReturn ? 'Update Return Stage' : 'Update Item Status';
         modalLabelText.textContent = isReturn ? 'Return Stage' : 'Delivery Status';
@@ -85,7 +83,13 @@ document.addEventListener('DOMContentLoaded', () => {
         const stages = isReturn ? returnStages : deliveryStages;
         modalStatusOptionsList.innerHTML = '';
 
-        stages.forEach(stage => {
+        const currentIndex = stages.findIndex(s => s.value === currentStatus);
+
+        const availableStages = currentIndex !== -1 
+            ? stages.filter((_, idx) => idx >= currentIndex)
+            : stages;
+
+        availableStages.forEach(stage => {
             const li = document.createElement('li');
             li.className = `custom-select-option ${stage.value === currentStatus ? 'selected' : ''}`;
             li.dataset.value = stage.value;
@@ -93,23 +97,44 @@ document.addEventListener('DOMContentLoaded', () => {
             modalStatusOptionsList.appendChild(li);
         });
 
-        const selectedStage = stages.find(s => s.value === currentStatus) || stages[0];
-        mainStatusText.textContent = selectedStage.label;
-        mainStatusInput.value = selectedStage.value;
+        const selectedStage = availableStages.find(s => s.value === currentStatus) || availableStages[0];
+        if (selectedStage) {
+            mainStatusText.textContent = selectedStage.label;
+            mainStatusInput.value = selectedStage.value;
+        }
 
+        const modalOrderId = document.getElementById('modalOrderId');
+        const modalOrderItemId = document.getElementById('modalOrderItemId');
+        if (modalOrderId) modalOrderId.value = btn.dataset.orderId || pageOrderId;
+        if (modalOrderItemId) modalOrderItemId.value = btn.dataset.itemId || pageOrderItemId;
+
+        updateModal.classList.add('active');
         updateModal.style.display = 'flex';
     }
 
     function closeModal() {
-        if (updateModal) updateModal.style.display = 'none';
+        if (!updateModal) return;
+        updateModal.classList.remove('active');
+        updateModal.style.display = 'none';
     }
 
-    if (openStatusModalBtn) openStatusModalBtn.addEventListener('click', openModal);
-    if (closeModalBtn) closeModalBtn.addEventListener('click', closeModal);
-    if (cancelModalBtn) cancelModalBtn.addEventListener('click', closeModal);
+    document.addEventListener('click', (e) => {
+        const updateBtn = e.target.closest('#openStatusModalBtn');
+        if (updateBtn) {
+            e.preventDefault();
+            openModal(updateBtn);
+            return;
+        }
 
-    window.addEventListener('click', (e) => {
-        if (e.target === updateModal) closeModal();
+        if (e.target.closest('#closeModalBtn') || e.target.closest('#cancelModalBtn')) {
+            e.preventDefault();
+            closeModal();
+            return;
+        }
+
+        if (e.target === updateModal) {
+            closeModal();
+        }
     });
 
     const updateStatusForm = document.getElementById('updateStatusForm');
@@ -177,7 +202,6 @@ document.addEventListener('DOMContentLoaded', () => {
                     });
                 }
             } catch (err) {
-                console.error(err);
                 Swal.fire({
                     icon: 'error',
                     title: 'Network Error',

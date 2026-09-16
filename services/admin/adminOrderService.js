@@ -161,6 +161,7 @@ export const getAdminOrdersPageData = async (page = 1, limit = 5, searchQuery = 
     }
 };
 
+
 export const getOrderDetailsByOrderIdAndItemId = async (orderId, orderItemId = null) => {
     try {
         if (!orderId) return null;
@@ -204,15 +205,27 @@ export const getOrderDetailsByOrderIdAndItemId = async (orderId, orderItemId = n
 
 export const updateOrderItemStatus = async (orderId, orderItemId, newStatus) => {
     try {
-        const validDeliveryStatuses = ['processing', 'packed', 'shipped', 'on the way', 'out for delivery', 'delivered'];
-        const validReturnStatuses = ['return initiated', 'pickup assigned', 'item picked up', 'in transit', 'item reached'];
+        const deliveryStages = [
+            'processing', 
+            'packed', 
+            'shipped', 
+            'on the way', 
+            'out for delivery', 
+            'delivered'
+        ];
+        
+        const returnStages = [
+            'return initiated', 
+            'pickup assigned', 
+            'item picked up', 
+            'in transit', 
+            'item reached'
+        ];
 
-        let isReturnUpdate = false;
-        const cleanStatus = newStatus.startsWith('return:') ? newStatus.replace('return:', '') : newStatus;
+        const cleanStatus = newStatus.startsWith('return:') ? newStatus.replace('return:', '').trim() : newStatus.trim();
+        const isReturnUpdate = returnStages.includes(cleanStatus);
 
-        if (validReturnStatuses.includes(cleanStatus)) {
-            isReturnUpdate = true;
-        } else if (!validDeliveryStatuses.includes(cleanStatus)) {
+        if (!isReturnUpdate && !deliveryStages.includes(cleanStatus)) {
             const err = new Error('Invalid status update value provided.');
             err.statusCode = 400;
             throw err;
@@ -238,12 +251,28 @@ export const updateOrderItemStatus = async (orderId, orderItemId, newStatus) => 
         }
 
         if (isReturnUpdate) {
-            if (item.returnStatus === cleanStatus) {
+            if (item.returnStatus === 'none') {
+                const err = new Error('Cannot update return stage because return was not initiated by user.');
+                err.statusCode = 400;
+                throw err;
+            }
+
+            const currentReturnIndex = returnStages.indexOf(item.returnStatus);
+            const newReturnIndex = returnStages.indexOf(cleanStatus);
+
+            if (newReturnIndex === currentReturnIndex) {
                 return { isUnchanged: true };
+            }
+
+            if (newReturnIndex < currentReturnIndex) {
+                const err = new Error('Cannot revert return stage to a previous status.');
+                err.statusCode = 400;
+                throw err;
             }
 
             const previousReturnStatus = item.returnStatus;
             item.returnStatus = cleanStatus;
+            item.returnedAt = new Date();
 
             if (cleanStatus === 'item reached' && previousReturnStatus !== 'item reached') {
                 await ProductVariant.findByIdAndUpdate(item.productVariantId, {
@@ -258,14 +287,24 @@ export const updateOrderItemStatus = async (orderId, orderItemId, newStatus) => 
             }
 
             if (item.itemStatus === 'delivered' && item.returnStatus === 'none') {
-                const err = new Error('Delivered items cannot be modified unless return is initiated.');
+                const err = new Error('Delivered items cannot be modified unless a return is active.');
                 err.statusCode = 400;
                 throw err;
             }
 
-            if (item.itemStatus === cleanStatus) {
+            const currentDeliveryIndex = deliveryStages.indexOf(item.itemStatus);
+            const newDeliveryIndex = deliveryStages.indexOf(cleanStatus);
+
+            if (newDeliveryIndex === currentDeliveryIndex) {
                 return { isUnchanged: true };
             }
+
+            if (newDeliveryIndex < currentDeliveryIndex) {
+                const err = new Error('Cannot revert delivery stage to a previous status.');
+                err.statusCode = 400;
+                throw err;
+            }
+
             item.itemStatus = cleanStatus;
         }
 

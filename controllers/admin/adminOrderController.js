@@ -129,6 +129,7 @@ export const updateOrderStatus = async (req, res) => {
         const { orderId, orderItemId, status } = req.body;
 
         if (!orderId || !orderItemId || !status) {
+            logger.warn(`Admin (${adminEmail}) failed status update: Missing required payload fields | IP: ${clientIp}`);
             return res.status(400).json({
                 success: false,
                 message: 'Order ID, Item ID, and status are required.'
