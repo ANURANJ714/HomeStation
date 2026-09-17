@@ -171,8 +171,8 @@
                                                 <p class="order-delivery-note">Expected by <%= formattedExpectedDate %></p>
                                             <% } %>
 
-                                            <a href="/user/orders/detail/<%= safeOrderId %>" class="btn-order-details">
-                                                <i class="fa-solid fa-receipt"></i> Order Details
+                                            <a href="/user/orders/detail/<%= safeOrderId %>?itemId=<%= item._id %>" class="btn-order-details">
+                                                <i class="fa-solid fa-receipt"></i> View Details
                                             </a>
                                         </div>
                                     </div>

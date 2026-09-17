@@ -1,4 +1,5 @@
 import logger from '../../utils/logger.js';
+import mongoose from 'mongoose';
 import * as orderService from '../../services/user/orderService.js';
 import * as reviewService from '../../services/user/reviewService.js';
 import { getActivePromoBanner } from '../../services/user/bannerService.js';
@@ -63,22 +64,33 @@ export const loadUserOrderDetailPage = async (req, res) => {
         const userEmail = req.user?.email || 'Unknown User';
         const userId = req.user._id;
         const { orderId } = req.params;
+        const rawItemId = req.query.itemId || req.query._id || null;
 
         if (!orderId || !orderId.trim()) {
             logger.warn(`User order detail 404: Missing orderId parameter | User: ${userEmail} | IP: ${clientIp}`);
             return notFoundMiddleware(req, res);
         }
 
+        let cleanItemId = null;
+        if (rawItemId) {
+            const trimmedItemId = rawItemId.trim();
+            if (!mongoose.Types.ObjectId.isValid(trimmedItemId)) {
+                logger.warn(`User order detail 404: Malformed item ObjectId [${rawItemId}] for Order [${orderId}] | IP: ${clientIp}`);
+                return notFoundMiddleware(req, res);
+            }
+            cleanItemId = trimmedItemId;
+        }
+
         const cleanOrderId = orderId.trim();
 
         const [order, bannerText, headerCounts] = await Promise.all([
-            orderService.getUserOrderFullDetails(userId, cleanOrderId),
+            orderService.getUserOrderFullDetails(userId, cleanOrderId, cleanItemId),
             getActivePromoBanner(),
             getUserHeaderCounts(userId)
         ]);
 
         if (!order || !order.orderItems || order.orderItems.length === 0) {
-            logger.warn(`User order detail 404: Order [${cleanOrderId}] not found for (${userEmail}) | IP: ${clientIp}`);
+            logger.warn(`User order detail 404: Order [${cleanOrderId}] with Item [${cleanItemId || 'all'}] not found for (${userEmail}) | IP: ${clientIp}`);
             return notFoundMiddleware(req, res);
         }
 
@@ -170,7 +182,7 @@ export const loadUserOrderDetailPage = async (req, res) => {
 
         const userReviews = await reviewService.getUserReviewsForProducts(userId, productIds);
 
-        logger.info(`User (${userEmail}) loaded details for Order [${order.orderId}] | IP: ${clientIp}`);
+        logger.info(`User (${userEmail}) loaded details for Order [${order.orderId}] Item [${cleanItemId || 'all'}] | IP: ${clientIp}`);
 
         return res.render('user/orderdetail', {
             user: req.user,

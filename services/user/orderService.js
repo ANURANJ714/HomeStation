@@ -262,7 +262,7 @@ export const getUserOrdersPageData = async (userId, page = 1, limit = 4, searchQ
     }
 };
 
-export const getUserOrderFullDetails = async (userId, orderId) => {
+export const getUserOrderFullDetails = async (userId, orderId, orderItemId = null) => {
     try {
         if (!orderId) return null;
 
@@ -284,6 +284,22 @@ export const getUserOrderFullDetails = async (userId, orderId) => {
                 }
             })
             .lean();
+
+        if (!order || !order.orderItems || order.orderItems.length === 0) {
+            return null;
+        }
+
+        if (orderItemId) {
+            const targetItem = order.orderItems.find(
+                i => i._id && i._id.toString() === orderItemId.toString()
+            );
+
+            if (!targetItem) {
+                return null;
+            }
+
+            order.orderItems = [targetItem];
+        }
 
         return order;
     } catch (error) {
