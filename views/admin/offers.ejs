@@ -1,0 +1,508 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>HomeStation - ADMIN</title>
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,600;0,700;1,600&display=swap" rel="stylesheet">
+    <link rel="icon" type="image/x-icon" href="https://res.cloudinary.com/dz7fuqwnr/image/upload/v1778395481/WhatsApp_Image_2026-05-10_at_12.12.36_nra5vk.jpg">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <link rel="stylesheet" href="/css/admin/offers.css">
+</head>
+
+<body>
+    <input type="hidden" id="csrfToken" value="<%= typeof csrfToken !== 'undefined' ? csrfToken : '' %>">
+
+    <div class="dashboard-layout">
+        <aside class="sidebar">
+            <div class="sidebar-header">
+                <h2 class="brand-title">HomeStation</h2>
+                <button class="close-sidebar-btn" id="closeSidebar" type="button">
+                    <i class="fa-solid fa-xmark"></i>
+                </button>
+            </div>
+
+            <nav class="sidebar-nav">
+                <ul class="nav-list">
+                    <li class="nav-item">
+                        <a href="/admin/dashboard" class="nav-link">
+                            <i class="fa-solid fa-chart-pie nav-icon"></i> Dashboard
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a href="/admin/products" class="nav-link">
+                            <i class="fa-solid fa-box nav-icon"></i> Products
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a href="/admin/categories" class="nav-link">
+                            <i class="fa-solid fa-tags nav-icon"></i> Categories
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a href="/admin/orders" class="nav-link">
+                            <i class="fa-solid fa-cart-shopping nav-icon"></i> Orders
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a href="/admin/users" class="nav-link">
+                            <i class="fa-solid fa-users nav-icon"></i> User Management
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a href="/admin/sales-report" class="nav-link">
+                            <i class="fa-solid fa-file-invoice-dollar nav-icon"></i> Sales Report
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a href="/admin/coupons" class="nav-link">
+                            <i class="fa-solid fa-ticket nav-icon"></i> Manage Coupons
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a href="/admin/offers" class="nav-link active">
+                            <i class="fa-solid fa-percent nav-icon"></i> Offers
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a href="/admin/enquiries" class="nav-link">
+                            <i class="fa-solid fa-envelope nav-icon"></i> Enquiry
+                        </a>
+                    </li>
+                </ul>
+
+                <ul class="nav-list logout-section">
+                    <li class="nav-item">
+                        <form id="adminLogoutForm" action="/admin/logout" method="POST">
+                            <button type="submit" class="nav-link logout-link">
+                                <i class="fa-solid fa-right-from-bracket nav-icon"></i> Logout
+                            </button>
+                        </form>
+                    </li>
+                </ul>
+            </nav>
+        </aside>
+
+        <div class="main-panel">
+            <header class="top-header">
+                <div class="header-left">
+                    <button class="hamburger-menu" id="hamburgerMenu" type="button">
+                        <i class="fa-solid fa-bars"></i>
+                    </button>
+                </div>
+                <div class="header-right">
+                    <div class="datetime-display" id="datetimeDisplay"></div>
+                    <div class="admin-badge">
+                        <i class="fa-solid fa-user-shield"></i> Admin
+                    </div>
+                </div>
+            </header>
+
+            <main class="content-wrapper">
+                <div class="page-header-row">
+                    <h1 class="page-title">Offers</h1>
+                    <button class="btn btn-primary" id="openAddOfferModalBtn" type="button">
+                        <i class="fa-solid fa-plus"></i> Add New Offer
+                    </button>
+                </div>
+
+                <div class="stats-grid">
+                    <div class="stat-card">
+                        <div class="stat-icon total-offers-icon"><i class="fa-solid fa-gift"></i></div>
+                        <div class="stat-details">
+                            <p class="stat-label">Total Offers</p>
+                            <h3 class="stat-value"><%= stats.totalOffers %></h3>
+                        </div>
+                    </div>
+
+                    <div class="stat-card">
+                        <div class="stat-icon active-offers-icon"><i class="fa-solid fa-circle-check"></i></div>
+                        <div class="stat-details">
+                            <p class="stat-label">Active Offers</p>
+                            <h3 class="stat-value"><%= stats.activeOffers %></h3>
+                        </div>
+                    </div>
+
+                    <div class="stat-card">
+                        <div class="stat-icon inactive-offers-icon"><i class="fa-solid fa-circle-xmark"></i></div>
+                        <div class="stat-details">
+                            <p class="stat-label">Inactive Offers</p>
+                            <h3 class="stat-value"><%= stats.inactiveOffers %></h3>
+                        </div>
+                    </div>
+
+                    <div class="stat-card">
+                        <div class="stat-icon product-offers-icon"><i class="fa-solid fa-layer-group"></i></div>
+                        <div class="stat-details">
+                            <p class="stat-label">Product Offers</p>
+                            <h3 class="stat-value"><%= stats.productOffers %></h3>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="filters-container">
+                    <div class="search-box-form">
+                        <div class="search-input-group">
+                            <i class="fa-solid fa-magnifying-glass search-lead-icon"></i>
+                            <input type="text" id="offerSearchInput" class="search-input"
+                                placeholder="Search offer by name..." value="<%= searchQuery %>">
+                            <button type="button" id="searchActionBtn" 
+                                class="search-action-btn <%= searchQuery ? 'is-clear' : '' %>" 
+                                title="<%= searchQuery ? 'Clear Search' : 'Search Offers' %>">
+                                <i class="fa-solid <%= searchQuery ? 'fa-xmark' : 'fa-magnifying-glass' %>" id="searchBtnIcon"></i>
+                            </button>
+                        </div>
+                    </div>
+
+                    <div class="filter-controls-group">
+                        <div class="filter-field-wrapper">
+                            <label class="filter-label">Type:</label>
+                            <select class="filter-select" id="typeFilterSelect">
+                                <option value="all" <%= selectedType === 'all' ? 'selected' : '' %>>All Offer Types</option>
+                                <option value="product" <%= selectedType === 'product' ? 'selected' : '' %>>Product Offer</option>
+                                <option value="category" <%= selectedType === 'category' ? 'selected' : '' %>>Category Offer</option>
+                            </select>
+                        </div>
+
+                        <div class="filter-field-wrapper">
+                            <label class="filter-label">Status:</label>
+                            <select class="filter-select" id="statusFilterSelect">
+                                <option value="all" <%= selectedStatus === 'all' ? 'selected' : '' %>>All Statuses</option>
+                                <option value="active" <%= selectedStatus === 'active' ? 'selected' : '' %>>Active</option>
+                                <option value="inactive" <%= selectedStatus === 'inactive' ? 'selected' : '' %>>Inactive</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="table-container">
+                    <table class="data-table" id="offersTable">
+                        <thead>
+                            <tr>
+                                <th>Offer Name</th>
+                                <th>Type</th>
+                                <th>Discount</th>
+                                <th>Start Date</th>
+                                <th>End Date</th>
+                                <th>Status</th>
+                                <th class="actions-header">Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody id="offersTableBody">
+                            <% if (offers && offers.length > 0) { %>
+                                <% offers.forEach(offer => { 
+                                    const typeClass = offer.offerType === 'product' ? 'product-type' : 'category-type';
+                                    const typeIcon = offer.offerType === 'product' ? 'fa-box' : 'fa-tags';
+                                    const typeLabel = offer.offerType === 'product' ? 'Product Offer' : 'Category Offer';
+                                    const isOfferActive = offer.status === 'active';
+                                    const blockBtnTitle = isOfferActive ? 'Block Offer' : 'Unblock Offer';
+                                    const blockIconClass = isOfferActive ? 'fa-ban' : 'fa-lock-open';
+                                    const blockBtnClass = isOfferActive ? 'block-btn' : 'unblock-btn';
+
+                                    const startStr = new Date(offer.startDate).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' });
+                                    const endStr = new Date(offer.endDate).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' });
+                                    const rawStart = new Date(offer.startDate).toISOString().split('T')[0];
+                                    const rawEnd = new Date(offer.endDate).toISOString().split('T')[0];
+                                %>
+                                    <tr>
+                                        <td>
+                                            <div class="offer-name-cell">
+                                                <span class="offer-name-badge"><%= offer.name %></span>
+                                            </div>
+                                        </td>
+                                        <td>
+                                            <span class="offer-type-tag <%= typeClass %>">
+                                                <i class="fa-solid <%= typeIcon %>"></i> <%= typeLabel %>
+                                            </span>
+                                        </td>
+                                        <td>
+                                            <span class="discount-value"><%= offer.discount %>% OFF</span>
+                                        </td>
+                                        <td><%= startStr %></td>
+                                        <td><%= endStr %></td>
+                                        <td>
+                                            <% if (isOfferActive) { %>
+                                                <span class="badge badge-success"><i class="fa-solid fa-circle-check"></i> Active</span>
+                                            <% } else { %>
+                                                <span class="badge badge-danger"><i class="fa-solid fa-circle-xmark"></i> Inactive</span>
+                                            <% } %>
+                                        </td>
+                                        <td class="actions-cell">
+                                            <button type="button" class="btn-icon view-btn trigger-view-btn" 
+                                                title="View Offer Details"
+                                                data-name="<%= offer.name %>"
+                                                data-type="<%= typeLabel %>"
+                                                data-target="<%= offer.targetDisplayName %>"
+                                                data-discount="<%= offer.discount %>"
+                                                data-status="<%= offer.status %>"
+                                                data-start="<%= startStr %>"
+                                                data-end="<%= endStr %>">
+                                                <i class="fa-solid fa-eye"></i>
+                                            </button>
+
+                                            <button type="button" class="btn-icon edit-btn trigger-edit-btn" 
+                                                title="Edit Offer"
+                                                data-id="<%= offer._id %>"
+                                                data-name="<%= offer.name %>"
+                                                data-type="<%= offer.offerType %>"
+                                                data-target="<%= offer.targetIdentifier %>"
+                                                data-discount="<%= offer.discount %>"
+                                                data-status="<%= offer.status %>"
+                                                data-start="<%= rawStart %>"
+                                                data-end="<%= rawEnd %>">
+                                                <i class="fa-solid fa-pen-to-square"></i>
+                                            </button>
+
+                                            <button type="button" class="btn-icon <%= blockBtnClass %> trigger-toggle-status-btn" 
+                                                title="<%= blockBtnTitle %>"
+                                                data-id="<%= offer._id %>"
+                                                data-name="<%= offer.name %>"
+                                                data-status="<%= offer.status %>">
+                                                <i class="fa-solid <%= blockIconClass %>"></i>
+                                            </button>
+                                        </td>
+                                    </tr>
+                                <% }) %>
+                            <% } else { %>
+                                <tr>
+                                    <td colspan="7" class="empty-table-cell">
+                                        <i class="fa-solid fa-folder-open empty-icon"></i>
+                                        No offers found matching your criteria.
+                                    </td>
+                                </tr>
+                            <% } %>
+                        </tbody>
+                    </table>
+                </div>
+
+                <% if (typeof totalPages !== 'undefined' && totalPages > 0) { %>
+                    <% 
+                        const buildPageUrl = (p) => {
+                            let url = `/admin/offers?page=${p}`;
+                            if (searchQuery) url += `&search=${encodeURIComponent(searchQuery)}`;
+                            if (selectedType && selectedType !== 'all') url += `&type=${encodeURIComponent(selectedType)}`;
+                            if (selectedStatus && selectedStatus !== 'all') url += `&status=${encodeURIComponent(selectedStatus)}`;
+                            return url;
+                        };
+                    %>
+                    <div class="pagination-container">
+                        <div class="pagination-info" id="paginationInfo">
+                            Showing <%= offers.length %> of <%= totalItems %> entries
+                        </div>
+                        <div class="pagination-controls">
+                            <% if (currentPage > 1) { %>
+                                <a href="<%= buildPageUrl(currentPage - 1) %>" class="page-btn"><i class="fa-solid fa-chevron-left"></i></a>
+                            <% } else { %>
+                                <button type="button" class="page-btn disabled" disabled><i class="fa-solid fa-chevron-left"></i></button>
+                            <% } %>
+
+                            <% for (let p = 1; p <= totalPages; p++) { %>
+                                <a href="<%= buildPageUrl(p) %>" class="page-btn <%= currentPage === p ? 'active' : '' %>"><%= p %></a>
+                            <% } %>
+
+                            <% if (currentPage < totalPages) { %>
+                                <a href="<%= buildPageUrl(currentPage + 1) %>" class="page-btn"><i class="fa-solid fa-chevron-right"></i></a>
+                            <% } else { %>
+                                <button type="button" class="page-btn disabled" disabled><i class="fa-solid fa-chevron-right"></i></button>
+                            <% } %>
+                        </div>
+                    </div>
+                <% } %>
+            </main>
+        </div>
+    </div>
+
+    <div class="modal-overlay" id="viewOfferModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2><i class="fa-solid fa-eye modal-icon-blue"></i> Offer Details</h2>
+                <button type="button" class="close-modal-btn modal-close-trigger">
+                    <i class="fa-solid fa-xmark"></i>
+                </button>
+            </div>
+            <div class="modal-body">
+                <div class="view-details-grid">
+                    <div class="view-detail-card">
+                        <div class="detail-label">Offer Name</div>
+                        <div class="detail-value" id="viewOfferName">-</div>
+                    </div>
+                    <div class="view-detail-card">
+                        <div class="detail-label">Offer Type</div>
+                        <div class="detail-value" id="viewOfferType">-</div>
+                    </div>
+                    <div class="view-detail-card full-width">
+                        <div class="detail-label">Target (Product / Category)</div>
+                        <div class="detail-value" id="viewOfferTarget">-</div>
+                    </div>
+                    <div class="view-detail-card">
+                        <div class="detail-label">Discount Percentage</div>
+                        <div class="detail-value discount-value" id="viewOfferDiscount">-</div>
+                    </div>
+                    <div class="view-detail-card">
+                        <div class="detail-label">Current Status</div>
+                        <div class="detail-value" id="viewOfferStatus">-</div>
+                    </div>
+                    <div class="view-detail-card">
+                        <div class="detail-label">Start Date</div>
+                        <div class="detail-value" id="viewOfferStartDate">-</div>
+                    </div>
+                    <div class="view-detail-card">
+                        <div class="detail-label">End Date</div>
+                        <div class="detail-value" id="viewOfferEndDate">-</div>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary modal-close-trigger">Close</button>
+            </div>
+        </div>
+    </div>
+
+    <div class="modal-overlay" id="addOfferModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2><i class="fa-solid fa-circle-plus"></i> Add New Offer</h2>
+                <button type="button" class="close-modal-btn modal-close-trigger">
+                    <i class="fa-solid fa-xmark"></i>
+                </button>
+            </div>
+            <form id="addOfferForm" class="modal-form-layout" novalidate>
+                <div class="modal-body">
+                    <div class="form-group">
+                        <label for="addOfferName">Offer Name (e.g. SUMMER 10)</label>
+                        <input type="text" id="addOfferName" class="form-control" placeholder="e.g. SUMMER 10">
+                        <span class="field-error-text" id="addOfferNameError"></span>
+                    </div>
+
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="addOfferType">Offer Type</label>
+                            <select id="addOfferType" class="form-control">
+                                <option value="product">Product Offer</option>
+                                <option value="category">Category Offer</option>
+                            </select>
+                            <span class="field-error-text" id="addOfferTypeError"></span>
+                        </div>
+                        <div class="form-group">
+                            <label for="addOfferDiscount">Discount (%)</label>
+                            <input type="number" id="addOfferDiscount" class="form-control" placeholder="e.g. 10" min="1" max="90">
+                            <span class="field-error-text" id="addOfferDiscountError"></span>
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="addOfferTarget" id="addOfferTargetLabel">Target Product ID (e.g. PRD-0001)</label>
+                        <input type="text" id="addOfferTarget" class="form-control" placeholder="e.g. PRD-0001">
+                        <span class="field-error-text" id="addOfferTargetError"></span>
+                    </div>
+
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="addStartDate">Start Date</label>
+                            <input type="date" id="addStartDate" class="form-control">
+                            <span class="field-error-text" id="addStartDateError"></span>
+                        </div>
+                        <div class="form-group">
+                            <label for="addEndDate">End Date</label>
+                            <input type="date" id="addEndDate" class="form-control">
+                            <span class="field-error-text" id="addEndDateError"></span>
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="addOfferStatus">Status</label>
+                        <select id="addOfferStatus" class="form-control">
+                            <option value="active">Active</option>
+                            <option value="inactive">Inactive</option>
+                        </select>
+                        <span class="field-error-text" id="addOfferStatusError"></span>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary modal-close-trigger" id="cancelAddOfferBtn">Cancel</button>
+                    <button type="submit" class="btn btn-primary" id="addOfferSubmitBtn">
+                        <i class="fa-solid fa-check"></i> Create Offer
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <div class="modal-overlay" id="editOfferModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2><i class="fa-solid fa-pen-to-square modal-icon-green"></i> Edit Offer</h2>
+                <button type="button" class="close-modal-btn modal-close-trigger">
+                    <i class="fa-solid fa-xmark"></i>
+                </button>
+            </div>
+            <form id="editOfferForm" class="modal-form-layout" novalidate>
+                <input type="hidden" id="editOfferId">
+                <div class="modal-body">
+                    <div class="form-group">
+                        <label for="editOfferName">Offer Name</label>
+                        <input type="text" id="editOfferName" class="form-control">
+                        <span class="field-error-text" id="editOfferNameError"></span>
+                    </div>
+
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="editOfferType">Offer Type</label>
+                            <select id="editOfferType" class="form-control">
+                                <option value="product">Product Offer</option>
+                                <option value="category">Category Offer</option>
+                            </select>
+                            <span class="field-error-text" id="editOfferTypeError"></span>
+                        </div>
+                        <div class="form-group">
+                            <label for="editOfferDiscount">Discount (%)</label>
+                            <input type="number" id="editOfferDiscount" class="form-control" min="1" max="90">
+                            <span class="field-error-text" id="editOfferDiscountError"></span>
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="editOfferTarget" id="editOfferTargetLabel">Target Product ID (e.g. PRD-0001)</label>
+                        <input type="text" id="editOfferTarget" class="form-control">
+                        <span class="field-error-text" id="editOfferTargetError"></span>
+                    </div>
+
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="editStartDate">Start Date</label>
+                            <input type="date" id="editStartDate" class="form-control">
+                            <span class="field-error-text" id="editStartDateError"></span>
+                        </div>
+                        <div class="form-group">
+                            <label for="editEndDate">End Date</label>
+                            <input type="date" id="editEndDate" class="form-control">
+                            <span class="field-error-text" id="editEndDateError"></span>
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="editOfferStatus">Status</label>
+                        <select id="editOfferStatus" class="form-control">
+                            <option value="active">Active</option>
+                            <option value="inactive">Inactive</option>
+                        </select>
+                        <span class="field-error-text" id="editOfferStatusError"></span>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary modal-close-trigger" id="cancelEditOfferBtn">Cancel</button>
+                    <button type="submit" class="btn btn-primary" id="editOfferSubmitBtn">
+                        <i class="fa-solid fa-floppy-disk"></i> Save Changes
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <script src="/js/admin/offers.js"></script>
+</body>
+
+</html>
