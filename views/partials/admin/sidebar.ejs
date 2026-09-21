@@ -1,0 +1,69 @@
+<div class="sidebar-overlay" id="sidebarOverlay"></div>
+
+<aside class="sidebar" id="appSidebar">
+    <div class="sidebar-header sidebar-header-flex">
+        <h2 class="brand-title">HomeStation</h2>
+        <button id="closeSidebar" class="close-sidebar-btn" type="button"><i class="fa-solid fa-xmark"></i></button>
+    </div>
+
+    <nav class="sidebar-nav">
+        <ul class="nav-list">
+            <li class="nav-item">
+                <a href="/admin/dashboard" class="nav-link <%= (typeof activePage !== 'undefined' && activePage === 'dashboard') ? 'active' : '' %>">
+                    <i class="fa-solid fa-chart-pie nav-icon"></i> Dashboard
+                </a>
+            </li>
+            <li class="nav-item">
+                <a href="/admin/products" class="nav-link <%= (typeof activePage !== 'undefined' && activePage === 'products') ? 'active' : '' %>">
+                    <i class="fa-solid fa-box nav-icon"></i> Products
+                </a>
+            </li>
+            <li class="nav-item">
+                <a href="/admin/categories" class="nav-link <%= (typeof activePage !== 'undefined' && activePage === 'categories') ? 'active' : '' %>">
+                    <i class="fa-solid fa-tags nav-icon"></i> Categories
+                </a>
+            </li>
+            <li class="nav-item">
+                <a href="/admin/orders" class="nav-link <%= (typeof activePage !== 'undefined' && activePage === 'orders') ? 'active' : '' %>">
+                    <i class="fa-solid fa-cart-shopping nav-icon"></i> Orders
+                </a>
+            </li>
+            <li class="nav-item">
+                <a href="/admin/users" class="nav-link <%= (typeof activePage !== 'undefined' && activePage === 'users') ? 'active' : '' %>">
+                    <i class="fa-solid fa-users nav-icon"></i> User Management
+                </a>
+            </li>
+            <li class="nav-item">
+                <a href="/admin/sales-report" class="nav-link <%= (typeof activePage !== 'undefined' && activePage === 'sales-report') ? 'active' : '' %>">
+                    <i class="fa-solid fa-file-invoice-dollar nav-icon"></i> Sales Report
+                </a>
+            </li>
+            <li class="nav-item">
+                <a href="/admin/coupons" class="nav-link <%= (typeof activePage !== 'undefined' && activePage === 'coupons') ? 'active' : '' %>">
+                    <i class="fa-solid fa-ticket nav-icon"></i> Manage Coupons
+                </a>
+            </li>
+            <li class="nav-item">
+                <a href="/admin/offers" class="nav-link <%= (typeof activePage !== 'undefined' && activePage === 'offers') ? 'active' : '' %>">
+                    <i class="fa-solid fa-percent nav-icon"></i> Offers
+                </a>
+            </li>
+            <li class="nav-item">
+                <a href="/admin/enquiries" class="nav-link <%= (typeof activePage !== 'undefined' && activePage === 'enquiries') ? 'active' : '' %>">
+                    <i class="fa-solid fa-envelope nav-icon"></i> Enquiry
+                </a>
+            </li>
+        </ul>
+
+        <ul class="nav-list logout-section">
+            <li class="nav-item">
+                <form action="/admin/logout" method="POST" id="adminLogoutForm" class="logout-form">
+                    <input type="hidden" name="_csrf" value="<%= typeof csrfToken !== 'undefined' ? csrfToken : '' %>">
+                    <button type="submit" class="logout-link logout-btn">
+                        <i class="fa-solid fa-right-from-bracket nav-icon"></i> Logout
+                    </button>
+                </form>
+            </li>
+        </ul>
+    </nav>
+</aside>

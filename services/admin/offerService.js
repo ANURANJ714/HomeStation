@@ -88,6 +88,16 @@ export const createNewOffer = async (payload) => {
             throw err;
         }
 
+        const existingOffer = await Offer.findOne({
+            name : { $regex : new RegExp(`^${cleanName}$`, 'i') }
+        });
+
+        if(existingOffer){
+            const err = new Error('Offer name already exists.');
+            err.statusCode = 409;
+            throw err;
+        }
+
         if (!['product', 'category'].includes(cleanType)) {
             const err = new Error('Offer type must be product or category.');
             err.statusCode = 400;
