@@ -776,6 +776,10 @@ body {
     gap: 16px;
 }
 
+.d-none {
+    display: none !important;
+}
+
 @media(max-width: 480px) {
     .view-details-grid {
         grid-template-columns: 1fr;

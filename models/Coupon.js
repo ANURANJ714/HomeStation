@@ -28,8 +28,16 @@ const couponSchema = new mongoose.Schema({
     },
     maxRedeemAmount: {
         type: Number,
-        required: [true, 'Maximum redeem amount is required'],
-        min: [1, 'Maximum redeem amount must be greater than 0']
+        default: null,
+        validate: {
+            validator: function(val) {
+                if (this.discountType === 'percentage') {
+                    return typeof val === 'number' && val > 0;
+                }
+                return true;
+            },
+            message: 'Maximum redeem amount is required and must be greater than 0 for percentage discounts.'
+        }
     },
     usageLimit: {
         type: Number,

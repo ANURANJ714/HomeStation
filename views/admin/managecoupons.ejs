@@ -7,8 +7,7 @@
     <title>HomeStation - ADMIN</title>
     <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&display=swap" rel="stylesheet">
     <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,600;0,700;1,600&display=swap" rel="stylesheet">
-    <link rel="icon" type="image/x-icon"
-        href="https://res.cloudinary.com/dz7fuqwnr/image/upload/v1778395481/WhatsApp_Image_2026-05-10_at_12.12.36_nra5vk.jpg">
+    <link rel="icon" type="image/x-icon" href="https://res.cloudinary.com/dz7fuqwnr/image/upload/v1778395481/WhatsApp_Image_2026-05-10_at_12.12.36_nra5vk.jpg">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
     <link rel="stylesheet" href="/css/admin/managecoupons.css">
@@ -227,7 +226,7 @@
                                                     data-type="<%= typeLabel %>"
                                                     data-discount="<%= isPercentage ? `${coupon.discountValue}% OFF` : `₹${coupon.discountValue.toLocaleString('en-IN')} OFF` %>"
                                                     data-min="₹<%= coupon.minPurchase.toLocaleString('en-IN') %>"
-                                                    data-max="₹<%= coupon.maxRedeemAmount.toLocaleString('en-IN') %>"
+                                                    data-max="<%= coupon.maxRedeemAmount ? `₹${coupon.maxRedeemAmount.toLocaleString('en-IN')}` : 'N/A' %>"
                                                     data-usage="<%= coupon.usedCount %>/<%= coupon.usageLimit %>"
                                                     data-valid="<%= validUntilStr %>">
                                                     <i class="fa-solid fa-eye"></i>
@@ -240,7 +239,7 @@
                                                     data-type="<%= coupon.discountType %>"
                                                     data-discount="<%= coupon.discountValue %>"
                                                     data-min="<%= coupon.minPurchase %>"
-                                                    data-max="<%= coupon.maxRedeemAmount %>"
+                                                    data-max="<%= coupon.maxRedeemAmount || '' %>"
                                                     data-usage="<%= coupon.usageLimit %>"
                                                     data-valid="<%= rawValidUntil %>">
                                                     <i class="fa-solid fa-pen-to-square"></i>
@@ -341,7 +340,7 @@
                         <div class="detail-label">Minimum Purchase</div>
                         <div class="detail-value" id="viewMinPurchase">-</div>
                     </div>
-                    <div class="view-detail-card">
+                    <div class="view-detail-card" id="viewMaxRedeemCard">
                         <div class="detail-label">Maximum Redeem Amount</div>
                         <div class="detail-value" id="viewMaxPurchase">-</div>
                     </div>
@@ -397,20 +396,20 @@
                         </div>
 
                         <div class="form-group">
-                            <label for="addDiscountValue">Discount Value</label>
-                            <input type="number" id="addDiscountValue" class="form-control" placeholder="Enter value" min="1">
+                            <label for="addDiscountValue" id="addDiscountValueLabel">Discount Value (%)</label>
+                            <input type="number" id="addDiscountValue" class="form-control" placeholder="1 - 90">
                             <span class="field-error-text" id="addDiscountValueError"></span>
                         </div>
 
                         <div class="form-group">
                             <label for="addMinPurchase">Minimum Purchase (₹)</label>
-                            <input type="number" id="addMinPurchase" class="form-control" placeholder="e.g. 1000" min="1000">
+                            <input type="number" id="addMinPurchase" class="form-control" placeholder="Min ₹1000" min="1000">
                             <span class="field-error-text" id="addMinPurchaseError"></span>
                         </div>
 
-                        <div class="form-group">
+                        <div class="form-group" id="addMaxRedeemGroup">
                             <label for="addMaxPurchase">Maximum Redeem Amount (₹)</label>
-                            <input type="number" id="addMaxPurchase" class="form-control" placeholder="e.g. 5000" min="1">
+                            <input type="number" id="addMaxPurchase" class="form-control" placeholder="e.g. 5000">
                             <span class="field-error-text" id="addMaxPurchaseError"></span>
                         </div>
 
@@ -474,8 +473,8 @@
                         </div>
 
                         <div class="form-group">
-                            <label for="editDiscountValue">Discount Value</label>
-                            <input type="number" id="editDiscountValue" class="form-control" min="1">
+                            <label for="editDiscountValue" id="editDiscountValueLabel">Discount Value (%)</label>
+                            <input type="number" id="editDiscountValue" class="form-control">
                             <span class="field-error-text" id="editDiscountValueError"></span>
                         </div>
 
@@ -485,9 +484,9 @@
                             <span class="field-error-text" id="editMinPurchaseError"></span>
                         </div>
 
-                        <div class="form-group">
+                        <div class="form-group" id="editMaxRedeemGroup">
                             <label for="editMaxPurchase">Maximum Redeem Amount (₹)</label>
-                            <input type="number" id="editMaxPurchase" class="form-control" min="1">
+                            <input type="number" id="editMaxPurchase" class="form-control">
                             <span class="field-error-text" id="editMaxPurchaseError"></span>
                         </div>
 

@@ -52,11 +52,41 @@ document.addEventListener('DOMContentLoaded', () => {
     if (addCodeInput) addCodeInput.addEventListener('input', (e) => e.target.value = e.target.value.toUpperCase());
     if (editCodeInput) editCodeInput.addEventListener('input', (e) => e.target.value = e.target.value.toUpperCase());
 
+    function handleDiscountTypeChange(prefix) {
+        const typeSelect = document.getElementById(`${prefix}DiscountType`);
+        const maxRedeemGroup = document.getElementById(`${prefix}MaxRedeemGroup`);
+        const discountLabel = document.getElementById(`${prefix}DiscountValueLabel`);
+        const discountInput = document.getElementById(`${prefix}DiscountValue`);
+
+        if (typeSelect.value === 'percentage') {
+            maxRedeemGroup.classList.remove('d-none');
+            discountLabel.textContent = 'Discount Value (%)';
+            discountInput.placeholder = '1 - 90';
+        } else {
+            maxRedeemGroup.classList.add('d-none');
+            discountLabel.textContent = 'Discount Value (₹)';
+            discountInput.placeholder = '100 - 10000';
+            document.getElementById(`${prefix}MaxPurchase`).value = '';
+            document.getElementById(`${prefix}MaxPurchaseError`).textContent = '';
+        }
+    }
+
+    const addDiscountType = document.getElementById('addDiscountType');
+    if (addDiscountType) {
+        addDiscountType.addEventListener('change', () => handleDiscountTypeChange('add'));
+    }
+
+    const editDiscountType = document.getElementById('editDiscountType');
+    if (editDiscountType) {
+        editDiscountType.addEventListener('change', () => handleDiscountTypeChange('edit'));
+    }
+
     const openAddCouponModalBtn = document.getElementById('openAddCouponModalBtn');
     if (openAddCouponModalBtn) {
         openAddCouponModalBtn.addEventListener('click', () => {
             clearFormErrors('addCouponForm');
             document.getElementById('addCouponForm').reset();
+            handleDiscountTypeChange('add');
             openModal('addCouponModal');
         });
     }
@@ -77,7 +107,6 @@ document.addEventListener('DOMContentLoaded', () => {
         const typeVal = typeInput.value;
         const discountVal = Number(discountInput.value);
         const minPurchaseVal = Number(minPurchaseInput.value);
-        const maxPurchaseVal = Number(maxPurchaseInput.value);
         const maxUsesVal = Number(maxUsesInput.value);
         const validUntilVal = validUntilInput.value;
 
@@ -87,25 +116,30 @@ document.addEventListener('DOMContentLoaded', () => {
             isValid = false;
         }
 
-        if (isNaN(discountVal) || discountVal <= 0) {
-            document.getElementById(`${prefix}DiscountValueError`).textContent = 'Discount value must be greater than 0.';
-            discountInput.classList.add('input-error');
-            isValid = false;
-        } else if (typeVal === 'percentage' && discountVal > 90) {
-            document.getElementById(`${prefix}DiscountValueError`).textContent = 'Percentage discount cannot exceed 90%.';
-            discountInput.classList.add('input-error');
-            isValid = false;
+        if (typeVal === 'percentage') {
+            if (isNaN(discountVal) || discountVal < 1 || discountVal > 90) {
+                document.getElementById(`${prefix}DiscountValueError`).textContent = 'Discount must be between 1% and 90%.';
+                discountInput.classList.add('input-error');
+                isValid = false;
+            }
+
+            const maxPurchaseVal = Number(maxPurchaseInput.value);
+            if (isNaN(maxPurchaseVal) || maxPurchaseVal <= 0) {
+                document.getElementById(`${prefix}MaxPurchaseError`).textContent = 'Maximum redeem amount must be greater than 0.';
+                maxPurchaseInput.classList.add('input-error');
+                isValid = false;
+            }
+        } else {
+            if (isNaN(discountVal) || discountVal < 100 || discountVal > 10000) {
+                document.getElementById(`${prefix}DiscountValueError`).textContent = 'Discount must be between ₹100 and ₹10,000.';
+                discountInput.classList.add('input-error');
+                isValid = false;
+            }
         }
 
         if (isNaN(minPurchaseVal) || minPurchaseVal < 1000) {
             document.getElementById(`${prefix}MinPurchaseError`).textContent = 'Minimum purchase must be at least ₹1000.';
             minPurchaseInput.classList.add('input-error');
-            isValid = false;
-        }
-
-        if (isNaN(maxPurchaseVal) || maxPurchaseVal <= 0) {
-            document.getElementById(`${prefix}MaxPurchaseError`).textContent = 'Maximum redeem amount must be greater than 0.';
-            maxPurchaseInput.classList.add('input-error');
             isValid = false;
         }
 
@@ -123,11 +157,11 @@ document.addEventListener('DOMContentLoaded', () => {
             const chosenDate = new Date(validUntilVal);
             chosenDate.setHours(23, 59, 59, 999);
 
-            const todayEnd = new Date();
-            todayEnd.setHours(23, 59, 59, 999);
+            const todayStart = new Date();
+            todayStart.setHours(0, 0, 0, 0);
 
-            if (chosenDate <= todayEnd) {
-                document.getElementById(`${prefix}ValidUntilError`).textContent = 'Date cannot be today or in the past.';
+            if (chosenDate < todayStart) {
+                document.getElementById(`${prefix}ValidUntilError`).textContent = 'Date cannot be in the past.';
                 validUntilInput.classList.add('input-error');
                 isValid = false;
             }
@@ -146,13 +180,14 @@ document.addEventListener('DOMContentLoaded', () => {
             const submitBtn = document.getElementById('addCouponSubmitBtn');
             submitBtn.disabled = true;
 
+            const type = document.getElementById('addDiscountType').value;
             const payload = {
                 code: document.getElementById('addCouponCode').value.trim().toUpperCase(),
                 status: document.getElementById('addCouponStatus').value,
-                discountType: document.getElementById('addDiscountType').value,
+                discountType: type,
                 discountValue: Number(document.getElementById('addDiscountValue').value),
                 minPurchase: Number(document.getElementById('addMinPurchase').value),
-                maxRedeemAmount: Number(document.getElementById('addMaxPurchase').value),
+                maxRedeemAmount: type === 'percentage' ? Number(document.getElementById('addMaxPurchase').value) : null,
                 usageLimit: Number(document.getElementById('addMaxUses').value),
                 validUntil: document.getElementById('addValidUntil').value
             };
@@ -215,7 +250,15 @@ document.addEventListener('DOMContentLoaded', () => {
         document.getElementById('viewDiscountType').textContent = d.type;
         document.getElementById('viewDiscountValue').textContent = d.discount;
         document.getElementById('viewMinPurchase').textContent = d.min;
-        document.getElementById('viewMaxPurchase').textContent = d.max;
+        
+        const viewMaxCard = document.getElementById('viewMaxRedeemCard');
+        if (d.max && d.max !== 'N/A') {
+            viewMaxCard.classList.remove('d-none');
+            document.getElementById('viewMaxPurchase').textContent = d.max;
+        } else {
+            viewMaxCard.classList.add('d-none');
+        }
+
         document.getElementById('viewCouponUsage').innerHTML = `<span class="usage-badge">${d.usage}</span>`;
         document.getElementById('viewValidUntil').textContent = d.valid;
 
@@ -239,6 +282,7 @@ document.addEventListener('DOMContentLoaded', () => {
         document.getElementById('editMaxUses').value = d.usage;
         document.getElementById('editValidUntil').value = d.valid;
 
+        handleDiscountTypeChange('edit');
         openModal('editCouponModal');
     });
 
@@ -253,13 +297,14 @@ document.addEventListener('DOMContentLoaded', () => {
             const submitBtn = document.getElementById('editCouponSubmitBtn');
             submitBtn.disabled = true;
 
+            const type = document.getElementById('editDiscountType').value;
             const payload = {
                 code: document.getElementById('editCouponCode').value.trim().toUpperCase(),
                 status: document.getElementById('editCouponStatus').value,
-                discountType: document.getElementById('editDiscountType').value,
+                discountType: type,
                 discountValue: Number(document.getElementById('editDiscountValue').value),
                 minPurchase: Number(document.getElementById('editMinPurchase').value),
-                maxRedeemAmount: Number(document.getElementById('editMaxPurchase').value),
+                maxRedeemAmount: type === 'percentage' ? Number(document.getElementById('editMaxPurchase').value) : null,
                 usageLimit: Number(document.getElementById('editMaxUses').value),
                 validUntil: document.getElementById('editValidUntil').value
             };

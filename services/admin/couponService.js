@@ -65,7 +65,6 @@ export const createNewCoupon = async (data) => {
         const cleanType = discountType ? discountType.trim().toLowerCase() : '';
         const numDiscount = Number(discountValue);
         const numMinPurchase = Number(minPurchase);
-        const numMaxRedeem = Number(maxRedeemAmount);
         const numUsageLimit = Number(usageLimit);
 
         if (!cleanCode) {
@@ -87,26 +86,31 @@ export const createNewCoupon = async (data) => {
             throw err;
         }
 
-        if (isNaN(numDiscount) || numDiscount <= 0) {
-            const err = new Error('Discount value must be greater than 0.');
-            err.statusCode = 400;
-            throw err;
-        }
+        let numMaxRedeem = null;
 
-        if (cleanType === 'percentage' && numDiscount > 90) {
-            const err = new Error('Percentage discount cannot exceed 90%.');
-            err.statusCode = 400;
-            throw err;
+        if (cleanType === 'percentage') {
+            if (isNaN(numDiscount) || numDiscount < 1 || numDiscount > 90) {
+                const err = new Error('Percentage discount must be between 1% and 90%.');
+                err.statusCode = 400;
+                throw err;
+            }
+            numMaxRedeem = Number(maxRedeemAmount);
+            if (isNaN(numMaxRedeem) || numMaxRedeem <= 0) {
+                const err = new Error('Maximum redeem amount is required and must be greater than 0 for percentage discounts.');
+                err.statusCode = 400;
+                throw err;
+            }
+        } else {
+            if (isNaN(numDiscount) || numDiscount < 100 || numDiscount > 10000) {
+                const err = new Error('Flat discount must be between ₹100 and ₹10,000.');
+                err.statusCode = 400;
+                throw err;
+            }
+            numMaxRedeem = null;
         }
 
         if (isNaN(numMinPurchase) || numMinPurchase < 1000) {
             const err = new Error('Minimum purchase amount must be at least ₹1000.');
-            err.statusCode = 400;
-            throw err;
-        }
-
-        if (isNaN(numMaxRedeem) || numMaxRedeem <= 0) {
-            const err = new Error('Maximum redeem amount must be greater than 0.');
             err.statusCode = 400;
             throw err;
         }
@@ -129,11 +133,8 @@ export const createNewCoupon = async (data) => {
         const todayStart = new Date();
         todayStart.setHours(0, 0, 0, 0);
 
-        const todayEnd = new Date();
-        todayEnd.setHours(23, 59, 59, 999);
-
-        if (expiryDate <= todayEnd) {
-            const err = new Error('Valid until date cannot be today or in the past.');
+        if (expiryDate < todayStart) {
+            const err = new Error('Valid until date cannot be in the past.');
             err.statusCode = 400;
             throw err;
         }
@@ -180,7 +181,6 @@ export const updateCouponDetails = async (couponId, data) => {
         const cleanType = discountType ? discountType.trim().toLowerCase() : '';
         const numDiscount = Number(discountValue);
         const numMinPurchase = Number(minPurchase);
-        const numMaxRedeem = Number(maxRedeemAmount);
         const numUsageLimit = Number(usageLimit);
 
         if (!cleanCode) {
@@ -201,26 +201,37 @@ export const updateCouponDetails = async (couponId, data) => {
             throw err;
         }
 
-        if (isNaN(numDiscount) || numDiscount <= 0) {
-            const err = new Error('Discount value must be greater than 0.');
+        if (!['percentage', 'flat'].includes(cleanType)) {
+            const err = new Error('Discount type must be either percentage or flat.');
             err.statusCode = 400;
             throw err;
         }
 
-        if (cleanType === 'percentage' && numDiscount > 90) {
-            const err = new Error('Percentage discount cannot exceed 90%.');
-            err.statusCode = 400;
-            throw err;
+        let numMaxRedeem = null;
+
+        if (cleanType === 'percentage') {
+            if (isNaN(numDiscount) || numDiscount < 1 || numDiscount > 90) {
+                const err = new Error('Percentage discount must be between 1% and 90%.');
+                err.statusCode = 400;
+                throw err;
+            }
+            numMaxRedeem = Number(maxRedeemAmount);
+            if (isNaN(numMaxRedeem) || numMaxRedeem <= 0) {
+                const err = new Error('Maximum redeem amount is required and must be greater than 0 for percentage discounts.');
+                err.statusCode = 400;
+                throw err;
+            }
+        } else {
+            if (isNaN(numDiscount) || numDiscount < 100 || numDiscount > 10000) {
+                const err = new Error('Flat discount must be between ₹100 and ₹10,000.');
+                err.statusCode = 400;
+                throw err;
+            }
+            numMaxRedeem = null;
         }
 
         if (isNaN(numMinPurchase) || numMinPurchase < 1000) {
             const err = new Error('Minimum purchase amount must be at least ₹1000.');
-            err.statusCode = 400;
-            throw err;
-        }
-
-        if (isNaN(numMaxRedeem) || numMaxRedeem <= 0) {
-            const err = new Error('Maximum redeem amount must be greater than 0.');
             err.statusCode = 400;
             throw err;
         }
@@ -240,11 +251,11 @@ export const updateCouponDetails = async (couponId, data) => {
         const expiryDate = new Date(validUntil);
         expiryDate.setHours(23, 59, 59, 999);
 
-        const todayEnd = new Date();
-        todayEnd.setHours(23, 59, 59, 999);
+        const todayStart = new Date();
+        todayStart.setHours(0, 0, 0, 0);
 
-        if (expiryDate <= todayEnd) {
-            const err = new Error('Valid until date cannot be today or in the past.');
+        if (expiryDate < todayStart) {
+            const err = new Error('Valid until date cannot be in the past.');
             err.statusCode = 400;
             throw err;
         }

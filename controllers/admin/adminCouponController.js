@@ -23,6 +23,7 @@ export const loadCouponsPage = async (req, res) => {
         logger.info(`Admin (${adminEmail}) loaded Manage Coupons page (Page: ${page}) | IP: ${clientIp}`);
 
         return res.render('admin/managecoupons', {
+            pageTitle: 'HomeStation - Manage Coupons',
             coupons: result.coupons,
             totalItems: result.totalItems,
             totalPages: result.totalPages,
