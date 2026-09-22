@@ -106,6 +106,11 @@ export const createNewCoupon = async (data) => {
                 err.statusCode = 400;
                 throw err;
             }
+            if (numDiscount >= numMinPurchase){
+                const err = new Error(`Discount should not be greater than min purchase.`);
+                err.statusCode = 400;
+                throw err;
+            }
             numMaxRedeem = null;
         }
 
@@ -224,6 +229,11 @@ export const updateCouponDetails = async (couponId, data) => {
         } else {
             if (isNaN(numDiscount) || numDiscount < 100 || numDiscount > 10000) {
                 const err = new Error('Flat discount must be between ₹100 and ₹10,000.');
+                err.statusCode = 400;
+                throw err;
+            }
+            if (numDiscount >= numMinPurchase){
+                const err = new Error(`Discount should not be greater than min purchase.`);
                 err.statusCode = 400;
                 throw err;
             }

@@ -21,7 +21,15 @@ export const getOffersPaginated = async ({ page = 1, limit = 6, search = '', typ
 
         const skip = (page - 1) * limit;
 
-        const [offers, totalItems, totalOffers, activeOffers, inactiveOffers, productOffers] = await Promise.all([
+        const [
+            offers, 
+            totalItems, 
+            totalOffers, 
+            activeOffers, 
+            inactiveOffers, 
+            productOffers,
+            categoryOffers
+        ] = await Promise.all([
             Offer.find(query)
                 .populate('targetId')
                 .sort({ createdAt: -1 })
@@ -32,7 +40,8 @@ export const getOffersPaginated = async ({ page = 1, limit = 6, search = '', typ
             Offer.countDocuments({ isDeleted: false }),
             Offer.countDocuments({ isDeleted: false, status: 'active' }),
             Offer.countDocuments({ isDeleted: false, status: 'inactive' }),
-            Offer.countDocuments({ isDeleted: false, offerType: 'product' })
+            Offer.countDocuments({ isDeleted: false, offerType: 'product' }),
+            Offer.countDocuments({ isDeleted: false, offerType: 'category' })
         ]);
 
         const formattedOffers = offers.map((offer) => {
@@ -65,7 +74,8 @@ export const getOffersPaginated = async ({ page = 1, limit = 6, search = '', typ
                 totalOffers,
                 activeOffers,
                 inactiveOffers,
-                productOffers
+                productOffers,
+                categoryOffers
             }
         };
     } catch (error) {
