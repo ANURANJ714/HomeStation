@@ -1,5 +1,6 @@
 import Wishlist from '../../models/Wishlist.js';
 import ProductVariant from '../../models/ProductVariant.js';
+import Offer from '../../models/Offer.js';
 
 
 const validateVariantStatus = async (productVariantId) => {
@@ -94,35 +95,94 @@ export const getWishlistItemsPaginated = async (userId, page = 1, limit = 6) => 
             return { items: [], totalItems: 0, totalPages: 0, currentPage: page };
         }
 
+        const currentDate = new Date();
+
+        const activeOffers = await Offer.find({
+            isDeleted: false,
+            status: 'active',
+            startDate: { $lte: currentDate },
+            endDate: { $gte: currentDate }
+        }).lean();
+
+        const productOffersMap = {};
+        const categoryOffersMap = {};
+
+        activeOffers.forEach((offer) => {
+            const targetIdStr = offer.targetId ? offer.targetId.toString() : null;
+            if (!targetIdStr) return;
+
+            if (offer.offerType === 'product') {
+                if (!productOffersMap[targetIdStr] || offer.discount > productOffersMap[targetIdStr]) {
+                    productOffersMap[targetIdStr] = offer.discount;
+                }
+            } else if (offer.offerType === 'category') {
+                if (!categoryOffersMap[targetIdStr] || offer.discount > categoryOffersMap[targetIdStr]) {
+                    categoryOffersMap[targetIdStr] = offer.discount;
+                }
+            }
+        });
+
+        const calculateBestDiscount = (variantDiscount = 0, productId, categoryId) => {
+            const pIdStr = productId ? productId.toString() : '';
+            const cIdStr = categoryId ? categoryId.toString() : '';
+
+            const productOfferDiscount = productOffersMap[pIdStr] || 0;
+            const categoryOfferDiscount = categoryOffersMap[cIdStr] || 0;
+            const baseDiscount = Number(variantDiscount) || 0;
+
+            return Math.max(baseDiscount, productOfferDiscount, categoryOfferDiscount);
+        };
+
         const items = await ProductVariant.find({ _id: { $in: wishlist.variants } })
             .populate({
                 path: 'productId',
                 populate: { path: 'categoryId' }
             })
-            .exec();
+            .lean();
 
         const validItems = [];
 
         for (const variantId of wishlist.variants) {
             const foundMatch = items.find(item => item._id.toString() === variantId.toString());
-            
-            if (!foundMatch || 
+
+            if (
+                !foundMatch || 
                 !foundMatch.productId || 
                 foundMatch.productId.isDeleted === true || 
-                (foundMatch.productId.categoryId && foundMatch.productId.categoryId.isDeleted === true)) {
-                
+                (foundMatch.productId.categoryId && foundMatch.productId.categoryId.isDeleted === true)
+            ) {
                 continue; 
             }
-            
-            validItems.push(foundMatch);
+
+            const effectiveDiscount = calculateBestDiscount(
+                foundMatch.discount,
+                foundMatch.productId._id,
+                foundMatch.productId.categoryId?._id || foundMatch.productId.categoryId
+            );
+
+            const calculatedPrice = Math.round(
+                foundMatch.originalPrice * (1 - (effectiveDiscount / 100))
+            );
+
+            validItems.push({
+                ...foundMatch,
+                effectiveDiscount,
+                calculatedPrice
+            });
         }
 
         const totalItems = validItems.length;
-        const totalPages = Math.ceil(totalItems / limit);
-        const skip = (page - 1) * limit;
+        const totalPages = Math.ceil(totalItems / limit) || 1;
+        const safePage = Math.min(Math.max(1, page), totalPages);
+        const skip = (safePage - 1) * limit;
         const paginatedItems = validItems.slice(skip, skip + limit);
 
-        return { items: paginatedItems, totalItems, totalPages, currentPage: page };
+        return { 
+            items: paginatedItems, 
+            totalItems, 
+            totalPages, 
+            currentPage: safePage 
+        };
     } catch (error) {
         throw new Error(`Database error while fetching paginated wishlist: ${error.message}`);
     }

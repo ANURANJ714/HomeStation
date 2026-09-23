@@ -43,15 +43,16 @@
                         const variant = product.firstVariant;
                         const pReview = (typeof productRatingsMap !== 'undefined' && productRatingsMap[product._id.toString()]) ? productRatingsMap[product._id.toString()] : null;
                         if(variant) {
-                            const currentPrice = Math.round(variant.originalPrice * (1 - (variant.discount || 0) / 100));
+                            const discount = variant.effectiveDiscount || 0;
+                            const currentPrice = variant.calculatedCurrentPrice;
                     %>
                         <div class="product-card clickable-product-card" data-product-id="<%= product._id %>">
                             <div class="product-image">
                                 <img src="<%= product.images && product.images[0] ? product.images[0] : 'https://placehold.co/400' %>" alt="<%= product.name %>">
                                 <div class="badge-container">
-                                    <% if (variant.discount > 0) { %>
+                                    <% if (discount > 0) { %>
                                         <span class="badge discount">
-                                            <%= variant.discount %>% OFF
+                                            <%= discount %>% OFF
                                         </span>
                                     <% } %>
                                 </div>
@@ -83,7 +84,7 @@
                                 </div>
                                 <div class="card-footer">
                                     <p class="price">
-                                        <% if (variant.discount > 0) { %>
+                                        <% if (discount > 0) { %>
                                             <span class="old-price">₹<%= variant.originalPrice.toLocaleString('en-IN') %></span>
                                         <% } %>
                                         ₹<%= currentPrice.toLocaleString('en-IN') %>
@@ -116,15 +117,16 @@
                         const variant = deal.variant;
                         if(product && variant) {
                             const pReview = (typeof productRatingsMap !== 'undefined' && productRatingsMap[product._id.toString()]) ? productRatingsMap[product._id.toString()] : null;
-                            const currentPrice = Math.round(variant.originalPrice * (1 - (variant.discount || 0) / 100));
+                            const discount = variant.effectiveDiscount || 0;
+                            const currentPrice = variant.calculatedCurrentPrice;
                     %>
                         <div class="product-card clickable-product-card" data-product-id="<%= product._id %>">
                             <div class="product-image">
                                 <img src="<%= product.images && product.images[0] ? product.images[0] : 'https://placehold.co/400' %>" alt="<%= product.name %>">
                                 <div class="badge-container">
-                                    <% if (variant.discount > 0) { %>
+                                    <% if (discount > 0) { %>
                                         <span class="badge discount">
-                                            <%= variant.discount %>% OFF
+                                            <%= discount %>% OFF
                                         </span>
                                     <% } %>
                                 </div>
@@ -156,7 +158,7 @@
                                 </div>
                                 <div class="card-footer">
                                     <p class="price">
-                                        <% if (variant.discount > 0) { %>
+                                        <% if (discount > 0) { %>
                                             <span class="old-price">₹<%= variant.originalPrice.toLocaleString('en-IN') %></span>
                                         <% } %>
                                         ₹<%= currentPrice.toLocaleString('en-IN') %>

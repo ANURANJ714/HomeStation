@@ -46,6 +46,7 @@ export const toggleWishlistItem = async (req, res) => {
 export const loadWishlistPage = async (req, res) => {
     try {
         const userId = req.user._id;
+        const userEmail = req.user.email || 'User';
         const page = parseInt(req.query.page, 10) || 1;
         const limit = 6; 
 
@@ -54,6 +55,8 @@ export const loadWishlistPage = async (req, res) => {
             getActivePromoBanner(),
             getUserHeaderCounts(userId)
         ]);
+
+        logger.info(`Wishlist page rendered for (${userEmail}) | Total Items: ${wishlistData.totalItems} | Page: ${wishlistData.currentPage}`);
 
         return res.render('user/wishlist', {
             user: req.user,
@@ -68,8 +71,11 @@ export const loadWishlistPage = async (req, res) => {
         });
 
     } catch (error) {
-        logger.error(`Error loading Wishlist Page (IP: ${req.ip}): ${error.message}`);
-        return res.status(500).json({ success: false, message: "Server error occurred while loading wishlist." });
+        logger.error(`Error loading Wishlist Page (IP: ${req.ip}): ${error.message}\nStack: ${error.stack}`);
+        return res.status(500).json({ 
+            success: false, 
+            message: "Server error occurred while loading wishlist." 
+        });
     }
 };
 

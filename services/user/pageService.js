@@ -3,13 +3,52 @@ import ProductVariant from '../../models/ProductVariant.js';
 import Category from '../../models/Category.js';
 import EnquirySubject from '../../models/EnquirySubject.js';
 import EnquiryMessage from '../../models/EnquiryMessage.js';
-
+import Offer from '../../models/Offer.js';
 
 export const getHomePageData = async () => {
     try {
-        const categories = await Category.find({ isDeleted: false });
+        const currentDate = new Date();
 
-        const bestSellers = await Product.aggregate([
+        const categories = await Category.find({ isDeleted: false }).lean();
+
+        const activeOffers = await Offer.find({
+            isDeleted: false,
+            status: 'active',
+            startDate: { $lte: currentDate },
+            endDate: { $gte: currentDate }
+        }).lean();
+
+        const productOffersMap = {};
+        const categoryOffersMap = {};
+
+        activeOffers.forEach((offer) => {
+            const targetIdStr = offer.targetId ? offer.targetId.toString() : null;
+            if (!targetIdStr) return;
+
+            if (offer.offerType === 'product') {
+                if (!productOffersMap[targetIdStr] || offer.discount > productOffersMap[targetIdStr]) {
+                    productOffersMap[targetIdStr] = offer.discount;
+                }
+            } else if (offer.offerType === 'category') {
+                if (!categoryOffersMap[targetIdStr] || offer.discount > categoryOffersMap[targetIdStr]) {
+                    categoryOffersMap[targetIdStr] = offer.discount;
+                }
+            }
+        });
+
+        const calculateBestDiscount = (variantDiscount = 0, productId, categoryId) => {
+            const pIdStr = productId ? productId.toString() : '';
+            const cIdStr = categoryId ? categoryId.toString() : '';
+
+            const productOfferDiscount = productOffersMap[pIdStr] || 0;
+            const categoryOfferDiscount = categoryOffersMap[cIdStr] || 0;
+
+            const baseDiscount = Number(variantDiscount) || 0;
+
+            return Math.max(baseDiscount, productOfferDiscount, categoryOfferDiscount);
+        };
+
+        const rawBestSellers = await Product.aggregate([
             { $match: { isDeleted: false } },
             {
                 $lookup: {
@@ -35,60 +74,73 @@ export const getHomePageData = async () => {
                         $filter: {
                             input: '$variants',
                             as: 'v',
-                            cond: { $gt: ['$$v.stock', 0] }
-                        }
-                    }
-                }
-            },
-            { $match: { $expr: { $gt: [{ $size: '$inStockVariants' }, 0] } } },
-            { $sample: { size: 4 } },
-            {
-                $addFields: {
+                            cond: { $gt: ['$$v.stock', 0] }   }    }   }    },    {$match: { $expr: {$gt: [{ $size: '$inStockVariants' }, 0] } } },
+            { $sample: { size: 4 } },             {$addFields: {
                     firstVariant: { $arrayElemAt: ['$inStockVariants', 0] }
                 }
             }
         ]);
 
-        const topDeals = await ProductVariant.aggregate([
-            { $match: { stock: { $gt: 0 } } },
-            { $sort: { discount: -1 } },
-            {
-                $lookup: {
-                    from: 'products',
-                    localField: 'productId',
-                    foreignField: '_id',
-                    as: 'product'
-                }
-            },
-            { $unwind: '$product' },
-            { $match: { 'product.isDeleted': false } },
-            {
-                $lookup: {
-                    from: 'categories',
-                    localField: 'product.categoryId',
-                    foreignField: '_id',
-                    as: 'category'
-                }
-            },
-            { $unwind: '$category' },
-            { $match: { 'category.isDeleted': false } },
-            {
-                $group: {
-                    _id: '$productId',
-                    variant: { $first: '$$ROOT' },
-                    product: { $first: '$product' }
-                }
-            },
-            { $sort: { 'variant.discount': -1 } },
-            { $limit: 4 },
-            {
-                $project: {
-                    _id: 0,
-                    product: 1,
-                    variant: '$variant'
-                }
+        const bestSellers = rawBestSellers.map((product) => {
+            if (product.firstVariant) {
+                const effectiveDiscount = calculateBestDiscount(
+                    product.firstVariant.discount,
+                    product._id,
+                    product.categoryId
+                );
+
+                const originalPrice = product.firstVariant.originalPrice;
+                const currentPrice = Math.round(originalPrice * (1 - effectiveDiscount / 100));
+
+                product.firstVariant.effectiveDiscount = effectiveDiscount;
+                product.firstVariant.calculatedCurrentPrice = currentPrice;
             }
-        ]);
+            return product;
+        });
+
+        const inStockVariants = await ProductVariant.find({ stock: { $gt: 0 } })
+            .populate({
+                path: 'productId',
+                populate: { path: 'categoryId' }
+            })
+            .lean();
+
+        const processedVariants = inStockVariants
+            .filter(v => v.productId && !v.productId.isDeleted && v.productId.categoryId && !v.productId.categoryId.isDeleted)
+            .map(variant => {
+                const product = variant.productId;
+                const categoryId = product.categoryId._id || product.categoryId;
+
+                const effectiveDiscount = calculateBestDiscount(
+                    variant.discount,
+                    product._id,
+                    categoryId
+                );
+
+                const originalPrice = variant.originalPrice;
+                const currentPrice = Math.round(originalPrice * (1 - effectiveDiscount / 100));
+
+                return {
+                    product,
+                    variant: {
+                        ...variant,
+                        effectiveDiscount,
+                        calculatedCurrentPrice: currentPrice
+                    }
+                };
+            });
+
+        const uniqueProductDealsMap = {};
+        processedVariants.forEach(item => {
+            const pIdStr = item.product._id.toString();
+            if (!uniqueProductDealsMap[pIdStr] || item.variant.effectiveDiscount > uniqueProductDealsMap[pIdStr].variant.effectiveDiscount) {
+                uniqueProductDealsMap[pIdStr] = item;
+            }
+        });
+
+        const topDeals = Object.values(uniqueProductDealsMap)
+            .sort((a, b) => b.variant.effectiveDiscount - a.variant.effectiveDiscount)
+            .slice(0, 4);
 
         return { categories, bestSellers, topDeals };
 

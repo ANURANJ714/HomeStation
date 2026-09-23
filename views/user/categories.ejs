@@ -83,14 +83,15 @@
                             <% 
                                 const variant = product.displayVariant; 
                                 const pReview = (typeof productRatingsMap !== 'undefined' && productRatingsMap[product._id.toString()]) ? productRatingsMap[product._id.toString()] : null;
+                                const discount = variant.effectiveDiscount || 0;
                             %>
                             <div class="product-card clickable-product-card" data-product-id="<%= product._id %>">
                                 
                                 <div class="product-image">
                                     <img src="<%= product.images && product.images[0] ? product.images[0] : 'https://placehold.co/400' %>" alt="<%= product.name %>">
                                     <div class="badge-container">
-                                        <% if (variant.discount > 0) { %>
-                                            <span class="badge discount"><%= variant.discount %>% OFF</span>
+                                        <% if (discount > 0) { %>
+                                            <span class="badge discount"><%= discount %>% OFF</span>
                                         <% } %>
                                     </div>
                                 </div>
@@ -125,7 +126,7 @@
 
                                     <div class="card-footer">
                                         <p class="price">
-                                            <% if (variant.discount > 0) { %>
+                                            <% if (discount > 0) { %>
                                                 <span class="old-price">₹<%= variant.originalPrice.toLocaleString('en-IN') %></span>
                                             <% } %>
                                             ₹<%= variant.calculatedPrice.toLocaleString('en-IN') %>

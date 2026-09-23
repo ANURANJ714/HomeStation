@@ -2,6 +2,7 @@ import Product from '../../models/Products.js';
 import ProductVariant from '../../models/ProductVariant.js';
 import Category from '../../models/Category.js';
 import Order from '../../models/Order.js';
+import Offer from '../../models/Offer.js';
 
 export const getProductsPageData = async (queryOptions) => {
     const { searchQuery, categoryFilter, maxPriceFilter, safeSkip, limit } = queryOptions;
@@ -103,6 +104,43 @@ export const getUniqueActiveBrands = async () => {
 export const getFilteredProductsCatalog = async (filters) => {
     try {
         const { categories, brands, sort, searchQuery, page, limit } = filters;
+        const currentDate = new Date();
+
+        const activeOffers = await Offer.find({
+            isDeleted: false,
+            status: 'active',
+            startDate: { $lte: currentDate },
+            endDate: { $gte: currentDate }
+        }).lean();
+
+        const productOffersMap = {};
+        const categoryOffersMap = {};
+
+        activeOffers.forEach(offer => {
+            const targetIdStr = offer.targetId ? offer.targetId.toString() : null;
+            if (!targetIdStr) return;
+
+            if (offer.offerType === 'product') {
+                if (!productOffersMap[targetIdStr] || offer.discount > productOffersMap[targetIdStr]) {
+                    productOffersMap[targetIdStr] = offer.discount;
+                }
+            } else if (offer.offerType === 'category') {
+                if (!categoryOffersMap[targetIdStr] || offer.discount > categoryOffersMap[targetIdStr]) {
+                    categoryOffersMap[targetIdStr] = offer.discount;
+                }
+            }
+        });
+
+        const calculateBestDiscount = (variantDiscount = 0, productId, categoryId) => {
+            const pIdStr = productId ? productId.toString() : '';
+            const cIdStr = categoryId ? categoryId.toString() : '';
+
+            const productOfferDiscount = productOffersMap[pIdStr] || 0;
+            const categoryOfferDiscount = categoryOffersMap[cIdStr] || 0;
+            const baseDiscount = Number(variantDiscount) || 0;
+
+            return Math.max(baseDiscount, productOfferDiscount, categoryOfferDiscount);
+        };
 
         let matchedCategoryIds = [];
         if (categories && Array.isArray(categories) && categories.length > 0) {
@@ -112,7 +150,7 @@ export const getFilteredProductsCatalog = async (filters) => {
             matchedCategoryIds = activeCategories.map(c => c._id);
         }
 
-        let productMatchQuery = {
+        const productMatchQuery = {
             isDeleted: false,
             categoryId: { $in: matchedCategoryIds }
         };
@@ -122,7 +160,7 @@ export const getFilteredProductsCatalog = async (filters) => {
         }
 
         if (searchQuery) {
-            productMatchQuery.name = { $regex: searchQuery, $options: 'i' };
+            productMatchQuery.name = { $regex: searchQuery,$options: 'i' };
         }
 
         const baseProductsList = await Product.find(productMatchQuery).lean();
@@ -138,13 +176,21 @@ export const getFilteredProductsCatalog = async (filters) => {
 
             variants.forEach(variant => {
                 totalStockAccumulator += variant.stock;
-                
+
                 if (variant.stock > 0 && !firstInStockVariant) {
-                    const finalCalculatedPrice = Math.round(
-                        variant.originalPrice * (1 - (variant.discount || 0) / 100)
+                    const effectiveDiscount = calculateBestDiscount(
+                        variant.discount,
+                        product._id,
+                        product.categoryId
                     );
+
+                    const finalCalculatedPrice = Math.round(
+                        variant.originalPrice * (1 - effectiveDiscount / 100)
+                    );
+
                     firstInStockVariant = {
                         ...variant,
+                        effectiveDiscount,
                         calculatedPrice: finalCalculatedPrice
                     };
                 }
@@ -182,6 +228,44 @@ export const getFilteredProductsCatalog = async (filters) => {
 
 export const getValidatedProductDetails = async (productId) => {
     try {
+        const currentDate = new Date();
+
+        const activeOffers = await Offer.find({
+            isDeleted: false,
+            status: 'active',
+            startDate: { $lte: currentDate },
+            endDate: { $gte: currentDate }
+        }).lean();
+
+        const productOffersMap = {};
+        const categoryOffersMap = {};
+
+        activeOffers.forEach((offer) => {
+            const targetIdStr = offer.targetId ? offer.targetId.toString() : null;
+            if (!targetIdStr) return;
+
+            if (offer.offerType === 'product') {
+                if (!productOffersMap[targetIdStr] || offer.discount > productOffersMap[targetIdStr]) {
+                    productOffersMap[targetIdStr] = offer.discount;
+                }
+            } else if (offer.offerType === 'category') {
+                if (!categoryOffersMap[targetIdStr] || offer.discount > categoryOffersMap[targetIdStr]) {
+                    categoryOffersMap[targetIdStr] = offer.discount;
+                }
+            }
+        });
+
+        const calculateBestDiscount = (variantDiscount = 0, targetProductId, targetCategoryId) => {
+            const pIdStr = targetProductId ? targetProductId.toString() : '';
+            const cIdStr = targetCategoryId ? targetCategoryId.toString() : '';
+
+            const productOfferDiscount = productOffersMap[pIdStr] || 0;
+            const categoryOfferDiscount = categoryOffersMap[cIdStr] || 0;
+            const baseDiscount = Number(variantDiscount) || 0;
+
+            return Math.max(baseDiscount, productOfferDiscount, categoryOfferDiscount);
+        };
+
         const product = await Product.findOne({ _id: productId, isDeleted: false }).lean();
         if (!product) {
             const error = new Error("Requested product is no longer available.");
@@ -203,9 +287,17 @@ export const getValidatedProductDetails = async (productId) => {
         rawVariants.forEach(v => {
             runningTotalStockValue += v.stock;
             if (v.stock > 0) {
-                const calculatedPrice = Math.round(v.originalPrice * (1 - (v.discount || 0) / 100));
+                const effectiveDiscount = calculateBestDiscount(
+                    v.discount,
+                    product._id,
+                    product.categoryId
+                );
+
+                const calculatedPrice = Math.round(v.originalPrice * (1 - (effectiveDiscount / 100)));
+
                 activeInStockVariants.push({
                     ...v,
+                    effectiveDiscount,
                     calculatedPrice
                 });
             }
@@ -218,10 +310,8 @@ export const getValidatedProductDetails = async (productId) => {
         }
 
         const analyticalMatches = await Product.aggregate([
-            { $match: { _id: { $ne: product._id }, categoryId: category._id, isDeleted: false } },
-            { $sample: { size: 4 } },
-            {
-                $lookup: {
+            { $match: { _id: {$ne: product._id }, categoryId: category._id, isDeleted: false } },
+            { $sample: { size: 4 } },             {$lookup: {
                     from: 'productvariants',
                     localField: '_id',
                     foreignField: 'productId',
@@ -234,21 +324,24 @@ export const getValidatedProductDetails = async (productId) => {
                         $filter: {
                             input: '$variants',
                             as: 'v',
-                            cond: { $gt: ['$$v.stock', 0] }
-                        }
-                    }
-                }
-            },
-            { $match: { $expr: { $gt: [{ $size: '$inStockVariants' }, 0] } } }
+                            cond: { $gt: ['$$v.stock', 0] }                         }                     }                 }             },             {$match: { $expr: {$gt: [{ $size: '$inStockVariants' }, 0] } } }
         ]);
 
         const processedSuggestionsDeck = analyticalMatches.map(p => {
             const primaryOption = p.inStockVariants[0];
-            const calculatedPrice = Math.round(primaryOption.originalPrice * (1 - (primaryOption.discount || 0) / 100));
+            const effectiveDiscount = calculateBestDiscount(
+                primaryOption.discount,
+                p._id,
+                p.categoryId
+            );
+
+            const calculatedPrice = Math.round(primaryOption.originalPrice * (1 - (effectiveDiscount / 100)));
+
             return {
                 ...p,
                 displayVariant: {
                     ...primaryOption,
+                    effectiveDiscount,
                     calculatedPrice
                 }
             };
@@ -269,12 +362,50 @@ export const getValidatedProductDetails = async (productId) => {
 export const searchActiveProductsCatalog = async (searchFilters) => {
     try {
         const { query, sort, page, limit } = searchFilters;
-        
-        if (!query) {
+
+        if (!query || !query.trim()) {
             return { products: [], totalItems: 0, totalPages: 0 };
         }
 
-        const activeCategories = await Category.find({ isDeleted: false }).select('_id');
+        const currentDate = new Date();
+
+        const activeOffers = await Offer.find({
+            isDeleted: false,
+            status: 'active',
+            startDate: { $lte: currentDate },
+            endDate: { $gte: currentDate }
+        }).lean();
+
+        const productOffersMap = {};
+        const categoryOffersMap = {};
+
+        activeOffers.forEach((offer) => {
+            const targetIdStr = offer.targetId ? offer.targetId.toString() : null;
+            if (!targetIdStr) return;
+
+            if (offer.offerType === 'product') {
+                if (!productOffersMap[targetIdStr] || offer.discount > productOffersMap[targetIdStr]) {
+                    productOffersMap[targetIdStr] = offer.discount;
+                }
+            } else if (offer.offerType === 'category') {
+                if (!categoryOffersMap[targetIdStr] || offer.discount > categoryOffersMap[targetIdStr]) {
+                    categoryOffersMap[targetIdStr] = offer.discount;
+                }
+            }
+        });
+
+        const calculateBestDiscount = (variantDiscount = 0, productId, categoryId) => {
+            const pIdStr = productId ? productId.toString() : '';
+            const cIdStr = categoryId ? categoryId.toString() : '';
+
+            const productOfferDiscount = productOffersMap[pIdStr] || 0;
+            const categoryOfferDiscount = categoryOffersMap[cIdStr] || 0;
+            const baseDiscount = Number(variantDiscount) || 0;
+
+            return Math.max(baseDiscount, productOfferDiscount, categoryOfferDiscount);
+        };
+
+        const activeCategories = await Category.find({ isDeleted: false }).select('_id').lean();
         const activeCategoryIds = activeCategories.map(c => c._id.toString());
 
         const cleanedQuery = query.trim();
@@ -282,32 +413,43 @@ export const searchActiveProductsCatalog = async (searchFilters) => {
 
         const tokenRegexConditions = searchTokens.map(token => ({
             $or: [
-                { name: { $regex: token, $options: 'i' } },
-                { brand: { $regex: token, $options: 'i' } }
+                { name: { $regex: token,$options: 'i' } },
+                { brand: { $regex: token,$options: 'i' } }
             ]
         }));
 
         const productMatchQuery = {
             isDeleted: false,
-            categoryId: { $in: activeCategoryIds },
-            $and: tokenRegexConditions
+            categoryId: { $in: activeCategoryIds },$and: tokenRegexConditions
         };
 
         const productsList = await Product.find(productMatchQuery).lean();
         const outputCatalog = [];
 
         for (const product of productsList) {
-            const variants = await ProductVariant.find({ productId: product._id }).sort({ originalPrice: 1 }).lean();
-            
+            const variants = await ProductVariant.find({ productId: product._id })
+                .sort({ originalPrice: 1 })
+                .lean();
+
             let totalStockAccumulator = 0;
             let firstAvailableVariant = null;
 
             variants.forEach(variant => {
                 totalStockAccumulator += variant.stock;
                 if (variant.stock > 0 && !firstAvailableVariant) {
-                    const finalCalculatedPrice = Math.round(variant.originalPrice * (1 - (variant.discount || 0) / 100));
+                    const effectiveDiscount = calculateBestDiscount(
+                        variant.discount,
+                        product._id,
+                        product.categoryId
+                    );
+
+                    const finalCalculatedPrice = Math.round(
+                        variant.originalPrice * (1 - (effectiveDiscount / 100))
+                    );
+
                     firstAvailableVariant = { 
                         ...variant, 
+                        effectiveDiscount,
                         calculatedPrice: finalCalculatedPrice 
                     };
                 }
@@ -324,12 +466,13 @@ export const searchActiveProductsCatalog = async (searchFilters) => {
         if (sort === 'lowToHigh') {
             outputCatalog.sort((a, b) => a.displayVariant.calculatedPrice - b.displayVariant.calculatedPrice);
         } else if (sort === 'highToLow') {
-            outputCatalog.sort((b, a) => b.displayVariant.calculatedPrice - a.displayVariant.calculatedPrice);
+            outputCatalog.sort((a, b) => b.displayVariant.calculatedPrice - a.displayVariant.calculatedPrice);
         }
 
         const totalItems = outputCatalog.length;
-        const totalPages = Math.ceil(totalItems / limit);
-        const startIndexOffset = (page - 1) * limit;
+        const totalPages = Math.ceil(totalItems / limit) || 1;
+        const safePage = Math.min(Math.max(1, page), totalPages);
+        const startIndexOffset = (safePage - 1) * limit;
         const paginatedItemsSlice = outputCatalog.slice(startIndexOffset, startIndexOffset + limit);
 
         return {
@@ -346,55 +489,108 @@ export const searchActiveProductsCatalog = async (searchFilters) => {
 export const getTopDealsCatalog = async (filters) => {
     try {
         const { priceSort, page, limit } = filters;
+        const currentDate = new Date();
 
-        const activeCategories = await Category.find({ isDeleted: false }).select('_id');
+        const activeOffers = await Offer.find({
+            isDeleted: false,
+            status: 'active',
+            startDate: { $lte: currentDate },
+            endDate: { $gte: currentDate }
+        }).lean();
+
+        const productOffersMap = {};
+        const categoryOffersMap = {};
+
+        activeOffers.forEach((offer) => {
+            const targetIdStr = offer.targetId ? offer.targetId.toString() : null;
+            if (!targetIdStr) return;
+
+            if (offer.offerType === 'product') {
+                if (!productOffersMap[targetIdStr] || offer.discount > productOffersMap[targetIdStr]) {
+                    productOffersMap[targetIdStr] = offer.discount;
+                }
+            } else if (offer.offerType === 'category') {
+                if (!categoryOffersMap[targetIdStr] || offer.discount > categoryOffersMap[targetIdStr]) {
+                    categoryOffersMap[targetIdStr] = offer.discount;
+                }
+            }
+        });
+
+        const calculateBestDiscount = (variantDiscount = 0, productId, categoryId) => {
+            const pIdStr = productId ? productId.toString() : '';
+            const cIdStr = categoryId ? categoryId.toString() : '';
+
+            const productOfferDiscount = productOffersMap[pIdStr] || 0;
+            const categoryOfferDiscount = categoryOffersMap[cIdStr] || 0;
+            const baseDiscount = Number(variantDiscount) || 0;
+
+            return Math.max(baseDiscount, productOfferDiscount, categoryOfferDiscount);
+        };
+
+        const activeCategories = await Category.find({ isDeleted: false }).select('_id').lean();
         const activeCategoryIds = activeCategories.map(c => c._id.toString());
 
-        const variants = await ProductVariant.find({ discount: { $gt: 0 } })
+        const variants = await ProductVariant.find({ stock: { $gt: 0 } })
             .populate({
                 path: 'productId',
                 match: { isDeleted: false, categoryId: { $in: activeCategoryIds } }
             })
             .lean();
 
-        const filteredDeals = variants.filter(v => v.productId !== null && v.productId !== undefined);
+        const validVariants = variants.filter(v => v.productId !== null && v.productId !== undefined);
 
-        filteredDeals.sort((a, b) => b.discount - a.discount);
+        const dealsWithEffectiveDiscounts = [];
+
+        validVariants.forEach((v) => {
+            const effectiveDiscount = calculateBestDiscount(
+                v.discount,
+                v.productId._id,
+                v.productId.categoryId
+            );
+
+            if (effectiveDiscount > 0) {
+                const calculatedPrice = Math.round(v.originalPrice * (1 - (effectiveDiscount / 100)));
+                const discountValue = Math.round(v.originalPrice - calculatedPrice);
+
+                dealsWithEffectiveDiscounts.push({
+                    ...v,
+                    effectiveDiscount,
+                    calculatedPrice,
+                    discountValue
+                });
+            }
+        });
 
         const productDealsMap = {};
 
-        filteredDeals.forEach(v => {
+        dealsWithEffectiveDiscounts.forEach(v => {
             const prodIdStr = v.productId._id.toString();
 
-            if (!productDealsMap[prodIdStr]) {
-                const calculatedPrice = Math.round(v.originalPrice * (1 - (v.discount / 100)));
-                const discountValue = Math.round(v.originalPrice - calculatedPrice);
-
-                productDealsMap[prodIdStr] = {
-                    ...v,
-                    calculatedPrice,
-                    discountValue
-                };
+            if (
+                !productDealsMap[prodIdStr] || 
+                v.effectiveDiscount > productDealsMap[prodIdStr].effectiveDiscount
+            ) {
+                productDealsMap[prodIdStr] = v;
             }
         });
 
         let uniqueProductDeals = Object.values(productDealsMap);
 
-        uniqueProductDeals.sort((a, b) => b.discount - a.discount);
-
         if (priceSort === 'low-to-high') {
             uniqueProductDeals.sort((a, b) => a.calculatedPrice - b.calculatedPrice);
         } else if (priceSort === 'high-to-low') {
             uniqueProductDeals.sort((a, b) => b.calculatedPrice - a.calculatedPrice);
+        } else {
+            uniqueProductDeals.sort((a, b) => b.effectiveDiscount - a.effectiveDiscount);
         }
 
         const totalItems = uniqueProductDeals.length;
-        const totalPages = Math.ceil(totalItems / limit);
+        const totalPages = Math.ceil(totalItems / limit) || 1;
         const skipOffset = (page - 1) * limit;
         const paginatedSlice = uniqueProductDeals.slice(skipOffset, skipOffset + limit);
 
         return {
-            variants: paginatedSlice, 
+            variants: paginatedSlice,
             totalItems,
             totalPages,
             currentPage: page
@@ -407,8 +603,45 @@ export const getTopDealsCatalog = async (filters) => {
 export const getBestsellersCatalog = async (filters) => {
     try {
         const { priceSort, page = 1, limit = 8 } = filters;
+        const currentDate = new Date();
 
-        const activeCategories = await Category.find({ isDeleted: false }).select('_id');
+        const activeOffers = await Offer.find({
+            isDeleted: false,
+            status: 'active',
+            startDate: { $lte: currentDate },
+            endDate: { $gte: currentDate }
+        }).lean();
+
+        const productOffersMap = {};
+        const categoryOffersMap = {};
+
+        activeOffers.forEach((offer) => {
+            const targetIdStr = offer.targetId ? offer.targetId.toString() : null;
+            if (!targetIdStr) return;
+
+            if (offer.offerType === 'product') {
+                if (!productOffersMap[targetIdStr] || offer.discount > productOffersMap[targetIdStr]) {
+                    productOffersMap[targetIdStr] = offer.discount;
+                }
+            } else if (offer.offerType === 'category') {
+                if (!categoryOffersMap[targetIdStr] || offer.discount > categoryOffersMap[targetIdStr]) {
+                    categoryOffersMap[targetIdStr] = offer.discount;
+                }
+            }
+        });
+
+        const calculateBestDiscount = (variantDiscount = 0, productId, categoryId) => {
+            const pIdStr = productId ? productId.toString() : '';
+            const cIdStr = categoryId ? categoryId.toString() : '';
+
+            const productOfferDiscount = productOffersMap[pIdStr] || 0;
+            const categoryOfferDiscount = categoryOffersMap[cIdStr] || 0;
+            const baseDiscount = Number(variantDiscount) || 0;
+
+            return Math.max(baseDiscount, productOfferDiscount, categoryOfferDiscount);
+        };
+
+        const activeCategories = await Category.find({ isDeleted: false }).select('_id').lean();
         const activeCategoryIds = activeCategories.map(c => c._id);
 
         const salesStats = await Order.aggregate([
@@ -439,18 +672,26 @@ export const getBestsellersCatalog = async (filters) => {
         const bestsellerItems = [];
 
         for (const product of productsList) {
-            const firstVariant = await ProductVariant.findOne({ productId: product._id })
+            const firstVariant = await ProductVariant.findOne({ productId: product._id, stock: { $gt: 0 } })
                 .sort({ createdAt: 1 })
                 .lean();
 
             if (firstVariant) {
-                const calculatedPrice = Math.round(
-                    firstVariant.originalPrice * (1 - ((firstVariant.discount || 0) / 100))
+                const effectiveDiscount = calculateBestDiscount(
+                    firstVariant.discount,
+                    product._id,
+                    product.categoryId
                 );
+
+                const calculatedPrice = Math.round(
+                    firstVariant.originalPrice * (1 - (effectiveDiscount / 100))
+                );
+
                 const totalSold = salesMap.get(firstVariant._id.toString()) || 0;
 
                 bestsellerItems.push({
                     ...firstVariant,
+                    effectiveDiscount,
                     calculatedPrice,
                     totalSold,
                     productId: product 

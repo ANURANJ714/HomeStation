@@ -278,7 +278,10 @@ export const executeCatalogSearchPage = async (req, res) => {
 
     } catch (error) {
         logger.error(`Critical parsing exception caught in executeCatalogSearchPage: ${error.message}\nStack: ${error.stack}`);
-        return res.status(500).json({ success: false, message: "An explicit exception failure occurred handling search profiles." });
+        return res.status(500).json({ 
+            success: false, 
+            message: "An explicit exception failure occurred handling search profiles." 
+        });
     }
 };
 

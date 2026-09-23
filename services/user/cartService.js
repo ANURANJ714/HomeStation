@@ -1,10 +1,12 @@
 import Cart from '../../models/Cart.js';
 import ProductVariant from '../../models/ProductVariant.js';
 import { removeVariantFromWishlist } from '../../services/user/wishlistService.js';
+import Offer from '../../models/Offer.js';
 import mongoose from 'mongoose';
 
 export const handleAddToCartIntent = async (userId, variantId, quantity = 1) => {
     try {
+        const MAX_PER_PRODUCT_LIMIT = 5;
         const parsedQuantity = Math.max(1, parseInt(quantity, 10) || 1);
 
         const variant = await ProductVariant.findById(variantId).populate({
@@ -27,6 +29,23 @@ export const handleAddToCartIntent = async (userId, variantId, quantity = 1) => 
         let cartItem = await Cart.findOne({ userId, productVariantId: variantId });
 
         if (cartItem) {
+            if (cartItem.quantity >= MAX_PER_PRODUCT_LIMIT) {
+                return {
+                    success: false,
+                    reason: 'MAX_LIMIT_REACHED',
+                    message: "Maximum quantity limit reached for this product."
+                };
+            }
+
+            if (cartItem.quantity + parsedQuantity > MAX_PER_PRODUCT_LIMIT) {
+                const remainingAllowed = MAX_PER_PRODUCT_LIMIT - cartItem.quantity;
+                return {
+                    success: false,
+                    reason: 'MAX_LIMIT_EXCEEDED',
+                    message: `You can only add ${remainingAllowed} more unit(s). Maximum limit is ${MAX_PER_PRODUCT_LIMIT} per product.`
+                };
+            }
+
             if (cartItem.quantity + parsedQuantity > variant.stock) {
                 return { 
                     success: false, 
@@ -34,12 +53,22 @@ export const handleAddToCartIntent = async (userId, variantId, quantity = 1) => 
                     message: `Cannot add requested quantity. Only ${variant.stock} units are available, and you have ${cartItem.quantity} already in your cart.` 
                 };
             }
+
             cartItem.quantity += parsedQuantity;
             await cartItem.save();
         } else {
+            if (parsedQuantity > MAX_PER_PRODUCT_LIMIT) {
+                return {
+                    success: false,
+                    reason: 'MAX_LIMIT_EXCEEDED',
+                    message: `Maximum quantity limit is ${MAX_PER_PRODUCT_LIMIT} per product.`
+                };
+            }
+
             if (parsedQuantity > variant.stock) {
                 return { success: false, reason: 'OUT_OF_STOCK', message: `Only ${variant.stock} units available in stock.` };
             }
+
             cartItem = new Cart({
                 userId,
                 productVariantId: variantId,
@@ -69,6 +98,44 @@ export const handleAddToCartIntent = async (userId, variantId, quantity = 1) => 
 
 export const getCartItems = async (userId) => {
     try {
+        const currentDate = new Date();
+
+        const activeOffers = await Offer.find({
+            isDeleted: false,
+            status: 'active',
+            startDate: { $lte: currentDate },
+            endDate: { $gte: currentDate }
+        }).lean();
+
+        const productOffersMap = {};
+        const categoryOffersMap = {};
+
+        activeOffers.forEach((offer) => {
+            const targetIdStr = offer.targetId ? offer.targetId.toString() : null;
+            if (!targetIdStr) return;
+
+            if (offer.offerType === 'product') {
+                if (!productOffersMap[targetIdStr] || offer.discount > productOffersMap[targetIdStr]) {
+                    productOffersMap[targetIdStr] = offer.discount;
+                }
+            } else if (offer.offerType === 'category') {
+                if (!categoryOffersMap[targetIdStr] || offer.discount > categoryOffersMap[targetIdStr]) {
+                    categoryOffersMap[targetIdStr] = offer.discount;
+                }
+            }
+        });
+
+        const calculateBestDiscount = (variantDiscount = 0, productId, categoryId) => {
+            const pIdStr = productId ? productId.toString() : '';
+            const cIdStr = categoryId ? categoryId.toString() : '';
+
+            const productOfferDiscount = productOffersMap[pIdStr] || 0;
+            const categoryOfferDiscount = categoryOffersMap[cIdStr] || 0;
+            const baseDiscount = Number(variantDiscount) || 0;
+
+            return Math.max(baseDiscount, productOfferDiscount, categoryOfferDiscount);
+        };
+
         const cartItems = await Cart.find({ userId })
             .populate({
                 path: 'productVariantId',
@@ -81,7 +148,7 @@ export const getCartItems = async (userId) => {
                     }
                 }
             })
-            .exec();
+            .lean();
 
         let subtotal = 0;
         let totalQuantity = 0;
@@ -114,10 +181,25 @@ export const getCartItems = async (userId) => {
                 };
             }
 
-            const currentPrice = Math.round(variant.originalPrice * (1 - (variant.discount || 0) / 100));
-            subtotal += currentPrice * item.quantity;
+            const effectiveDiscount = calculateBestDiscount(
+                variant.discount,
+                product._id,
+                category?._id || category
+            );
+
+            const calculatedPrice = Math.round(variant.originalPrice * (1 - (effectiveDiscount / 100)));
+
+            subtotal += calculatedPrice * item.quantity;
             totalQuantity += item.quantity;
-            validCartItems.push(item);
+
+            validCartItems.push({
+                ...item,
+                productVariantId: {
+                    ...variant,
+                    effectiveDiscount,
+                    calculatedPrice
+                }
+            });
         }
 
         const unavailableNotice = unavailableNames.length > 0 ? {
@@ -128,9 +210,9 @@ export const getCartItems = async (userId) => {
         return { 
             cartItems: validCartItems, 
             subtotal, 
-            totalQuantity,
-            stockExceededItem,
-            unavailableNotice
+            totalQuantity, 
+            stockExceededItem, 
+            unavailableNotice 
         };
 
     } catch (error) {

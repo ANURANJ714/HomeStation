@@ -67,7 +67,8 @@
                     <% if (items && items.length > 0) { %>
                         <% items.forEach(item => { 
                             const product = item.productId;
-                            const currentPrice = Math.round(item.originalPrice * (1 - (item.discount || 0) / 100));
+                            const discount = item.effectiveDiscount || 0;
+                            const currentPrice = item.calculatedPrice;
                         %>
                         <div class="wishlist-item clickable-wishlist-card" data-variant-id="<%= item._id %>" data-product-id="<%= product._id %>">
                             <div class="item-img-container">
@@ -77,9 +78,9 @@
                                 <h2 class="item-name"><%= product.name %> (<%= item.variantName %>)</h2>
                                 <div class="price-container">
                                     <p class="item-price">₹<%= currentPrice.toLocaleString('en-IN') %></p>
-                                    <% if (item.discount > 0) { %>
+                                    <% if (discount > 0) { %>
                                         <p class="original-price">₹<%= item.originalPrice.toLocaleString('en-IN') %></p>
-                                        <span class="discount-off">(<%= item.discount %>% OFF)</span>
+                                        <span class="discount-off">(<%= discount %>% OFF)</span>
                                     <% } %>
                                 </div>
                                 <div class="item-actions">
@@ -96,7 +97,7 @@
                     <% } %>
                 </div>
 
-                <% if (totalPages >= 1) { %>
+                <% if (totalPages >= 1 && totalItems > 0) { %>
                     <div class="pagination">
                         <% if (currentPage > 1) { %>
                             <a href="?page=<%= currentPage - 1 %>" class="page-link"><i class="fa-solid fa-chevron-left"></i></a>

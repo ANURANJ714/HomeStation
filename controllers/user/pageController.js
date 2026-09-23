@@ -46,6 +46,8 @@ export const loadHomePage = async (req, res) => {
 
         const productRatingsMap = await reviewService.getMultipleProductReviewSummaries(productIds);
 
+        logger.info(`Home page viewed by: ${user ? user.email : 'Guest'} | IP: ${req.ip}`);
+
         return res.render('user/home', { 
             user,
             categories,
@@ -66,7 +68,6 @@ export const loadHomePage = async (req, res) => {
         return res.status(500).json({ success: false, message: "Server error occurred!" });
     }
 };
-
 
 export const loadContactPage = async (req, res) => {
     try {

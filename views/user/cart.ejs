@@ -48,7 +48,8 @@
                         <% cartItems.forEach(item => {
                             const variant = item.productVariantId;
                             const product = variant.productId;
-                            const currentPrice = Math.round(variant.originalPrice * (1 - (variant.discount || 0) / 100));
+                            const discount = variant.effectiveDiscount || 0;
+                            const currentPrice = variant.calculatedPrice;
                             const pIdStr = product._id.toString();
                             const pReview = (typeof productRatingsMap !== 'undefined' && productRatingsMap[pIdStr]) ? productRatingsMap[pIdStr] : null;
                         %>
@@ -86,8 +87,8 @@
                                             <button type="button" class="qty-btn plus" data-cart-id="<%= item._id %>"><i class="fa-solid fa-plus"></i></button>
                                         </div>
                                         <div class="item-price">
-                                            <% if (variant.discount > 0) { %>
-                                                <span class="discount-badge"><%= variant.discount %>% OFF</span>
+                                            <% if (discount > 0) { %>
+                                                <span class="discount-badge"><%= discount %>% OFF</span>
                                                 <span class="current-price">₹<%= currentPrice.toLocaleString('en-IN') %></span>
                                                 <span class="original-price">₹<%= variant.originalPrice.toLocaleString('en-IN') %></span>
                                             <% } else { %>
@@ -129,8 +130,7 @@
                             <hr class="summary-divider">
                             <div class="summary-row total">
                                 <span>Total Payable</span>
-                                <% const totalPayable = Math.max(subtotal - 1500, 0); %>
-                                <span>₹<%= totalPayable.toLocaleString('en-IN') %></span>
+                                <span>₹<%= subtotal.toLocaleString('en-IN') %></span>
                             </div>
                         </div>
                         <div class="coupon-area">

@@ -35,6 +35,7 @@ export const addToCartController = async (req, res) => {
         const result = await cartService.handleAddToCartIntent(userId, variantId, targetQuantity);
 
         if (!result.success) {
+            logger.warn(`User (${req.user.email}) add to cart denied: ${result.message} [Reason: ${result.reason}]`);
             return res.status(400).json({ 
                 success: false, 
                 reason: result.reason, 
@@ -42,7 +43,7 @@ export const addToCartController = async (req, res) => {
             });
         }
 
-        logger.info(`User (${req.user.email}) added variant ${variantId} (Qty: ${targetQuantity}) to cart via unified pipeline.`);
+        logger.info(`User (${req.user.email}) added variant ${variantId} (Qty: ${targetQuantity}) to cart.`);
 
         return res.status(200).json({ 
             success: true, 
@@ -52,7 +53,7 @@ export const addToCartController = async (req, res) => {
         });
 
     } catch (error) {
-        logger.error(`Cart Add Controller Pipeline Error (IP: ${req.ip}): ${error.message}`);
+        logger.error(`Cart Add Controller Pipeline Error (IP: ${req.ip}): ${error.message}\nStack: ${error.stack}`);
         return res.status(500).json({ success: false, message: "Failed to add to cart." });
     }
 };
@@ -86,7 +87,7 @@ export const loadCartPage = async (req, res) => {
             delete req.session.lastSeenUnavailableNotice;
         }
 
-        logger.info(`User (${userEmail}) loaded Cart Page | IP: ${clientIp}`);
+        logger.info(`User (${userEmail}) loaded Cart Page | Subtotal: ₹${cartData.subtotal} | Items: ${cartData.totalQuantity} | IP: ${clientIp}`);
 
         return res.render('user/cart', {
             user: req.user,

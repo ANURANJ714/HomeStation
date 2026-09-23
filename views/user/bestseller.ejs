@@ -25,7 +25,7 @@
         <div class="container bestseller-container">
             <section class="main-content">
                 <div class="page-header">
-                    <h2>Top Deals</h2>
+                    <h2>Best Sellers</h2>
                     <div class="header-filters">
                         <label for="priceFilter">Filter by Price:</label>
                         <select id="priceFilter" class="filter-dropdown">
@@ -42,11 +42,14 @@
                             <% 
                                 const prodIdStr = (v.productId._id || v.productId).toString();
                                 const pReview = (typeof productRatingsMap !== 'undefined' && productRatingsMap[prodIdStr]) ? productRatingsMap[prodIdStr] : null;
+                                const discountPercentage = v.effectiveDiscount || 0;
                             %>
                             <div class="product-card clickable-product-card" data-product-id="<%= prodIdStr %>">
                                 <div class="product-image">
                                     <img src="<%= (v.productId.images && v.productId.images.length > 0) ? v.productId.images[0] : 'https://placehold.co/400' %>" alt="<%= v.productId.name %>">
-                                    <span class="badge discount">-<%= v.discount %>%</span>
+                                    <% if (discountPercentage > 0) { %>
+                                        <span class="badge discount">-<%= discountPercentage %>%</span>
+                                    <% } %>
                                     <% 
                                         const variantIdStr = v._id.toString(); 
                                         const isLiked = typeof userWishlist !== 'undefined' && userWishlist.includes(variantIdStr); 
@@ -75,7 +78,7 @@
                                     </div>
                                     <div class="card-footer">
                                         <div class="price-wrapper">
-                                            <% if (v.discount > 0) { %>
+                                            <% if (discountPercentage > 0) { %>
                                                 <span class="old-price">₹<%= v.originalPrice.toLocaleString('en-IN') %></span>
                                             <% } %>
                                             <p class="price">₹<%= v.calculatedPrice.toLocaleString('en-IN') %></p>
@@ -89,7 +92,7 @@
                         <% }) %>
                     <% } else { %>
                         <div class="no-deals-fallback-notice">
-                            <p>No active promotional discount deals are running currently. Please check back later!</p>
+                            <p>No best-selling mattresses found matching your selection criteria.</p>
                         </div>
                     <% } %>
                 </div>

@@ -82,9 +82,10 @@
 
                 <div class="product-price" id="variantPriceDisplayBox">
                     <span id="renderedCurrentPrice">₹<%= Math.round(variants[0].calculatedPrice).toLocaleString('en-IN') %></span>
-                    <% if (variants[0].discount > 0) { %>
+                    <% const primaryDiscount = variants[0].effectiveDiscount || 0; %>
+                    <% if (primaryDiscount > 0) { %>
                         <span class="old-price" id="renderedOriginalPrice">₹<%= Math.round(variants[0].originalPrice).toLocaleString('en-IN') %></span>
-                        <span class="discount-badge" id="renderedDiscountBadge">(<%= variants[0].discount %>% OFF)</span>
+                        <span class="discount-badge" id="renderedDiscountBadge">(<%= primaryDiscount %>% OFF)</span>
                     <% } else { %>
                         <span class="old-price hidden" id="renderedOriginalPrice"></span>
                         <span class="discount-badge hidden" id="renderedDiscountBadge"></span>
@@ -99,12 +100,14 @@
                         <button type="button" id="openSizeChartBtn" class="chart-trigger-link">Size Chart</button>
                     </div>
                     <div class="size-options">
-                        <% variants.forEach((v, index) => { %>
+                        <% variants.forEach((v, index) => { 
+                            const disc = v.effectiveDiscount || 0;
+                        %>
                             <input type="radio" id="variant-node-<%= v._id %>" name="mattress-size"
                                 value="<%= v._id %>" class="size-radio variant-selector-input"
                                 data-price="₹<%= Math.round(v.calculatedPrice).toLocaleString('en-IN') %>"
-                                data-orig="<%= v.discount > 0 ? '₹' + Math.round(v.originalPrice).toLocaleString('en-IN') : '' %>"
-                                data-disc="<%= v.discount > 0 ? '(' + v.discount + '% OFF)' : '' %>"
+                                data-orig="<%= disc > 0 ? '₹' + Math.round(v.originalPrice).toLocaleString('en-IN') : '' %>"
+                                data-disc="<%= disc > 0 ? '(' + disc + '% OFF)' : '' %>"
                                 <%= index === 0 ? 'checked' : '' %>>
                             <label for="variant-node-<%= v._id %>" class="size-label">
                                 <%= v.variantName %>
@@ -192,15 +195,16 @@
                         <% 
                             const relVariant = rel.displayVariant; 
                             const relReview = (typeof relatedRatingsMap !== 'undefined' && relatedRatingsMap[rel._id.toString()]) ? relatedRatingsMap[rel._id.toString()] : null;
+                            const relDiscount = relVariant ? (relVariant.effectiveDiscount || 0) : 0;
                         %>
                         <div class="product-card clickable-product-card" data-product-id="<%= rel._id %>">
                             <div class="product-image">
                                 <img src="<%= (rel.images && rel.images.length > 0) ? rel.images[0] : 'https://placehold.co/400' %>"
                                     alt="<%= rel.name %>">
                                 <div class="badge-container">
-                                    <% if (relVariant.discount > 0) { %>
+                                    <% if (relDiscount > 0) { %>
                                         <span class="badge discount">
-                                            <%= relVariant.discount %>% OFF
+                                            <%= relDiscount %>% OFF
                                         </span>
                                     <% } %>
                                 </div>
@@ -233,7 +237,7 @@
 
                                 <div class="card-footer">
                                     <p class="price-card">
-                                        <% if (relVariant.discount > 0) { %>
+                                        <% if (relDiscount > 0) { %>
                                             <span class="old-price">₹<%= Math.round(relVariant.originalPrice).toLocaleString('en-IN') %></span>
                                         <% } %>
                                         ₹<%= Math.round(relVariant.calculatedPrice).toLocaleString('en-IN') %>
