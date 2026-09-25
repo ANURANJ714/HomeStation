@@ -4,14 +4,19 @@ import Product from '../../models/Products.js';
 import Cart from '../../models/Cart.js';
 
 const generateNextOrderId = async () => {
-    const totalOrders = await Order.countDocuments();
-    const nextNum = totalOrders + 1;
-    return `#ORD-${nextNum.toString().padStart(5, '0')}`;
+    try {
+        const totalOrders = await Order.countDocuments();
+        const nextNum = totalOrders + 1;
+        return `#ORD-${nextNum.toString().padStart(5, '0')}`;
+    } catch (error) {
+        throw new Error(`Order ID generation failed: ${error.message}`);
+    }
 };
 
-export const createNewOrder = async (userId, validatedCheckoutData, shippingAddr, billingAddr, paymentMode) => {
+export const createNewOrder = async (userId, validatedCheckoutData, shippingAddr, billingAddr, paymentMode, couponData = {}) => {
     try {
         const { validItems, subtotal, deliveryCharges, totalPayable } = validatedCheckoutData;
+        const { couponUsed = null, couponDiscount = 0 } = couponData;
 
         if (!validItems || validItems.length === 0) {
             throw new Error('No valid items found for creating the order.');
@@ -72,8 +77,17 @@ export const createNewOrder = async (userId, validatedCheckoutData, shippingAddr
                 fullAddress: billingAddr.fullAddress || billingAddr.addressLine,
                 addressType: billingAddr.addressType || 'Home'
             },
-            paymentMode
+            paymentMode,
+            couponUsed: couponUsed ? couponUsed.trim().toUpperCase() : null,
+            couponDiscount: Number(couponDiscount) || 0
         });
+
+        if (couponUsed) {
+            await Coupon.updateOne(
+                { code: couponUsed.trim().toUpperCase() },
+                { $inc: { usedCount: 1 } }
+            );
+        }
 
         await Cart.deleteMany({ userId });
 
@@ -81,6 +95,7 @@ export const createNewOrder = async (userId, validatedCheckoutData, shippingAddr
             order: newOrder,
             subtotal,
             deliveryCharges,
+            couponDiscount,
             totalPayable
         };
     } catch (error) {

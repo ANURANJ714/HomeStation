@@ -6,21 +6,21 @@ const orderItemSchema = new mongoose.Schema({
         ref: 'ProductVariant',
         required: true
     },
-    quantity: { 
-        type: Number, 
-        required: true 
+    quantity: {
+        type: Number,
+        required: true
     },
-    currentPrice: { 
-        type: Number, 
-        required: true 
+    currentPrice: {
+        type: Number,
+        required: true
     },
-    originalPrice: { 
-        type: Number, 
-        required: true 
+    originalPrice: {
+        type: Number,
+        required: true
     },
-    discount: { 
-        type: Number, 
-        default: 0 
+    discount: {
+        type: Number,
+        default: 0
     },
     itemStatus: {
         type: String,
@@ -84,6 +84,16 @@ const orderSchema = new mongoose.Schema({
         type: String,
         enum: ['razorpay', 'wallet', 'cod'],
         required: true
+    },
+    couponUsed: {
+        type: String,
+        trim: true,
+        uppercase: true,
+        default: null
+    },
+    couponDiscount: {
+        type: Number,
+        default: 0
     }
 }, { timestamps: true });
 

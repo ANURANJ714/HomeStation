@@ -5,12 +5,14 @@ import { getActivePromoBanner } from '../../services/user/bannerService.js';
 import * as checkoutService from '../../services/user/checkoutService.js';
 import * as orderService from '../../services/user/orderService.js';
 import * as userService from '../../services/user/authService.js';
+import * as couponService from '../../services/user/userCouponService.js';
 
 export const postCartItems = async (req, res) => {
     try {
         const userId = req.user?._id;
         const userEmail = req.user?.email || 'Unknown User';
         const clientIp = req.ip;
+        const { appliedCouponCode } = req.body;
 
         const userProfile = await userService.getUserById(userId);
         if (userProfile && userProfile.authProvider === 'google') {
@@ -48,8 +50,33 @@ export const postCartItems = async (req, res) => {
             return acc + (price * item.quantity);
         }, 0);
 
-        const shippingCharges = subtotal <= 500 ? 100 : 0;
-        const totalPayable = subtotal + shippingCharges;
+        const shippingCharges = (subtotal > 0 && subtotal <= 500) ? 100 : 0;
+        const basePayable = subtotal + shippingCharges;
+
+        let verifiedCouponCode = null;
+        let verifiedCouponDiscount = 0;
+
+        if (appliedCouponCode && typeof appliedCouponCode === 'string' && appliedCouponCode.trim() !== '') {
+            try {
+                const couponRes = await couponService.validateAndCalculateCouponDiscount(
+                    userId,
+                    appliedCouponCode.trim(),
+                    basePayable
+                );
+
+                verifiedCouponCode = couponRes.couponCode;
+                verifiedCouponDiscount = couponRes.discountAmount;
+            } catch (couponError) {
+                logger.warn(`Checkout coupon rejection for (${userEmail}) with code [${appliedCouponCode}]: ${couponError.message}`);
+                return res.status(couponError.statusCode || 400).json({
+                    success: false,
+                    reason: 'INVALID_COUPON',
+                    message: couponError.message || 'The selected coupon is invalid or no longer applicable.'
+                });
+            }
+        }
+
+        const totalPayable = Math.max(0, basePayable - verifiedCouponDiscount);
 
         req.session.checkoutActive = true;
         req.session.checkoutOrder = {
@@ -57,12 +84,13 @@ export const postCartItems = async (req, res) => {
             totalQuantity: result.cartItems.reduce((acc, item) => acc + item.quantity, 0),
             subtotal,
             offerDiscount: 0,
-            couponDiscount: 0,
+            couponUsed: verifiedCouponCode,
+            couponDiscount: verifiedCouponDiscount,
             shippingCharges,
             totalPayable
         };
 
-        logger.info(`Checkout session prepared for (${userEmail}). Subtotal: ₹${subtotal}, Shipping: ₹${shippingCharges}.`);
+        logger.info(`Checkout session prepared for (${userEmail}). Subtotal: ₹${subtotal}, Shipping: ₹${shippingCharges}, Coupon: ${verifiedCouponCode || 'None'} (-₹${verifiedCouponDiscount}), Total Payable: ₹${totalPayable} | IP: ${clientIp}`);
 
         return res.status(200).json({
             success: true,
@@ -171,8 +199,35 @@ export const postCheckoutAddress = async (req, res) => {
             });
         }
 
-        const shippingCharges = validation.subtotal <= 500 ? 100 : 0;
-        const totalPayable = validation.subtotal + shippingCharges;
+        const shippingCharges = (validation.subtotal > 0 && validation.subtotal <= 500) ? 100 : 0;
+        const basePayable = validation.subtotal + shippingCharges;
+
+        let verifiedCouponCode = null;
+        let verifiedCouponDiscount = 0;
+
+        const activeCouponCode = req.session.checkoutOrder.couponUsed;
+        if (activeCouponCode && typeof activeCouponCode === 'string' && activeCouponCode.trim() !== '') {
+            try {
+                const couponRes = await couponService.validateAndCalculateCouponDiscount(
+                    userId,
+                    activeCouponCode.trim(),
+                    basePayable
+                );
+
+                verifiedCouponCode = couponRes.couponCode;
+                verifiedCouponDiscount = couponRes.discountAmount;
+            } catch (couponError) {
+                logger.warn(`Address checkout coupon rejection for (${userEmail}) on code [${activeCouponCode}]: ${couponError.message}`);
+                
+                return res.status(couponError.statusCode || 400).json({
+                    success: false,
+                    reason: 'INVALID_COUPON',
+                    message: `Coupon Error: ${couponError.message || 'Applied coupon is no longer valid for this order amount.'}`
+                });
+            }
+        }
+
+        const totalPayable = Math.max(0, basePayable - verifiedCouponDiscount);
 
         req.session.checkoutOrder = {
             ...req.session.checkoutOrder,
@@ -181,10 +236,12 @@ export const postCheckoutAddress = async (req, res) => {
             shippingAddressId: selectedAddressId,
             subtotal: validation.subtotal,
             shippingCharges,
+            couponUsed: verifiedCouponCode,
+            couponDiscount: verifiedCouponDiscount,
             totalPayable
         };
 
-        logger.info(`User (${userEmail}) selected address [${selectedAddressId}] | IP: ${clientIp}`);
+        logger.info(`User (${userEmail}) confirmed delivery address [${selectedAddressId}]. Subtotal: ₹${validation.subtotal}, Delivery: ₹${shippingCharges}, Coupon: ${verifiedCouponCode || 'None'} (-₹${verifiedCouponDiscount}), Total Payable: ₹${totalPayable} | IP: ${clientIp}`);
 
         return res.status(200).json({
             success: true,
@@ -192,6 +249,7 @@ export const postCheckoutAddress = async (req, res) => {
             warningNotice: validation.warningNotice || null,
             redirectUrl: '/user/checkout/payment'
         });
+
     } catch (error) {
         logger.error(`Error saving checkout address for (${req.user?.email || 'Unknown'}): ${error.message}\nStack: ${error.stack}`);
         return res.status(500).json({
@@ -255,6 +313,7 @@ export const postCheckoutPaymentMode = async (req, res) => {
         }
 
         const validation = await checkoutService.validateCheckoutSessionOrder(req.session.checkoutOrder);
+        
         if (!validation.isValid) {
             if (validation.reason === 'NO_ITEMS') {
                 delete req.session.checkoutActive;
@@ -271,8 +330,36 @@ export const postCheckoutPaymentMode = async (req, res) => {
             });
         }
 
-        const shippingCharges = validation.subtotal <= 500 ? 100 : 0;
-        const totalPayable = validation.subtotal + shippingCharges;
+        const shippingCharges = (validation.subtotal > 0 && validation.subtotal <= 500) ? 100 : 0;
+        const basePayable = validation.subtotal + shippingCharges;
+
+        let verifiedCouponCode = null;
+        let verifiedCouponDiscount = 0;
+
+        const activeCouponCode = req.session.checkoutOrder.couponUsed;
+        
+        if (activeCouponCode && typeof activeCouponCode === 'string' && activeCouponCode.trim() !== '') {
+            try {
+                const couponRes = await couponService.validateAndCalculateCouponDiscount(
+                    userId,
+                    activeCouponCode.trim(),
+                    basePayable
+                );
+
+                verifiedCouponCode = couponRes.couponCode;
+                verifiedCouponDiscount = couponRes.discountAmount;
+            } catch (couponError) {
+                logger.warn(`Payment mode checkout coupon rejection for (${userEmail}) on code [${activeCouponCode}]: ${couponError.message}`);
+                
+                return res.status(couponError.statusCode || 400).json({
+                    success: false,
+                    reason: 'INVALID_COUPON',
+                    message: `Coupon Error: ${couponError.message || 'Applied coupon is no longer valid for this order amount.'}`
+                });
+            }
+        }
+
+        const totalPayable = Math.max(0, basePayable - verifiedCouponDiscount);
 
         req.session.checkoutOrder = {
             ...req.session.checkoutOrder,
@@ -281,10 +368,12 @@ export const postCheckoutPaymentMode = async (req, res) => {
             paymentMode,
             subtotal: validation.subtotal,
             shippingCharges,
+            couponUsed: verifiedCouponCode,
+            couponDiscount: verifiedCouponDiscount,
             totalPayable
         };
 
-        logger.info(`User (${userEmail}) selected payment mode: [${paymentMode}]. IP: ${clientIp}`);
+        logger.info(`User (${userEmail}) selected payment mode: [${paymentMode}]. Final Total: ₹${totalPayable} | IP: ${clientIp}`);
 
         return res.status(200).json({
             success: true,
@@ -399,15 +488,41 @@ export const placeOrder = async (req, res) => {
             });
         }
 
-        const shippingCharges = validation.subtotal <= 500 ? 100 : 0;
-        const totalPayable = validation.subtotal + shippingCharges;
+        const shippingCharges = (validation.subtotal > 0 && validation.subtotal <= 500) ? 100 : 0;
+        const basePayable = validation.subtotal + shippingCharges;
+
+        let verifiedCouponCode = null;
+        let verifiedCouponDiscount = 0;
+
+        if (checkout.couponUsed && typeof checkout.couponUsed === 'string' && checkout.couponUsed.trim() !== '') {
+            try {
+                const couponRes = await couponService.validateAndCalculateCouponDiscount(
+                    userId,
+                    checkout.couponUsed.trim(),
+                    basePayable
+                );
+
+                verifiedCouponCode = couponRes.couponCode;
+                verifiedCouponDiscount = couponRes.discountAmount;
+            } catch (couponError) {
+                logger.warn(`Order placement blocked: Coupon [${checkout.couponUsed}] failed validation for (${userEmail}): ${couponError.message}`);
+                
+                return res.status(couponError.statusCode || 400).json({
+                    success: false,
+                    reason: 'INVALID_COUPON',
+                    message: `Coupon Error: ${couponError.message || 'The applied coupon is no longer valid for this order.'}`
+                });
+            }
+        }
+
+        const totalPayable = Math.max(0, basePayable - verifiedCouponDiscount);
 
         if (checkout.paymentMode === 'wallet') {
             const wallet = await walletService.getOrCreateUserWalletPaginated(userId, 1, 1);
             if (wallet.balance < totalPayable) {
                 return res.status(400).json({
                     success: false,
-                    message: `Insufficient wallet balance. Total payable is ₹${totalPayable}, but your balance is ₹${wallet.balance}.`
+                    message: `Insufficient wallet balance. Total payable is ₹${totalPayable.toLocaleString('en-IN')}, but your balance is ₹${wallet.balance.toLocaleString('en-IN')}.`
                 });
             }
         }
@@ -431,7 +546,8 @@ export const placeOrder = async (req, res) => {
             { ...validation, deliveryCharges: shippingCharges, totalPayable },
             shippingAddress,
             billingAddress,
-            checkout.paymentMode
+            checkout.paymentMode,
+            { couponUsed: verifiedCouponCode, couponDiscount: verifiedCouponDiscount }
         );
 
         const order = createdData.order;
@@ -440,7 +556,7 @@ export const placeOrder = async (req, res) => {
             await walletService.deductWalletBalance(userId, totalPayable, order.orderId);
         }
 
-        logger.info(`Order placed successfully! ID: ${order.orderId} for User (${userEmail}) | IP: ${clientIp}`);
+        logger.info(`Order placed successfully! Order ID: ${order.orderId}, Coupon: ${verifiedCouponCode || 'None'}, Discount: ₹${verifiedCouponDiscount}, Total Paid: ₹${totalPayable} by User: (${userEmail}) | IP: ${clientIp}`);
 
         req.session.lastPlacedOrderId = order.orderId;
         req.session.orderSuccessTimestamp = Date.now();

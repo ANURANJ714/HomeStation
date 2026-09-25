@@ -1,4 +1,5 @@
 import * as cartService from '../../services/user/cartService.js';
+import * as couponService from '../../services/user/userCouponService.js';
 import {getActivePromoBanner} from '../../services/user/bannerService.js';
 import { getUserHeaderCounts } from '../../services/user/badgeService.js';
 import { getMultipleProductReviewSummaries } from '../../services/user/reviewService.js';
@@ -64,8 +65,9 @@ export const loadCartPage = async (req, res) => {
         const userEmail = req.user?.email || 'Unknown User';
         const clientIp = req.ip;
 
-        const [cartData, bannerText, headerCounts] = await Promise.all([
+        const [cartData, allAvailableCoupons, bannerText, headerCounts] = await Promise.all([
             cartService.getCartItems(userId),
+            cartService.getAvailableCouponsForUser(userId),
             getActivePromoBanner(),
             getUserHeaderCounts(userId)
         ]);
@@ -87,15 +89,25 @@ export const loadCartPage = async (req, res) => {
             delete req.session.lastSeenUnavailableNotice;
         }
 
-        logger.info(`User (${userEmail}) loaded Cart Page | Subtotal: ₹${cartData.subtotal} | Items: ${cartData.totalQuantity} | IP: ${clientIp}`);
+        const shippingCharges = (cartData.subtotal > 0 && cartData.subtotal <= 500) ? 100 : 0;
+        const totalPayable = cartData.subtotal + shippingCharges;
+
+        const validCouponsForCart = (allAvailableCoupons || []).filter(
+            coupon => cartData.subtotal >= coupon.minPurchase
+        );
+
+        logger.info(`User (${userEmail}) loaded Cart Page | Subtotal: ₹${cartData.subtotal} | Delivery: ₹${shippingCharges} | Total: ₹${totalPayable} | IP: ${clientIp}`);
 
         return res.render('user/cart', {
             user: req.user,
             cartItems: cartData.cartItems,
             subtotal: cartData.subtotal,
+            shippingCharges,
+            totalPayable,
             totalQuantity: cartData.totalQuantity,
             stockExceededItem: cartData.stockExceededItem,
             unavailableNotice: noticeToShow,
+            availableCoupons: validCouponsForCart,
             productRatingsMap,
             bannerText,
             wishlistCount: headerCounts.wishlistCount,
@@ -108,6 +120,37 @@ export const loadCartPage = async (req, res) => {
         return res.status(500).json({ 
             success: false, 
             message: 'Server error occurred while loading the cart page.' 
+        });
+    }
+};
+
+export const applyCouponController = async (req, res) => {
+    try {
+        const userId = req.user._id;
+        const userEmail = req.user?.email || 'Unknown User';
+        const clientIp = req.ip;
+        const { couponCode, baseTotal } = req.body;
+
+        const result = await couponService.validateAndCalculateCouponDiscount(
+            userId,
+            couponCode,
+            baseTotal
+        );
+
+        logger.info(`User (${userEmail}) applied coupon "${result.couponCode}" | Discount: ₹${result.discountAmount} | IP: ${clientIp}`);
+
+        return res.status(200).json({
+            success: true,
+            message: `Coupon "${result.couponCode}" applied successfully!`,
+            couponCode: result.couponCode,
+            discountAmount: result.discountAmount,
+            newTotalPayable: result.newTotalPayable
+        });
+    } catch (error) {
+        logger.warn(`Coupon application rejected for (${req.user?.email || 'Unknown'}): ${error.message}`);
+        return res.status(error.statusCode || 500).json({
+            success: false,
+            message: error.message || 'Failed to apply coupon.'
         });
     }
 };

@@ -50,6 +50,20 @@ document.addEventListener('DOMContentLoaded', () => {
 
                 const data = await response.json();
 
+                if (data.reason === "INVALID_COUPON") {
+                    return Swal.fire({
+                        icon: "warning",
+                        title: "Coupon Error",
+                        text: data.message || "The applied coupon is no longer valid for this order.",
+                        confirmButtonText: "Return to Cart",
+                        confirmButtonColor: "#222",
+                        heightAuto: false,
+                        allowOutsideClick: false,
+                    }).then(() => {
+                        window.location.href = "/user/cart";
+                    });
+                }
+
                 if (data.reason === "STOCK_EXCEEDED") {
                     const itemLabel = data.productName ? `<b>${data.productName}</b>` : "This product variant";
                     Swal.fire({

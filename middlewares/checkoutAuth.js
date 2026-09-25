@@ -1,5 +1,6 @@
 import logger from '../utils/logger.js';
 import * as userService from '../services/user/authService.js';
+import Order from '../models/Order.js';
 
 export const ensureCheckoutOrigin = async (req, res, next) => {
     try {
@@ -29,6 +30,31 @@ export const ensureCheckoutOrigin = async (req, res, next) => {
             logger.warn(`Direct checkout access blocked for (${userEmail}): Proceed to checkout was not initiated.`);
             req.session.cartAlertMessage = 'Please verify your cart items and click Proceed to Checkout.';
             return res.redirect('/user/cart');
+        }
+
+        if (typeof checkout.couponUsed === 'undefined') {
+            checkout.couponUsed = null;
+        }
+        if (typeof checkout.couponDiscount !== 'number') {
+            checkout.couponDiscount = 0;
+        }
+
+        if (checkout.couponUsed) {
+            const alreadyRedeemed = await Order.findOne({
+                userId,
+                couponUsed: checkout.couponUsed.trim().toUpperCase()
+            }).lean();
+
+            if (alreadyRedeemed) {
+                logger.warn(`Checkout blocked for (${userEmail}): Coupon [${checkout.couponUsed}] was already redeemed on another order.`);
+                
+                checkout.totalPayable += checkout.couponDiscount;
+                checkout.couponUsed = null;
+                checkout.couponDiscount = 0;
+
+                req.session.cartAlertMessage = 'The coupon applied was already used on another order and has been removed.';
+                return res.redirect('/user/cart');
+            }
         }
 
         next();

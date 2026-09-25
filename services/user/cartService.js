@@ -2,6 +2,8 @@ import Cart from '../../models/Cart.js';
 import ProductVariant from '../../models/ProductVariant.js';
 import { removeVariantFromWishlist } from '../../services/user/wishlistService.js';
 import Offer from '../../models/Offer.js';
+import Coupon from '../../models/Coupon.js';
+import Order from '../../models/Order.js';
 import mongoose from 'mongoose';
 
 export const handleAddToCartIntent = async (userId, variantId, quantity = 1) => {
@@ -340,5 +342,51 @@ export const deleteCartItemCompletely = async (userId, cartItemId) => {
         };
     } catch (error) {
         throw new Error(`Database error while completely deleting cart entry: ${error.message}`);
+    }
+};
+
+export const getAvailableCouponsForUser = async (userId) => {
+    try {
+        const todayStart = new Date();
+        todayStart.setHours(0, 0, 0, 0);
+
+        const userOrdersWithCoupons = await Order.find({
+            userId,
+            couponUsed: { $ne: null }
+        }).select('couponUsed').lean();
+
+        const usedCouponCodes = new Set(
+            userOrdersWithCoupons
+                .map(o => o.couponUsed ? o.couponUsed.trim().toUpperCase() : null)
+                .filter(Boolean)
+        );
+
+        const activeCoupons = await Coupon.find({
+            isDeleted: false,
+            status: 'active',
+            validUntil: { $gte: todayStart },
+            $expr: {$lt: ['$usedCount', '$usageLimit'] }
+        }).sort({ createdAt: -1 }).lean();
+
+        const availableCoupons = activeCoupons.filter(coupon => {
+            const code = coupon.code ? coupon.code.trim().toUpperCase() : '';
+            return !usedCouponCodes.has(code);
+        });
+
+        return availableCoupons.map(coupon => {
+            let discountDescription = '';
+            if (coupon.discountType === 'flat') {
+                discountDescription = `₹${coupon.discountValue} OFF for minimum purchase of ₹${coupon.minPurchase}`;
+            } else {
+                discountDescription = `₹${coupon.discountValue}% OFF for minimum purchase of ₹${coupon.minPurchase} up to ₹${coupon.maxRedeemAmount}`;
+            }
+
+            return {
+                ...coupon,
+                discountDescription
+            };
+        });
+    } catch (error) {
+        throw new Error(`Error fetching available coupons for user: ${error.message}`);
     }
 };

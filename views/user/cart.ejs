@@ -116,31 +116,34 @@
                                 <span>₹<%= subtotal.toLocaleString('en-IN') %></span>
                             </div>
                             <div class="summary-row">
-                                <span>Offers</span>
-                                <span class="discount-value">-₹0</span>
-                            </div>
-                            <div class="summary-row">
-                                <span>Coupon applied</span>
-                                <span class="discount-value">-₹0</span>
+                                <div class="coupon-applied-title-group">
+                                    <span>Coupon applied</span>
+                                    <span class="applied-coupon-ticket d-none" id="appliedCouponBadge"></span>
+                                </div>
+                                <span class="discount-value" id="couponDiscountValue">-₹0</span>
                             </div>
                             <div class="summary-row">
                                 <span>Delivery Charges</span>
-                                <span class="free-text">FREE</span>
+                                <% if (typeof shippingCharges !== 'undefined' && shippingCharges === 0) { %>
+                                    <span class="free-text" id="deliveryChargeValue">FREE</span>
+                                <% } else { %>
+                                    <span id="deliveryChargeValue">₹<%= (typeof shippingCharges !== 'undefined' ? shippingCharges : 0).toLocaleString('en-IN') %></span>
+                                <% } %>
                             </div>
                             <hr class="summary-divider">
                             <div class="summary-row total">
                                 <span>Total Payable</span>
-                                <span>₹<%= subtotal.toLocaleString('en-IN') %></span>
+                                <span id="totalPayableAmount" data-base-total="<%= typeof totalPayable !== 'undefined' ? totalPayable : subtotal %>">₹<%= (typeof totalPayable !== 'undefined' ? totalPayable : subtotal).toLocaleString('en-IN') %></span>
                             </div>
                         </div>
                         <div class="coupon-area">
                             <div class="coupon-header">
                                 <p>Have a coupon?</p>
-                                <a href="/user/coupons" class="check-coupons">Check available coupons</a>
+                                <button type="button" class="check-coupons-btn" id="openCouponsModalBtn">Check available coupons</button>
                             </div>
                             <div class="coupon-input">
-                                <input type="text" placeholder="Enter coupon code">
-                                <button type="button" class="btn-apply">Apply</button>
+                                <input type="text" id="couponCodeInput" placeholder="Enter coupon code" class="coupon-text-input">
+                                <button type="button" class="btn-apply" id="applyCouponBtn">Apply</button>
                             </div>
                         </div>
                         <% if (cartItems && cartItems.length > 0) { %>
@@ -161,6 +164,44 @@
     </main>
 
     <%- include('../partials/user/footer') %>
+
+    <div id="couponsModal" class="modal-overlay">
+        <div class="modal-content coupon-modal-box">
+            <div class="modal-header">
+                <h3 class="modal-title"><i class="fa-solid fa-ticket"></i> Available Coupons</h3>
+                <button type="button" class="modal-close-btn" id="closeCouponsModalBtn" title="Close">
+                    <i class="fa-solid fa-xmark"></i>
+                </button>
+            </div>
+            <div class="modal-body coupon-modal-body">
+                <% if (availableCoupons && availableCoupons.length > 0) { %>
+                    <div class="coupons-list">
+                        <% availableCoupons.forEach(coupon => { 
+                            const expiryStr = new Date(coupon.validUntil).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' });
+                        %>
+                            <div class="coupon-card">
+                                <div class="coupon-card-header">
+                                    <span class="coupon-code-tag"><%= coupon.code %></span>
+                                    <button type="button" class="btn-copy-coupon copy-coupon-trigger" data-code="<%= coupon.code %>" title="Copy code">
+                                        <i class="fa-regular fa-copy"></i> Copy
+                                    </button>
+                                </div>
+                                <p class="coupon-card-desc"><%= coupon.discountDescription %></p>
+                                <div class="coupon-card-footer">
+                                    <span class="coupon-expiry"><i class="fa-regular fa-clock"></i> Valid until: <%= expiryStr %></span>
+                                </div>
+                            </div>
+                        <% }); %>
+                    </div>
+                <% } else { %>
+                    <div class="no-coupons-box">
+                        <i class="fa-solid fa-ticket-simple empty-coupon-icon"></i>
+                        <p>No coupons currently available for your cart total.</p>
+                    </div>
+                <% } %>
+            </div>
+        </div>
+    </div>
 
     <div id="deleteModal" class="modal-overlay">
         <div class="modal-content">

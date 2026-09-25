@@ -5,6 +5,255 @@ document.addEventListener("DOMContentLoaded", () => {
   const confirmDeleteBtn = document.getElementById("confirmDelete");
   let currentDeleteCartId = null;
 
+  const appliedCouponState = {
+    code: null,
+    discountAmount: 0,
+  };
+
+  function getDeepCopiedBaseTotal() {
+    const totalEl = document.getElementById("totalPayableAmount");
+    const rawVal = totalEl ? Number(totalEl.dataset.baseTotal || 0) : 0;
+    return Number(JSON.parse(JSON.stringify(rawVal)));
+  }
+
+  function calculateDeliveryCharge(subtotal) {
+    if (subtotal <= 0) return 0;
+    return subtotal <= 500 ? 100 : 0;
+  }
+
+  const couponCodeInput = document.getElementById("couponCodeInput");
+  const applyCouponBtn = document.getElementById("applyCouponBtn");
+  const couponDiscountValue = document.getElementById("couponDiscountValue");
+  const appliedCouponBadge = document.getElementById("appliedCouponBadge");
+
+  function resetCouponButtonToDefault() {
+    if (applyCouponBtn) {
+      applyCouponBtn.innerText = "Apply";
+      applyCouponBtn.classList.remove("btn-remove-coupon");
+      applyCouponBtn.disabled = false;
+    }
+    if (couponCodeInput) {
+      couponCodeInput.readOnly = false;
+      couponCodeInput.value = "";
+    }
+    if (appliedCouponBadge) {
+      appliedCouponBadge.innerText = "";
+      appliedCouponBadge.classList.add("d-none");
+    }
+  }
+
+  function switchCouponButtonToRemoveMode(code) {
+    if (applyCouponBtn) {
+      applyCouponBtn.innerText = "Remove";
+      applyCouponBtn.classList.add("btn-remove-coupon");
+      applyCouponBtn.disabled = false;
+    }
+    if (couponCodeInput) {
+      couponCodeInput.value = code;
+      couponCodeInput.readOnly = true;
+    }
+    if (appliedCouponBadge) {
+      appliedCouponBadge.innerText = code;
+      appliedCouponBadge.classList.remove("d-none");
+    }
+  }
+
+  function removeAppliedCoupon(notify = true) {
+    appliedCouponState.code = null;
+    appliedCouponState.discountAmount = 0;
+
+    const baseTotalSnapshot = getDeepCopiedBaseTotal();
+
+    if (couponDiscountValue) {
+      couponDiscountValue.innerText = "-₹0";
+    }
+
+    resetCouponButtonToDefault();
+
+    const totalUI = document.getElementById("totalPayableAmount");
+    if (totalUI) {
+      totalUI.innerText = `₹${baseTotalSnapshot.toLocaleString("en-IN")}`;
+    }
+
+    if (notify) {
+      Swal.fire({
+        toast: true,
+        position: "top-end",
+        icon: "info",
+        title: "Coupon removed",
+        showConfirmButton: false,
+        timer: 1200,
+      });
+    }
+  }
+
+  async function applyCoupon() {
+    const code = couponCodeInput
+      ? couponCodeInput.value.trim().toUpperCase()
+      : "";
+
+    if (!code) {
+      return Swal.fire({
+        icon: "warning",
+        title: "Empty Code",
+        text: "Please enter or select a coupon code.",
+        confirmButtonColor: "#222",
+        heightAuto: false,
+      });
+    }
+
+    const baseTotalSnapshot = getDeepCopiedBaseTotal();
+
+    if (baseTotalSnapshot <= 0) {
+      return Swal.fire({
+        icon: "warning",
+        title: "Empty Cart",
+        text: "Add items to your cart before applying coupons.",
+        confirmButtonColor: "#222",
+        heightAuto: false,
+      });
+    }
+
+    applyCouponBtn.disabled = true;
+    applyCouponBtn.innerText = "Applying...";
+
+    try {
+      const response = await fetch("/user/cart/apply-coupon", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "CSRF-Token": csrfToken,
+          "x-csrf-token": csrfToken,
+        },
+        body: JSON.stringify({
+          couponCode: code,
+          baseTotal: baseTotalSnapshot,
+        }),
+      });
+
+      const data = await response.json();
+
+      if (data.success) {
+        appliedCouponState.code = data.couponCode;
+        appliedCouponState.discountAmount = data.discountAmount;
+
+        if (couponDiscountValue) {
+          couponDiscountValue.innerText = `-₹${data.discountAmount.toLocaleString("en-IN")}`;
+        }
+
+        switchCouponButtonToRemoveMode(data.couponCode);
+
+        const totalUI = document.getElementById("totalPayableAmount");
+        if (totalUI) {
+          totalUI.innerText = `₹${data.newTotalPayable.toLocaleString("en-IN")}`;
+        }
+
+        hideCouponsModal();
+
+        Swal.fire({
+          icon: "success",
+          title: "Coupon Applied!",
+          text: data.message,
+          timer: 1500,
+          showConfirmButton: false,
+          heightAuto: false,
+        });
+      } else {
+        resetCouponButtonToDefault();
+        Swal.fire({
+          icon: "error",
+          title: "Cannot Apply Coupon",
+          text: data.message || "Failed to apply coupon.",
+          confirmButtonColor: "#222",
+          heightAuto: false,
+        });
+      }
+    } catch (err) {
+      resetCouponButtonToDefault();
+      Swal.fire({
+        icon: "error",
+        title: "Network Error",
+        text: "Unable to reach server. Please try again.",
+        confirmButtonColor: "#222",
+        heightAuto: false,
+      });
+    }
+  }
+
+  if (applyCouponBtn) {
+    applyCouponBtn.addEventListener("click", () => {
+      if (appliedCouponState.code) {
+        removeAppliedCoupon(true);
+      } else {
+        applyCoupon();
+      }
+    });
+  }
+
+  if (couponCodeInput) {
+    couponCodeInput.addEventListener("keypress", (e) => {
+      if (e.key === "Enter") {
+        e.preventDefault();
+        if (!appliedCouponState.code) {
+          applyCoupon();
+        }
+      }
+    });
+  }
+
+  function updateSummaryInvoiceUI(totalQty, subtotalAmt) {
+    const pageTitleElement = document.querySelector(".page-title");
+    if (pageTitleElement) {
+      pageTitleElement.innerText = `Shopping Cart (${totalQty} Items)`;
+    }
+
+    const labelRow = document.querySelector(
+      ".summary-row:first-of-type span:first-child",
+    );
+    if (labelRow) {
+      labelRow.innerHTML = `Cart Subtotal (${totalQty} items) <br><small>(Inclusive of 18% GST)</small>`;
+    }
+
+    const priceDisplay = document.querySelector(
+      ".summary-row:first-of-type span:last-child",
+    );
+    if (priceDisplay) {
+      priceDisplay.innerText = `₹${subtotalAmt.toLocaleString("en-IN")}`;
+    }
+
+    const deliveryCharges = calculateDeliveryCharge(subtotalAmt);
+    const deliveryDisplay = document.getElementById("deliveryChargeValue");
+    if (deliveryDisplay) {
+      if (deliveryCharges === 0) {
+        deliveryDisplay.className = "free-text";
+        deliveryDisplay.innerText = "FREE";
+      } else {
+        deliveryDisplay.className = "";
+        deliveryDisplay.innerText = `₹${deliveryCharges.toLocaleString("en-IN")}`;
+      }
+    }
+
+    const initialBaseTotal = subtotalAmt + deliveryCharges;
+    const baseTotalSnapshot = Number(
+      JSON.parse(JSON.stringify(initialBaseTotal)),
+    );
+
+    const totalUI = document.getElementById("totalPayableAmount");
+    if (totalUI) {
+      totalUI.dataset.baseTotal = baseTotalSnapshot;
+
+      if (appliedCouponState.code) {
+        removeAppliedCoupon(false);
+      }
+
+      const finalPayable = Math.max(
+        0,
+        baseTotalSnapshot - appliedCouponState.discountAmount,
+      );
+      totalUI.innerText = `₹${finalPayable.toLocaleString("en-IN")}`;
+    }
+  }
+
   const noticeNode = document.getElementById("unavailableNoticePayload");
   if (noticeNode && noticeNode.value) {
     let noticeObj = null;
@@ -31,7 +280,9 @@ document.addEventListener("DOMContentLoaded", () => {
   }
 
   function promptStockResolution(cartItemId, productName, availableStock) {
-    const itemLabel = productName ? `<b>${productName}</b>` : "This product variant";
+    const itemLabel = productName
+      ? `<b>${productName}</b>`
+      : "This product variant";
 
     Swal.fire({
       icon: "warning",
@@ -49,16 +300,16 @@ document.addEventListener("DOMContentLoaded", () => {
       if (result.isConfirmed) {
         try {
           const res = await fetch("/user/cart/change-quantity", {
-            method: "POST",
+            method: "PATCH",
             headers: {
               "Content-Type": "application/json",
               "CSRF-Token": csrfToken,
-              "x-csrf-token": csrfToken
+              "x-csrf-token": csrfToken,
             },
             body: JSON.stringify({
               cartItemId: cartItemId,
               action: "set",
-              targetQuantity: availableStock
+              targetQuantity: availableStock,
             }),
           });
           const data = await res.json();
@@ -79,11 +330,11 @@ document.addEventListener("DOMContentLoaded", () => {
       } else if (result.dismiss === Swal.DismissReason.cancel) {
         try {
           const res = await fetch("/user/cart/remove-item", {
-            method: "POST",
+            method: "DELETE",
             headers: {
               "Content-Type": "application/json",
               "CSRF-Token": csrfToken,
-              "x-csrf-token": csrfToken
+              "x-csrf-token": csrfToken,
             },
             body: JSON.stringify({ cartItemId: cartItemId }),
           });
@@ -109,6 +360,79 @@ document.addEventListener("DOMContentLoaded", () => {
     });
   }
 
+  const couponsModal = document.getElementById("couponsModal");
+  const openCouponsModalBtn = document.getElementById("openCouponsModalBtn");
+  const closeCouponsModalBtn = document.getElementById("closeCouponsModalBtn");
+
+  function showCouponsModal() {
+    if (couponsModal) {
+      couponsModal.classList.add("active");
+      couponsModal.style.display = "flex";
+    }
+  }
+
+  function hideCouponsModal() {
+    if (couponsModal) {
+      couponsModal.classList.remove("active");
+      couponsModal.style.display = "none";
+    }
+  }
+
+  if (openCouponsModalBtn) {
+    openCouponsModalBtn.addEventListener("click", (e) => {
+      e.preventDefault();
+      showCouponsModal();
+    });
+  }
+
+  if (closeCouponsModalBtn) {
+    closeCouponsModalBtn.addEventListener("click", hideCouponsModal);
+  }
+
+  window.addEventListener("click", (e) => {
+    if (e.target === couponsModal) {
+      hideCouponsModal();
+    }
+  });
+
+  document.addEventListener("click", async (e) => {
+    const copyBtn = e.target.closest(".copy-coupon-trigger");
+    if (!copyBtn) return;
+
+    const code = copyBtn.dataset.code;
+    if (!code) return;
+
+    try {
+      await navigator.clipboard.writeText(code);
+
+      if (couponCodeInput && !appliedCouponState.code) {
+        couponCodeInput.value = code;
+      }
+
+      copyBtn.innerHTML = '<i class="fa-solid fa-check"></i> Copied!';
+      setTimeout(() => {
+        copyBtn.innerHTML = '<i class="fa-regular fa-copy"></i> Copy';
+      }, 2000);
+
+      Swal.fire({
+        toast: true,
+        position: "top-end",
+        icon: "success",
+        title: `Coupon ${code} copied!`,
+        showConfirmButton: false,
+        timer: 1500,
+        timerProgressBar: true,
+      });
+    } catch (err) {
+      Swal.fire({
+        icon: "info",
+        title: "Coupon Code",
+        text: `Please copy manually: ${code}`,
+        confirmButtonColor: "#222",
+      });
+    }
+  });
+
   const alertItemId = document.getElementById("stockAlertItemId")?.value;
   const alertAvailable = document.getElementById("stockAlertAvailable")?.value;
   const alertName = document.getElementById("stockAlertName")?.value;
@@ -120,7 +444,7 @@ document.addEventListener("DOMContentLoaded", () => {
   document.querySelectorAll(".clickable-cart-card").forEach((card) => {
     card.addEventListener("click", function (e) {
       const excludedTarget = e.target.closest(
-        ".trigger-delete-btn, .quantity-selector, .item-actions"
+        ".trigger-delete-btn, .quantity-selector, .item-actions",
       );
       if (excludedTarget) return;
 
@@ -177,11 +501,11 @@ document.addEventListener("DOMContentLoaded", () => {
 
     try {
       const response = await fetch("/user/cart/change-quantity", {
-        method: "POST",
+        method: "PATCH",
         headers: {
           "Content-Type": "application/json",
           "CSRF-Token": csrfToken,
-          "x-csrf-token": csrfToken
+          "x-csrf-token": csrfToken,
         },
         body: JSON.stringify({ cartItemId, action }),
       });
@@ -240,11 +564,11 @@ document.addEventListener("DOMContentLoaded", () => {
 
       try {
         const response = await fetch("/user/cart/remove-item", {
-          method: "POST",
+          method: "DELETE",
           headers: {
             "Content-Type": "application/json",
             "CSRF-Token": csrfToken,
-            "x-csrf-token": csrfToken
+            "x-csrf-token": csrfToken,
           },
           body: JSON.stringify({ cartItemId: targetCartId }),
         });
@@ -277,35 +601,6 @@ document.addEventListener("DOMContentLoaded", () => {
     });
   }
 
-  function updateSummaryInvoiceUI(totalQty, subtotalAmt) {
-    const pageTitleElement = document.querySelector(".page-title");
-    if (pageTitleElement) {
-      pageTitleElement.innerText = `Shopping Cart (${totalQty} Items)`;
-    }
-
-    const labelRow = document.querySelector(
-      ".summary-row:first-of-type span:first-child"
-    );
-    if (labelRow) {
-      labelRow.innerHTML = `Cart Subtotal (${totalQty} items) <br><small>(Inclusive of 18% GST)</small>`;
-    }
-
-    const priceDisplay = document.querySelector(
-      ".summary-row:first-of-type span:last-child"
-    );
-    if (priceDisplay) {
-      priceDisplay.innerText = `₹${subtotalAmt.toLocaleString("en-IN")}`;
-    }
-
-    const totalPayable = Math.max(subtotalAmt - 1500, 0);
-    const totalUI = document.querySelector(
-      ".summary-row.total span:last-child"
-    );
-    if (totalUI) {
-      totalUI.innerText = `₹${totalPayable.toLocaleString("en-IN")}`;
-    }
-  }
-
   const proceedCheckoutBtn = document.getElementById("proceedCheckoutBtn");
 
   if (proceedCheckoutBtn) {
@@ -324,15 +619,35 @@ document.addEventListener("DOMContentLoaded", () => {
             "CSRF-Token": csrfToken,
             "x-csrf-token": csrfToken,
           },
+          body: JSON.stringify({
+            appliedCouponCode: appliedCouponState.code,
+            appliedCouponDiscount: appliedCouponState.discountAmount,
+          }),
         });
 
         const data = await response.json();
+
+        if (data.reason === "INVALID_COUPON") {
+          removeAppliedCoupon(false);
+          proceedCheckoutBtn.disabled = false;
+          proceedCheckoutBtn.innerText = originalText;
+
+          return Swal.fire({
+            icon: "warning",
+            title: "Coupon Error",
+            text: data.message || "The applied coupon is no longer valid.",
+            confirmButtonColor: "#222",
+            heightAuto: false,
+          });
+        }
 
         if (data.reason === "INCOMPLETE_PROFILE") {
           return Swal.fire({
             icon: "warning",
             title: "Complete Your Profile",
-            text: data.message || "Complete your profile before making your first purchase",
+            text:
+              data.message ||
+              "Complete your profile before making your first purchase",
             confirmButtonColor: "#222",
             heightAuto: false,
           }).then(() => {
@@ -341,7 +656,11 @@ document.addEventListener("DOMContentLoaded", () => {
         }
 
         if (data.reason === "STOCK_EXCEEDED") {
-          promptStockResolution(data.cartItemId, data.productName, data.availableStock);
+          promptStockResolution(
+            data.cartItemId,
+            data.productName,
+            data.availableStock,
+          );
           proceedCheckoutBtn.disabled = false;
           proceedCheckoutBtn.innerText = originalText;
           return;
@@ -374,7 +693,6 @@ document.addEventListener("DOMContentLoaded", () => {
         });
         proceedCheckoutBtn.disabled = false;
         proceedCheckoutBtn.innerText = originalText;
-
       } catch (error) {
         Swal.fire({
           icon: "error",
