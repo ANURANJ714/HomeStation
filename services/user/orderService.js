@@ -2,12 +2,23 @@ import Order from '../../models/Order.js';
 import ProductVariant from '../../models/ProductVariant.js';
 import Product from '../../models/Products.js';
 import Cart from '../../models/Cart.js';
+import Coupon from '../../models/Coupon.js';
+import * as walletService from '../../services/user/walletService.js';
 
 const generateNextOrderId = async () => {
     try {
         const totalOrders = await Order.countDocuments();
-        const nextNum = totalOrders + 1;
-        return `#ORD-${nextNum.toString().padStart(5, '0')}`;
+        let nextNum = totalOrders + 1;
+        let orderId = `#ORD-${nextNum.toString().padStart(5, '0')}`;
+
+        let exists = await Order.findOne({ orderId }).lean();
+        while (exists) {
+            nextNum += 1;
+            orderId = `#ORD-${nextNum.toString().padStart(5, '0')}`;
+            exists = await Order.findOne({ orderId }).lean();
+        }
+
+        return orderId;
     } catch (error) {
         throw new Error(`Order ID generation failed: ${error.message}`);
     }
@@ -25,8 +36,8 @@ export const createNewOrder = async (userId, validatedCheckoutData, shippingAddr
         const formattedOrderItems = [];
 
         for (const item of validItems) {
-            const variantId = item.productVariantId._id;
-            const quantity = item.quantity;
+            const variantId = item.productVariantId?._id || item.productVariantId;
+            const quantity = parseInt(item.quantity, 10) || 1;
 
             const updatedVariant = await ProductVariant.findOneAndUpdate(
                 { _id: variantId, stock: { $gte: quantity } },
@@ -35,7 +46,8 @@ export const createNewOrder = async (userId, validatedCheckoutData, shippingAddr
             );
 
             if (!updatedVariant) {
-                throw new Error(`Stock mismatch for variant: ${item.productVariantId.variantName}. Please re-check your order.`);
+                const variantName = item.productVariantId?.variantName || 'Selected Item';
+                throw new Error(`Stock mismatch for variant: ${variantName}. Please re-check your order.`);
             }
 
             formattedOrderItems.push({
@@ -43,7 +55,7 @@ export const createNewOrder = async (userId, validatedCheckoutData, shippingAddr
                 quantity,
                 currentPrice: item.currentPrice,
                 originalPrice: item.originalPrice,
-                discount: item.discount,
+                discount: item.discount || 0,
                 itemStatus: 'processing',
                 returnStatus: 'none',
                 cancellationReason: null,
@@ -82,11 +94,15 @@ export const createNewOrder = async (userId, validatedCheckoutData, shippingAddr
             couponDiscount: Number(couponDiscount) || 0
         });
 
-        if (couponUsed) {
+        if (couponUsed && couponUsed.trim() !== '') {
             await Coupon.updateOne(
                 { code: couponUsed.trim().toUpperCase() },
                 { $inc: { usedCount: 1 } }
             );
+        }
+
+        if (paymentMode === 'wallet') {
+            await walletService.deductWalletBalance(userId, totalPayable, newOrder.orderId);
         }
 
         await Cart.deleteMany({ userId });

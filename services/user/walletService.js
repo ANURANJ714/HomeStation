@@ -114,3 +114,38 @@ export const verifyAndCreditWallet = async (userId, paymentDetails) => {
         throw new Error(`Service error in verifyAndCreditWallet: ${error.message}`);
     }
 };
+
+export const deductWalletBalance = async (userId, amount, orderId) => {
+    try {
+        const numericAmount = Number(amount);
+        if (isNaN(numericAmount) || numericAmount <= 0) {
+            throw new Error('Invalid deduction amount provided.');
+        }
+
+        const updatedWallet = await Wallet.findOneAndUpdate(
+            { 
+                userId, 
+                balance: { $gte: numericAmount } 
+            },
+            {
+                $inc: { balance: -numericAmount },$push: {
+                    transactions: {
+                        amount: numericAmount,
+                        type: 'debit',
+                        description: `Payment for Order ${orderId}`,
+                        createdAt: new Date()
+                    }
+                }
+            },
+            { new: true }
+        );
+
+        if (!updatedWallet) {
+            throw new Error('Insufficient wallet balance to complete this transaction.');
+        }
+
+        return updatedWallet;
+    } catch (error) {
+        throw new Error(`Wallet balance deduction failed: ${error.message}`);
+    }
+};

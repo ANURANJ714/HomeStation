@@ -1,7 +1,7 @@
 import express from 'express';
 import { ensureCheckoutOrigin, ensureAddressSelected, ensurePaymentModeSelected } from '../../middlewares/checkoutAuth.js';
 import { loadCheckoutAddress, postCheckoutAddress, loadSelectPaymentMode, postCheckoutPaymentMode,
-     loadOrderReview, placeOrder, loadSuccessPage, loadFailurePage } from '../../controllers/user/checkoutController.js';
+     loadOrderReview, placeOrder, loadSuccessPage, loadFailurePage, verifyRazorpayPayment } from '../../controllers/user/checkoutController.js';
 import { addAddress, editAddress, deleteAddress } from '../../controllers/user/addressController.js';
 import { ensureAuthenticated } from '../../middlewares/auth.js';
 
@@ -19,8 +19,10 @@ router.post('/payment/select', ensureAddressSelected, postCheckoutPaymentMode);
 
 router.get('/review', ensurePaymentModeSelected, loadOrderReview);
 router.post('/order/create', ensurePaymentModeSelected, placeOrder);
+router.post('/order/verify-payment', ensurePaymentModeSelected, verifyRazorpayPayment);
 
 router.get('/success', ensureAuthenticated, loadSuccessPage);
 router.get('/failure', ensureAuthenticated, loadFailurePage);
+
 
 export default router;

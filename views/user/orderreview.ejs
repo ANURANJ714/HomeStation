@@ -163,7 +163,12 @@
 
                             <% if (typeof couponDiscount !== 'undefined' && couponDiscount > 0) { %>
                                 <div class="breakdown-row discount">
-                                    <span>Coupon Discount</span>
+                                    <div class="review-coupon-label-wrapper">
+                                        <span>Coupon Discount</span>
+                                        <% if (typeof couponUsed !== 'undefined' && couponUsed) { %>
+                                            <span class="review-coupon-code-badge"><%= couponUsed %></span>
+                                        <% } %>
+                                    </div>
                                     <span>-₹<%= couponDiscount.toLocaleString('en-IN') %></span>
                                 </div>
                             <% } %>
@@ -208,6 +213,7 @@
 
     <%- include('../partials/user/footer') %>
 
+    <script src="https://checkout.razorpay.com/v1/checkout.js"></script>
     <script src="/js/user/orderreview.js"></script>
 </body>
 

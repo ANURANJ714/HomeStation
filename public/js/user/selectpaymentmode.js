@@ -50,6 +50,18 @@ document.addEventListener('DOMContentLoaded', () => {
 
                 const data = await response.json();
 
+                // Insufficient wallet balance handling
+                if (data.reason === "INSUFFICIENT_WALLET_BALANCE") {
+                    return Swal.fire({
+                        icon: 'warning',
+                        title: 'Insufficient Wallet Balance',
+                        text: data.message,
+                        confirmButtonColor: '#222',
+                        heightAuto: false
+                    });
+                }
+
+                // Invalid coupon handling
                 if (data.reason === "INVALID_COUPON") {
                     return Swal.fire({
                         icon: "warning",
@@ -64,6 +76,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     });
                 }
 
+                // Stock constraint handling
                 if (data.reason === "STOCK_EXCEEDED") {
                     const itemLabel = data.productName ? `<b>${data.productName}</b>` : "This product variant";
                     Swal.fire({
