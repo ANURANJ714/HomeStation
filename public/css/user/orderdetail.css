@@ -615,6 +615,72 @@ ul {
     border: 1px solid #d1c4e9;
 }
 
+.coupon-summary-block {
+    background-color: #fcfcfc;
+    border: 1px dashed #d1d5db;
+    border-radius: 8px;
+    padding: 12px 16px;
+    margin-top: 10px;
+}
+
+.coupon-applied-details {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.coupon-tag-badge {
+    background-color: #e6f4ea;
+    color: #137333;
+    font-weight: 700;
+    padding: 3px 8px;
+    border-radius: 4px;
+    font-size: 13px;
+    letter-spacing: 0.5px;
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+}
+
+.coupon-discount-saved {
+    color: #137333;
+    font-weight: 600;
+    font-size: 14px;
+}
+
+.return-request-alert-card {
+    border-radius: 8px;
+    padding: 14px 18px;
+    margin-top: 14px;
+    margin-bottom: 8px;
+}
+
+.return-request-alert-card.requested {
+    background-color: #fef7e0;
+    border: 1px solid #f9ab00;
+    color: #b06000;
+}
+
+.return-request-alert-card.rejected {
+    background-color: #fce8e6;
+    border: 1px solid #ea4335;
+    color: #c5221f;
+}
+
+.return-request-alert-card .alert-title-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 14px;
+    margin-bottom: 6px;
+}
+
+.return-request-alert-card .alert-reason-text {
+    margin: 0;
+    font-size: 13px;
+    color: #374151;
+}
+
 @media (max-width: 768px) {
   .order-detail-wrapper {
     padding: 30px 0 60px;

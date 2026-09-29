@@ -113,6 +113,16 @@
                             </span>
                         </div>
 
+                        <% if (order.couponUsed && order.couponDiscount > 0) { %>
+                            <div class="detail-item full-width coupon-summary-block">
+                                <span class="detail-label">Coupon Discount Applied</span>
+                                <div class="detail-value coupon-applied-details">
+                                    <span class="coupon-tag-badge"><i class="fa-solid fa-ticket"></i> <%= order.couponUsed %></span>
+                                    <span class="coupon-discount-saved">- Total ₹<%= order.couponDiscount.toLocaleString('en-IN') %> Saved in this Order</span>
+                                </div>
+                            </div>
+                        <% } %>
+
                         <% if (order.orderItems && order.orderItems.length > 0) { %>
                             <% order.orderItems.forEach(item => { 
                                 const variant = item.productVariantId;
@@ -185,6 +195,24 @@
                                             <span class="detail-value">₹<%= item.currentPrice.toLocaleString('en-IN') %> × <%= item.quantity %> = <strong>₹<%= (item.currentPrice * item.quantity).toLocaleString('en-IN') %></strong></span>
                                         </div>
 
+                                        <% if (item.itemStatus === 'delivered' && item.returnRequestStatus === 'requested' && item.returnStatus === 'none') { %>
+                                            <div class="return-request-alert-card requested">
+                                                <div class="alert-title-row">
+                                                    <i class="fa-solid fa-clock-rotate-left"></i>
+                                                    <strong>Return Requested (Pending Approval)</strong>
+                                                </div>
+                                                <p class="alert-reason-text"><strong>Reason:</strong> <%= item.returnReason || 'Not specified' %></p>
+                                            </div>
+                                        <% } else if (item.itemStatus === 'delivered' && item.returnRequestStatus === 'rejected' && item.returnStatus === 'none') { %>
+                                            <div class="return-request-alert-card rejected">
+                                                <div class="alert-title-row">
+                                                    <i class="fa-solid fa-circle-xmark"></i>
+                                                    <strong>Return Request Rejected</strong>
+                                                </div>
+                                                <p class="alert-reason-text"><strong>Reason Submitted:</strong> <%= item.returnReason || 'Not specified' %></p>
+                                            </div>
+                                        <% } %>
+
                                         <div class="item-actions-row">
                                             <% if (item.itemStatus === 'delivered' && (!item.returnStatus || item.returnStatus === 'none')) { %>
                                                 <a href="/user/orders/invoice/<%= cleanOrderId %>?itemId=<%= item._id %>" class="btn-modal-action btn-invoice">
@@ -203,12 +231,13 @@
                                                     <% } %>
                                                 </button>
 
-                                                <% if (isReturnEligible) { %>
+                                                <% if (isReturnEligible && (!item.returnRequestStatus || item.returnRequestStatus === null)) { %>
                                                     <button type="button" class="btn-modal-action btn-return trigger-item-return-btn" data-item-id="<%= item._id %>">
                                                         <i class="fa-solid fa-rotate-left"></i> Return Item
                                                     </button>
                                                 <% } %>
-                                            <% } else if (item.itemStatus !== 'cancelled' && (!item.returnStatus || item.returnStatus === 'none')) { %>
+
+                                            <% } else if (['processing', 'packed'].includes(item.itemStatus) && (!item.returnStatus || item.returnStatus === 'none')) { %>
                                                 <button type="button" class="btn-modal-action btn-cancel trigger-item-cancel-btn" data-item-id="<%= item._id %>">
                                                     <i class="fa-solid fa-ban"></i> Cancel Item
                                                 </button>

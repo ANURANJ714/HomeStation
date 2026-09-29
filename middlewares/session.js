@@ -9,7 +9,7 @@ const userSession = session({
     name: 'user_session',
     secret: process.env.USER_SESSION_SECRET,
     resave: false,
-    saveUninitialized: false,
+    saveUninitialized: true,
     store: MongoStore.create({ 
         mongoUrl: process.env.MONGODB_URI,
         collectionName: 'user_sessions'

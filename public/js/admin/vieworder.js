@@ -137,6 +137,75 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     });
 
+    document.querySelectorAll('.trigger-return-decision-btn').forEach(btn => {
+        btn.addEventListener('click', () => {
+            const { orderId, itemId, decision } = btn.dataset;
+            const actionTitle = decision === 'accepted' ? 'Accept Return?' : 'Reject Return?';
+            const actionText = decision === 'accepted' 
+                ? 'This will approve the return and initiate pickup assignment.' 
+                : 'This will reject the customer return request.';
+
+            Swal.fire({
+                icon: 'warning',
+                title: actionTitle,
+                text: actionText,
+                showCancelButton: true,
+                confirmButtonText: `Yes, ${decision}`,
+                cancelButtonText: 'Cancel',
+                confirmButtonColor: decision === 'accepted' ? '#1e8e3e' : '#d93025',
+                cancelButtonColor: '#757575',
+                heightAuto: false
+            }).then(async (res) => {
+                if (res.isConfirmed) {
+                    try {
+                        const response = await fetch('/admin/orders/return-decision', {
+                            method: 'PATCH',
+                            headers: {
+                                'Content-Type': 'application/json',
+                                'CSRF-Token': csrfToken,
+                                'x-csrf-token': csrfToken
+                            },
+                            body: JSON.stringify({
+                                orderId,
+                                orderItemId: itemId,
+                                decision
+                            })
+                        });
+
+                        const data = await response.json();
+
+                        if (data.success) {
+                            Swal.fire({
+                                icon: 'success',
+                                title: 'Success',
+                                text: data.message,
+                                timer: 1500,
+                                showConfirmButton: false,
+                                heightAuto: false
+                            }).then(() => window.location.reload());
+                        } else {
+                            Swal.fire({
+                                icon: 'error',
+                                title: 'Error',
+                                text: data.message || 'Failed to update return decision.',
+                                confirmButtonColor: '#1a1a1a',
+                                heightAuto: false
+                            });
+                        }
+                    } catch (err) {
+                        Swal.fire({
+                            icon: 'error',
+                            title: 'Network Error',
+                            text: 'Unable to reach the server.',
+                            confirmButtonColor: '#1a1a1a',
+                            heightAuto: false
+                        });
+                    }
+                }
+            });
+        });
+    });
+
     const updateStatusForm = document.getElementById('updateStatusForm');
     if (updateStatusForm) {
         updateStatusForm.addEventListener('submit', async (e) => {

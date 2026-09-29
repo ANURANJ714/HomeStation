@@ -8,10 +8,31 @@ export const globalErrorHandler = (err, req, res, next) => {
     });
 
     const isAdminRoute = req.originalUrl.startsWith('/admin');
-    const isApiRequest = req.xhr || (req.headers.accept && req.headers.accept.includes('application/json'));
+    
+    const isApiRequest = 
+        req.xhr || 
+        (req.headers.accept && req.headers.accept.includes('application/json')) ||
+        (req.headers['content-type'] && req.headers['content-type'].includes('application/json'));
+
+        
+    if (err.code === 'EBADCSRFTOKEN') {
+        if (isApiRequest) {
+            return res.status(403).json({
+                success: false,
+                isCsrfError: true,
+                message: 'Your session has expired or the security token is invalid. Please refresh the page.'
+            });
+        }
+        return res.status(403).render('user/403error', {
+            pageTitle: 'HomeStation - Forbidden',
+            message: 'Invalid or expired session security token. Please refresh and try again.',
+            csrfToken: req.csrfToken ? req.csrfToken() : '',
+            user: req.user || null
+        });
+    }
 
     if (isApiRequest) {
-        return res.status(err.status || 500).json({
+        return res.status(err.status || err.statusCode || 500).json({
             success: false,
             message: process.env.NODE_ENV === 'production' 
                 ? 'Internal Server Error occurred.' 
@@ -22,10 +43,9 @@ export const globalErrorHandler = (err, req, res, next) => {
     const viewTemplate = isAdminRoute ? 'admin/admin500error' : 'user/500error';
     const pageTitle = isAdminRoute ? 'HomeStation - Admin Server Error' : 'HomeStation - Server Error';
     const csrfToken = req.csrfToken ? req.csrfToken() : '';
-    
     const user = (req.isAuthenticated && req.isAuthenticated()) ? req.user : (req.user || null);
 
-    res.status(err.status || 500).render(viewTemplate, {
+    res.status(err.status || err.statusCode || 500).render(viewTemplate, {
         pageTitle,
         csrfToken,
         user, 

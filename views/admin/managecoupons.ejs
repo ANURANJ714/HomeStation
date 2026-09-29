@@ -6,8 +6,10 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>HomeStation - ADMIN</title>
     <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&display=swap" rel="stylesheet">
-    <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,600;0,700;1,600&display=swap" rel="stylesheet">
-    <link rel="icon" type="image/x-icon" href="https://res.cloudinary.com/dz7fuqwnr/image/upload/v1778395481/WhatsApp_Image_2026-05-10_at_12.12.36_nra5vk.jpg">
+    <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,600;0,700;1,600&display=swap"
+        rel="stylesheet">
+    <link rel="icon" type="image/x-icon"
+        href="https://res.cloudinary.com/dz7fuqwnr/image/upload/v1778395481/WhatsApp_Image_2026-05-10_at_12.12.36_nra5vk.jpg">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
     <link rel="stylesheet" href="/css/admin/managecoupons.css">
@@ -114,7 +116,9 @@
                         <div class="stat-icon total-coupons-icon"><i class="fa-solid fa-ticket-simple"></i></div>
                         <div class="stat-details">
                             <p class="stat-label">Total Coupons</p>
-                            <h3 class="stat-value"><%= stats.totalCoupons %></h3>
+                            <h3 class="stat-value">
+                                <%= stats.totalCoupons %>
+                            </h3>
                         </div>
                     </div>
 
@@ -122,7 +126,9 @@
                         <div class="stat-icon active-coupons-icon"><i class="fa-solid fa-circle-check"></i></div>
                         <div class="stat-details">
                             <p class="stat-label">Active Coupons</p>
-                            <h3 class="stat-value"><%= stats.activeCoupons %></h3>
+                            <h3 class="stat-value">
+                                <%= stats.activeCoupons %>
+                            </h3>
                         </div>
                     </div>
 
@@ -130,7 +136,9 @@
                         <div class="stat-icon inactive-coupons-icon"><i class="fa-solid fa-circle-xmark"></i></div>
                         <div class="stat-details">
                             <p class="stat-label">Inactive Coupons</p>
-                            <h3 class="stat-value"><%= stats.inactiveCoupons %></h3>
+                            <h3 class="stat-value">
+                                <%= stats.inactiveCoupons %>
+                            </h3>
                         </div>
                     </div>
                 </div>
@@ -141,10 +149,11 @@
                             <i class="fa-solid fa-magnifying-glass search-lead-icon"></i>
                             <input type="text" id="couponSearchInput" class="search-input"
                                 placeholder="Search by Coupon Code..." value="<%= searchQuery %>">
-                            <button type="button" id="searchActionBtn" 
-                                class="search-action-btn <%= searchQuery ? 'is-clear' : '' %>" 
+                            <button type="button" id="searchActionBtn"
+                                class="search-action-btn <%= searchQuery ? 'is-clear' : '' %>"
                                 title="<%= searchQuery ? 'Clear Search' : 'Search Coupons' %>">
-                                <i class="fa-solid <%= searchQuery ? 'fa-xmark' : 'fa-magnifying-glass' %>" id="searchBtnIcon"></i>
+                                <i class="fa-solid <%= searchQuery ? 'fa-xmark' : 'fa-magnifying-glass' %>"
+                                    id="searchBtnIcon"></i>
                             </button>
                         </div>
                     </div>
@@ -153,18 +162,20 @@
                         <div class="filter-item">
                             <label class="filter-label">Discount Type:</label>
                             <select class="filter-select" id="discountTypeFilterSelect">
-                                <option value="all" <%= selectedType === 'all' ? 'selected' : '' %>>All Types</option>
-                                <option value="percentage" <%= selectedType === 'percentage' ? 'selected' : '' %>>Percentage</option>
-                                <option value="flat" <%= selectedType === 'flat' ? 'selected' : '' %>>Flat Amount</option>
+                                <option value="all" <%=selectedType==='all' ? 'selected' : '' %>>All Types</option>
+                                <option value="percentage" <%=selectedType==='percentage' ? 'selected' : '' %>
+                                    >Percentage</option>
+                                <option value="flat" <%=selectedType==='flat' ? 'selected' : '' %>>Flat Amount</option>
                             </select>
                         </div>
 
                         <div class="filter-item">
                             <label class="filter-label">Status:</label>
                             <select class="filter-select" id="statusFilterSelect">
-                                <option value="all" <%= selectedStatus === 'all' ? 'selected' : '' %>>All Statuses</option>
-                                <option value="active" <%= selectedStatus === 'active' ? 'selected' : '' %>>Active</option>
-                                <option value="inactive" <%= selectedStatus === 'inactive' ? 'selected' : '' %>>Inactive</option>
+                                <option value="all" <%=selectedStatus==='all' ? 'selected' : '' %>>All Statuses</option>
+                                <option value="active" <%=selectedStatus==='active' ? 'selected' : '' %>>Active</option>
+                                <option value="inactive" <%=selectedStatus==='inactive' ? 'selected' : '' %>>Inactive
+                                </option>
                             </select>
                         </div>
                     </div>
@@ -183,8 +194,8 @@
                             </tr>
                         </thead>
                         <tbody id="couponsTableBody">
-                            <% if (coupons && coupons.length > 0) { %>
-                                <% coupons.forEach(coupon => { 
+                            <% if (coupons && coupons.length> 0) { %>
+                                <% coupons.forEach(coupon=> {
                                     const isPercentage = coupon.discountType === 'percentage';
                                     const typeClass = isPercentage ? 'percentage-type' : 'flat-type';
                                     const typeIcon = isPercentage ? 'fa-percent' : 'fa-indian-rupee-sign';
@@ -195,35 +206,41 @@
                                     const blockIconClass = isCouponActive ? 'fa-ban' : 'fa-lock-open';
                                     const blockBtnClass = isCouponActive ? 'block-btn' : 'unblock-btn';
 
-                                    const validUntilStr = new Date(coupon.validUntil).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' });
+                                    const validUntilStr = new Date(coupon.validUntil).toLocaleDateString('en-GB', { day:
+                                    '2-digit', month: 'short', year: 'numeric' });
                                     const rawValidUntil = new Date(coupon.validUntil).toISOString().split('T')[0];
-                                %>
+                                    %>
                                     <tr>
-                                        <td><span class="coupon-code-badge"><%= coupon.code %></span></td>
+                                        <td><span class="coupon-code-badge">
+                                                <%= coupon.code %>
+                                            </span></td>
                                         <td>
                                             <span class="discount-value">
-                                                <%= isPercentage ? `${coupon.discountValue}% OFF` : `₹${coupon.discountValue.toLocaleString('en-IN')} OFF` %>
+                                                <%= isPercentage ? `${coupon.discountValue}% OFF` :
+                                                    `₹${coupon.discountValue.toLocaleString('en-IN')} OFF` %>
                                             </span>
                                         </td>
                                         <td>
                                             <span class="discount-type-tag <%= typeClass %>">
-                                                <i class="fa-solid <%= typeIcon %>"></i> <%= typeLabel %>
+                                                <i class="fa-solid <%= typeIcon %>"></i>
+                                                <%= typeLabel %>
                                             </span>
                                         </td>
-                                        <td><span class="usage-badge"><%= coupon.usedCount %>/<%= coupon.usageLimit %></span></td>
+                                        <td><span class="usage-badge">
+                                                <%= coupon.usedCount %>/<%= coupon.usageLimit %>
+                                            </span></td>
                                         <td>
                                             <% if (isCouponActive) { %>
                                                 <span class="badge badge-success">Active</span>
-                                            <% } else { %>
-                                                <span class="badge badge-danger">Inactive</span>
-                                            <% } %>
+                                                <% } else { %>
+                                                    <span class="badge badge-danger">Inactive</span>
+                                                    <% } %>
                                         </td>
                                         <td class="actions-td">
                                             <div class="actions-cell">
-                                                <button type="button" class="btn-icon view trigger-view-btn" title="View Details"
-                                                    data-code="<%= coupon.code %>"
-                                                    data-status="<%= coupon.status %>"
-                                                    data-type="<%= typeLabel %>"
+                                                <button type="button" class="btn-icon view trigger-view-btn"
+                                                    title="View Details" data-code="<%= coupon.code %>"
+                                                    data-status="<%= coupon.status %>" data-type="<%= typeLabel %>"
                                                     data-discount="<%= isPercentage ? `${coupon.discountValue}% OFF` : `₹${coupon.discountValue.toLocaleString('en-IN')} OFF` %>"
                                                     data-min="₹<%= coupon.minPurchase.toLocaleString('en-IN') %>"
                                                     data-max="<%= coupon.maxRedeemAmount ? `₹${coupon.maxRedeemAmount.toLocaleString('en-IN')}` : 'N/A' %>"
@@ -232,10 +249,9 @@
                                                     <i class="fa-solid fa-eye"></i>
                                                 </button>
 
-                                                <button type="button" class="btn-icon edit trigger-edit-btn" title="Edit"
-                                                    data-id="<%= coupon._id %>"
-                                                    data-code="<%= coupon.code %>"
-                                                    data-status="<%= coupon.status %>"
+                                                <button type="button" class="btn-icon edit trigger-edit-btn"
+                                                    title="Edit" data-id="<%= coupon._id %>"
+                                                    data-code="<%= coupon.code %>" data-status="<%= coupon.status %>"
                                                     data-type="<%= coupon.discountType %>"
                                                     data-discount="<%= coupon.discountValue %>"
                                                     data-min="<%= coupon.minPurchase %>"
@@ -245,67 +261,75 @@
                                                     <i class="fa-solid fa-pen-to-square"></i>
                                                 </button>
 
-                                                <button type="button" class="btn-icon <%= blockBtnClass %> trigger-toggle-btn" title="<%= blockBtnTitle %>"
-                                                    data-id="<%= coupon._id %>"
-                                                    data-code="<%= coupon.code %>"
-                                                    data-status="<%= coupon.status %>">
+                                                <button type="button"
+                                                    class="btn-icon <%= blockBtnClass %> trigger-toggle-btn"
+                                                    title="<%= blockBtnTitle %>" data-id="<%= coupon._id %>"
+                                                    data-code="<%= coupon.code %>" data-status="<%= coupon.status %>">
                                                     <i class="fa-solid <%= blockIconClass %>"></i>
                                                 </button>
 
-                                                <button type="button" class="btn-icon delete-btn trigger-delete-btn" title="Delete Coupon"
-                                                    data-id="<%= coupon._id %>"
+                                                <button type="button" class="btn-icon delete-btn trigger-delete-btn"
+                                                    title="Delete Coupon" data-id="<%= coupon._id %>"
                                                     data-code="<%= coupon.code %>">
                                                     <i class="fa-solid fa-trash"></i>
                                                 </button>
                                             </div>
                                         </td>
                                     </tr>
-                                <% }) %>
-                            <% } else { %>
-                                <tr>
-                                    <td colspan="6" class="empty-table-cell">
-                                        <i class="fa-solid fa-ticket empty-icon"></i>
-                                        No coupons found matching your criteria.
-                                    </td>
-                                </tr>
-                            <% } %>
+                                    <% }) %>
+                                        <% } else { %>
+                                            <tr>
+                                                <td colspan="6" class="empty-table-cell">
+                                                    <i class="fa-solid fa-ticket empty-icon"></i>
+                                                    No coupons found matching your criteria.
+                                                </td>
+                                            </tr>
+                                            <% } %>
                         </tbody>
                     </table>
                 </div>
 
-                <% if (typeof totalPages !== 'undefined' && totalPages > 0) { %>
-                    <% 
-                        const buildPageUrl = (p) => {
-                            let url = `/admin/coupons?page=${p}`;
-                            if (searchQuery) url += `&search=${encodeURIComponent(searchQuery)}`;
-                            if (selectedType && selectedType !== 'all') url += `&type=${encodeURIComponent(selectedType)}`;
-                            if (selectedStatus && selectedStatus !== 'all') url += `&status=${encodeURIComponent(selectedStatus)}`;
-                            return url;
+                <% if (typeof totalPages !=='undefined' && totalPages> 0) { %>
+                    <% const buildPageUrl=(p)=> {
+                        let url = `/admin/coupons?page=${p}`;
+                        if (searchQuery) url += `&search=${encodeURIComponent(searchQuery)}`;
+                        if (selectedType && selectedType !== 'all') url += `&type=${encodeURIComponent(selectedType)}`;
+                        if (selectedStatus && selectedStatus !== 'all') url +=
+                        `&status=${encodeURIComponent(selectedStatus)}`;
+                        return url;
                         };
-                    %>
-                    <div class="pagination-container">
-                        <div class="pagination-info" id="paginationInfo">
-                            Showing <%= coupons.length %> of <%= totalItems %> entries
-                        </div>
-                        <div class="pagination-controls" id="paginationControls">
-                            <% if (currentPage > 1) { %>
-                                <a href="<%= buildPageUrl(currentPage - 1) %>" class="page-btn"><i class="fa-solid fa-chevron-left"></i></a>
-                            <% } else { %>
-                                <button type="button" class="page-btn disabled" disabled><i class="fa-solid fa-chevron-left"></i></button>
-                            <% } %>
+                        %>
+                        <div class="pagination-container">
+                            <div class="pagination-info" id="paginationInfo">
+                                Showing <%= coupons.length %> of <%= totalItems %> entries
+                            </div>
+                            <div class="pagination-controls" id="paginationControls">
+                                <% if (currentPage> 1) { %>
+                                    <a href="<%= buildPageUrl(currentPage - 1) %>" class="page-btn"><i
+                                            class="fa-solid fa-chevron-left"></i></a>
+                                    <% } else { %>
+                                        <button type="button" class="page-btn disabled" disabled><i
+                                                class="fa-solid fa-chevron-left"></i></button>
+                                        <% } %>
 
-                            <% for (let p = 1; p <= totalPages; p++) { %>
-                                <a href="<%= buildPageUrl(p) %>" class="page-btn <%= currentPage === p ? 'active' : '' %>"><%= p %></a>
-                            <% } %>
+                                            <% for (let p=1; p <=totalPages; p++) { %>
+                                                <a href="<%= buildPageUrl(p) %>"
+                                                    class="page-btn <%= currentPage === p ? 'active' : '' %>">
+                                                    <%= p %>
+                                                </a>
+                                                <% } %>
 
-                            <% if (currentPage < totalPages) { %>
-                                <a href="<%= buildPageUrl(currentPage + 1) %>" class="page-btn"><i class="fa-solid fa-chevron-right"></i></a>
-                            <% } else { %>
-                                <button type="button" class="page-btn disabled" disabled><i class="fa-solid fa-chevron-right"></i></button>
-                            <% } %>
+                                                    <% if (currentPage < totalPages) { %>
+                                                        <a href="<%= buildPageUrl(currentPage + 1) %>"
+                                                            class="page-btn"><i
+                                                                class="fa-solid fa-chevron-right"></i></a>
+                                                        <% } else { %>
+                                                            <button type="button" class="page-btn disabled" disabled><i
+                                                                    class="fa-solid fa-chevron-right"></i></button>
+                                                            <% } %>
+                            </div>
                         </div>
-                    </div>
-                <% } %>
+                        <% } %>
             </main>
         </div>
     </div>
@@ -373,7 +397,8 @@
                     <div class="form-grid">
                         <div class="form-group">
                             <label for="addCouponCode">Coupon Code</label>
-                            <input type="text" id="addCouponCode" class="form-control text-uppercase" placeholder="e.g. SUMMER20">
+                            <input type="text" id="addCouponCode" class="form-control text-uppercase"
+                                placeholder="e.g. SUMMER20">
                             <span class="field-error-text" id="addCouponCodeError"></span>
                         </div>
 
@@ -403,7 +428,8 @@
 
                         <div class="form-group">
                             <label for="addMinPurchase">Minimum Purchase (₹)</label>
-                            <input type="number" id="addMinPurchase" class="form-control" placeholder="Min ₹1000" min="1000">
+                            <input type="number" id="addMinPurchase" class="form-control" placeholder="Min ₹1000"
+                                min="1000">
                             <span class="field-error-text" id="addMinPurchaseError"></span>
                         </div>
 
@@ -449,9 +475,11 @@
                 <div class="modal-body">
                     <div class="form-grid">
                         <div class="form-group">
-                            <label for="editCouponCode">Coupon Code</label>
-                            <input type="text" id="editCouponCode" class="form-control text-uppercase">
-                            <span class="field-error-text" id="editCouponCodeError"></span>
+                            <label>Coupon Code</label>
+                            <div class="static-coupon-code-box">
+                                <strong id="editCouponCodeDisplay" class="static-code-text">-</strong>
+                            </div>
+                            <input type="hidden" id="editCouponCode">
                         </div>
 
                         <div class="form-group">

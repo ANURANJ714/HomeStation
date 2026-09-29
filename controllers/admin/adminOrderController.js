@@ -147,7 +147,7 @@ export const updateOrderStatus = async (req, res) => {
             });
         }
 
-        logger.info(`Admin (${adminEmail}) updated status of item [${orderItemId}] in Order [${orderId}] to [${status}] | IP: ${clientIp}`);
+        logger.info(`Admin (${adminEmail}) updated status of item [${orderItemId}] in Order [${orderId}] to [${status}] (Refund processed if item reached) | IP: ${clientIp}`);
 
         return res.status(200).json({
             success: true,
@@ -160,6 +160,36 @@ export const updateOrderStatus = async (req, res) => {
         return res.status(error.statusCode || 500).json({
             success: false,
             message: error.message || 'Failed to update item status.'
+        });
+    }
+};
+
+export const handleReturnRequest = async (req, res) => {
+    try {
+        const adminEmail = req.user?.email || req.session?.admin?.email || 'Unknown Admin';
+        const clientIp = req.ip;
+        const { orderId, orderItemId, decision } = req.body;
+
+        if (!orderId || !orderItemId || !decision) {
+            return res.status(400).json({
+                success: false,
+                message: 'Order ID, Item ID, and decision (accepted/rejected) are required.'
+            });
+        }
+
+        const result = await adminOrderService.handleReturnRequestDecision(orderId, orderItemId, decision);
+
+        logger.info(`Admin (${adminEmail}) ${decision} return request for item [${orderItemId}] in Order [${orderId}] | IP: ${clientIp}`);
+
+        return res.status(200).json({
+            success: true,
+            message: `Return request ${decision} successfully.`
+        });
+    } catch (error) {
+        logger.error(`Error handling return request: ${error.message}`);
+        return res.status(error.statusCode || 500).json({
+            success: false,
+            message: error.message || 'Failed to process return request.'
         });
     }
 };

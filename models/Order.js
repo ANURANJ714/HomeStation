@@ -32,6 +32,11 @@ const orderItemSchema = new mongoose.Schema({
         enum: ['none', 'return initiated', 'pickup assigned', 'item picked up', 'in transit', 'item reached'],
         default: 'none'
     },
+    returnRequestStatus: {
+        type: String,
+        enum: ['requested', 'accepted', 'rejected', null],
+        default: null
+    },
     cancellationReason: {
         type: String,
         default: null
@@ -89,6 +94,15 @@ const orderSchema = new mongoose.Schema({
         type: String,
         trim: true,
         uppercase: true,
+        default: null
+    },
+    couponType: {
+        type: String,
+        enum: ['flat', 'percentage', null],
+        default: null
+    },
+    couponDiscountValue: {
+        type: Number,
         default: null
     },
     couponDiscount: {

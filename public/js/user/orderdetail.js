@@ -148,7 +148,6 @@ document.addEventListener('DOMContentLoaded', () => {
                     });
                 }
             } catch (err) {
-                console.error('Review error:', err);
                 Swal.fire({
                     icon: 'error',
                     title: 'Network Error',
@@ -240,7 +239,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     hideModal(returnModal);
                     Swal.fire({
                         icon: 'success',
-                        title: 'Return Initiated',
+                        title: 'Request Submitted',
                         text: data.message,
                         timer: 1500,
                         showConfirmButton: false,
@@ -250,13 +249,12 @@ document.addEventListener('DOMContentLoaded', () => {
                     Swal.fire({
                         icon: 'error',
                         title: 'Return Request Failed',
-                        text: data.message || 'Unable to initiate return.',
+                        text: data.message || 'Unable to submit return request.',
                         confirmButtonColor: '#222',
                         heightAuto: false
                     });
                 }
             } catch (err) {
-                console.error('Return submit error:', err);
                 Swal.fire({
                     icon: 'error',
                     title: 'Network Error',
@@ -364,7 +362,6 @@ document.addEventListener('DOMContentLoaded', () => {
                     });
                 }
             } catch (err) {
-                console.error('Cancellation error:', err);
                 Swal.fire({
                     icon: 'error',
                     title: 'Network Error',

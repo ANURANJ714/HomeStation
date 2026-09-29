@@ -48,9 +48,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     const addCodeInput = document.getElementById('addCouponCode');
-    const editCodeInput = document.getElementById('editCouponCode');
     if (addCodeInput) addCodeInput.addEventListener('input', (e) => e.target.value = e.target.value.toUpperCase());
-    if (editCodeInput) editCodeInput.addEventListener('input', (e) => e.target.value = e.target.value.toUpperCase());
 
     function handleDiscountTypeChange(prefix) {
         const typeSelect = document.getElementById(`${prefix}DiscountType`);
@@ -67,7 +65,8 @@ document.addEventListener('DOMContentLoaded', () => {
             discountLabel.textContent = 'Discount Value (₹)';
             discountInput.placeholder = '100 - 10000';
             document.getElementById(`${prefix}MaxPurchase`).value = '';
-            document.getElementById(`${prefix}MaxPurchaseError`).textContent = '';
+            const maxErr = document.getElementById(`${prefix}MaxPurchaseError`);
+            if (maxErr) maxErr.textContent = '';
         }
     }
 
@@ -103,16 +102,17 @@ document.addEventListener('DOMContentLoaded', () => {
         const maxUsesInput = document.getElementById(`${prefix}MaxUses`);
         const validUntilInput = document.getElementById(`${prefix}ValidUntil`);
 
-        const codeVal = codeInput.value.trim().toUpperCase();
+        const codeVal = codeInput ? codeInput.value.trim().toUpperCase() : '';
         const typeVal = typeInput.value;
         const discountVal = Number(discountInput.value);
         const minPurchaseVal = Number(minPurchaseInput.value);
         const maxUsesVal = Number(maxUsesInput.value);
         const validUntilVal = validUntilInput.value;
 
-        if (!codeVal) {
-            document.getElementById(`${prefix}CouponCodeError`).textContent = 'Coupon code is required.';
-            codeInput.classList.add('input-error');
+        if (prefix === 'add' && !codeVal) {
+            const errEl = document.getElementById(`${prefix}CouponCodeError`);
+            if (errEl) errEl.textContent = 'Coupon code is required.';
+            if (codeInput) codeInput.classList.add('input-error');
             isValid = false;
         }
 
@@ -132,6 +132,10 @@ document.addEventListener('DOMContentLoaded', () => {
         } else {
             if (isNaN(discountVal) || discountVal < 100 || discountVal > 10000) {
                 document.getElementById(`${prefix}DiscountValueError`).textContent = 'Discount must be between ₹100 and ₹10,000.';
+                discountInput.classList.add('input-error');
+                isValid = false;
+            } else if (discountVal >= minPurchaseVal) {
+                document.getElementById(`${prefix}DiscountValueError`).textContent = 'Discount should not be greater than min purchase.';
                 discountInput.classList.add('input-error');
                 isValid = false;
             }
@@ -273,7 +277,12 @@ document.addEventListener('DOMContentLoaded', () => {
         const d = editBtn.dataset;
 
         document.getElementById('editCouponId').value = d.id;
-        document.getElementById('editCouponCode').value = d.code;
+        
+        const editCodeDisplay = document.getElementById('editCouponCodeDisplay');
+        if (editCodeDisplay) editCodeDisplay.textContent = d.code;
+        const editCodeHidden = document.getElementById('editCouponCode');
+        if (editCodeHidden) editCodeHidden.value = d.code;
+
         document.getElementById('editCouponStatus').value = d.status;
         document.getElementById('editDiscountType').value = d.type;
         document.getElementById('editDiscountValue').value = d.discount;
@@ -299,7 +308,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
             const type = document.getElementById('editDiscountType').value;
             const payload = {
-                code: document.getElementById('editCouponCode').value.trim().toUpperCase(),
+                code: document.getElementById('editCouponCode')?.value || '',
                 status: document.getElementById('editCouponStatus').value,
                 discountType: type,
                 discountValue: Number(document.getElementById('editDiscountValue').value),

@@ -35,6 +35,12 @@ export const ensureCheckoutOrigin = async (req, res, next) => {
         if (typeof checkout.couponUsed === 'undefined') {
             checkout.couponUsed = null;
         }
+        if (typeof checkout.couponType === 'undefined') {
+            checkout.couponType = null;
+        }
+        if (typeof checkout.couponDiscountValue === 'undefined') {
+            checkout.couponDiscountValue = null;
+        }
         if (typeof checkout.couponDiscount !== 'number') {
             checkout.couponDiscount = 0;
         }
@@ -50,6 +56,8 @@ export const ensureCheckoutOrigin = async (req, res, next) => {
                 
                 checkout.totalPayable += checkout.couponDiscount;
                 checkout.couponUsed = null;
+                checkout.couponType = null;
+                checkout.couponDiscountValue = null;
                 checkout.couponDiscount = 0;
 
                 req.session.cartAlertMessage = 'The coupon applied was already used on another order and has been removed.';

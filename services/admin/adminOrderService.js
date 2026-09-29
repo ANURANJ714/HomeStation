@@ -231,7 +231,7 @@ export const updateOrderItemStatus = async (orderId, orderItemId, newStatus) => 
             throw err;
         }
 
-        const formattedId = formatOrderId(orderId);
+        const formattedId = orderId.startsWith('#') ? orderId : `#${orderId}`;
 
         const order = await Order.findOne({
             $or: [{ orderId: formattedId }, { orderId }]
@@ -275,11 +275,31 @@ export const updateOrderItemStatus = async (orderId, orderItemId, newStatus) => 
             item.returnedAt = new Date();
 
             if (cleanStatus === 'item reached' && previousReturnStatus !== 'item reached') {
+                if (item.returnRequestStatus !== 'accepted') {
+                    const err = new Error('Cannot complete return refund because return request is not in accepted status.');
+                    err.statusCode = 400;
+                    throw err;
+                }
+
                 await ProductVariant.findByIdAndUpdate(item.productVariantId, {
                     $inc: { stock: item.quantity }
                 });
+                
+                const refundAmount = calculateItemRefundAmount(order, item);
+
+                if (refundAmount > 0) {
+                    await walletService.creditWalletRefund(
+                        order.userId,
+                        refundAmount,
+                        `Refund for Returned Item in Order ${order.orderId}`,
+                        order.orderId,
+                        'return_refund'
+                    );
+                }
             }
-        } else {
+        } 
+        
+        else {
             if (item.itemStatus === 'cancelled') {
                 const err = new Error('Cancelled items cannot be updated.');
                 err.statusCode = 400;
@@ -311,6 +331,54 @@ export const updateOrderItemStatus = async (orderId, orderItemId, newStatus) => 
         await order.save();
         return { isUnchanged: false };
 
+    } catch (error) {
+        throw error;
+    }
+};
+
+export const handleReturnRequestDecision = async (orderId, orderItemId, decision) => {
+    try {
+        if (!['accepted', 'rejected'].includes(decision)) {
+            const err = new Error('Decision must be either accepted or rejected.');
+            err.statusCode = 400;
+            throw err;
+        }
+
+        const formattedId = orderId.startsWith('#') ? orderId : `#${orderId}`;
+
+        const order = await Order.findOne({
+            $or: [{ orderId: formattedId }, { orderId }]
+        });
+
+        if (!order) {
+            const err = new Error('Order not found.');
+            err.statusCode = 404;
+            throw err;
+        }
+
+        const item = order.orderItems.id(orderItemId);
+        if (!item) {
+            const err = new Error('Item not found in order.');
+            err.statusCode = 404;
+            throw err;
+        }
+
+        if (item.itemStatus !== 'delivered' || item.returnRequestStatus !== 'requested') {
+            const err = new Error('There is no pending return request for this item.');
+            err.statusCode = 400;
+            throw err;
+        }
+
+        item.returnRequestStatus = decision;
+
+        if (decision === 'accepted') {
+            item.returnStatus = 'return initiated';
+        } else {
+            item.returnStatus = 'none';
+        }
+
+        await order.save();
+        return { order, item, decision };
     } catch (error) {
         throw error;
     }

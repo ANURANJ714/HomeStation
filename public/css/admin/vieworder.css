@@ -732,6 +732,30 @@ body {
     border: 1px solid #f0f0f0;
 }
 
+.return-request-admin-card {
+    margin-top: 20px;
+}
+
+.return-request-admin-card.requested {
+    border-left: 4px solid #f9ab00;
+}
+
+.return-request-admin-card.rejected {
+    border-left: 4px solid #d93025;
+}
+
+.return-card-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.return-actions-row {
+    display: flex;
+    gap: 12px;
+    margin-top: 16px;
+}
+
 @media (max-width: 992px) {
   .sidebar {
     position: fixed;

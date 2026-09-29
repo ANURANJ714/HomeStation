@@ -122,20 +122,22 @@ export const deductWalletBalance = async (userId, amount, orderId) => {
             throw new Error('Invalid deduction amount provided.');
         }
 
+        const transactionObj = {
+            amount: numericAmount,
+            type: 'debit',
+            purpose: 'order_purchase',
+            description: `Payment for Order ${orderId}`,
+            orderId: orderId || null,
+            date: new Date()
+        };
+
         const updatedWallet = await Wallet.findOneAndUpdate(
             { 
                 userId, 
                 balance: { $gte: numericAmount } 
             },
             {
-                $inc: { balance: -numericAmount },$push: {
-                    transactions: {
-                        amount: numericAmount,
-                        type: 'debit',
-                        description: `Payment for Order ${orderId}`,
-                        createdAt: new Date()
-                    }
-                }
+                $inc: { balance: -numericAmount },$push: { transactions: transactionObj }
             },
             { new: true }
         );
@@ -147,5 +149,38 @@ export const deductWalletBalance = async (userId, amount, orderId) => {
         return updatedWallet;
     } catch (error) {
         throw new Error(`Wallet balance deduction failed: ${error.message}`);
+    }
+};
+
+export const creditWalletRefund = async (userId, refundAmount, description, orderId = null, purpose = 'cancellation_refund') => {
+    try {
+        const amount = Number(refundAmount);
+        if (isNaN(amount) || amount <= 0) {
+            return null;
+        }
+
+        const validPurposes = ['return_refund', 'add_money', 'order_purchase', 'cancellation_refund'];
+        const cleanPurpose = validPurposes.includes(purpose) ? purpose : 'cancellation_refund';
+
+        const transactionObj = {
+            amount,
+            type: 'credit',
+            purpose: cleanPurpose,
+            description: description || 'Order Refund Deposited',
+            orderId: orderId || null,
+            date: new Date()
+        };
+
+        const updatedWallet = await Wallet.findOneAndUpdate(
+            { userId },
+            {
+                $inc: { balance: amount },$push: { transactions: transactionObj }
+            },
+            { new: true, upsert: true, setDefaultsOnInsert: true }
+        );
+
+        return updatedWallet;
+    } catch (error) {
+        throw new Error(`Database error while crediting refund to wallet: ${error.message}`);
     }
 };

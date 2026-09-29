@@ -83,25 +83,27 @@ document.addEventListener("DOMContentLoaded", () => {
 
             if (hasError) return;
 
+            const submitBtn = contactForm.querySelector('button[type="submit"]');
+            if (submitBtn) {
+                submitBtn.disabled = true;
+                submitBtn.textContent = "Submitting...";
+            }
+
             try {
                 const response = await fetch("/contact/submit", {
                     method: "POST",
                     headers: {
                         "Content-Type": "application/json",
-                        "csrf-token": csrfToken,
-                        "CSRF-Token": csrfToken
+                        "Accept": "application/json",
+                        "CSRF-Token": csrfToken,
+                        "x-csrf-token": csrfToken
                     },
                     body: JSON.stringify({ name, email, subjectId: subject, message })
                 });
 
-                if (response.status === 401 || response.status === 403) {
-                    window.location.href = "/user/login";
-                    return;
-                }
-
                 const data = await response.json();
 
-                if (data.success) {
+                if (response.ok && data.success) {
                     Swal.fire({
                         icon: "success",
                         title: "Inquiry Raised!",
@@ -111,24 +113,35 @@ document.addEventListener("DOMContentLoaded", () => {
                     }).then(() => {
                         if (messageInput) messageInput.value = "";
                         if (subjectInput) subjectInput.value = "";
+                        const isLockedName = nameInput.classList.contains("locked-input");
+                        const isLockedEmail = emailInput.classList.contains("locked-input");
+                        if (!isLockedName) nameInput.value = "";
+                        if (!isLockedEmail) emailInput.value = "";
                     });
                 } else {
                     Swal.fire({
                         icon: "warning",
-                        title: "Notice",
-                        text: data.message,
+                        title: data.isCsrfError ? "Session Expired" : "Notice",
+                        text: data.message || "Failed to submit inquiry. Please try again.",
                         confirmButtonColor: "#222",
                         heightAuto: false
+                    }).then(() => {
+                        if (data.isCsrfError) window.location.reload();
                     });
                 }
             } catch (error) {
                 Swal.fire({
                     icon: "error",
                     title: "Network Error",
-                    text: "Could not establish server communication.",
+                    text: "Could not establish server communication. Please refresh and try again.",
                     confirmButtonColor: "#222",
                     heightAuto: false
                 });
+            } finally {
+                if (submitBtn) {
+                    submitBtn.disabled = false;
+                    submitBtn.textContent = "Send Message";
+                }
             }
         });
     }

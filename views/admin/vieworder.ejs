@@ -221,6 +221,40 @@
                             </div>
                         </div>
 
+                        <% if (item.itemStatus === 'delivered' && item.returnRequestStatus === 'requested' && item.returnStatus === 'none') { %>
+                            <div class="card return-request-admin-card requested">
+                                <div class="card-header return-card-header">
+                                    <h2><i class="fa-solid fa-clock-rotate-left"></i> Return Requested by Customer</h2>
+                                    <span class="badge badge-warning">Pending Approval</span>
+                                </div>
+                                <div class="card-body">
+                                    <p><strong>Customer Return Reason:</strong> <%= item.returnReason || 'No reason specified' %></p>
+                                    <% if (item.returnedAt) { %>
+                                        <small class="text-muted">Requested on: <%= new Date(item.returnedAt).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' }) %></small>
+                                    <% } %>
+                                    <div class="return-actions-row">
+                                        <button type="button" class="btn btn-success btn-sm trigger-return-decision-btn" data-decision="accepted" data-order-id="<%= order.orderId %>" data-item-id="<%= item._id %>">
+                                            <i class="fa-solid fa-check"></i> Accept Return
+                                        </button>
+                                        <button type="button" class="btn btn-danger btn-sm trigger-return-decision-btn" data-decision="rejected" data-order-id="<%= order.orderId %>" data-item-id="<%= item._id %>">
+                                            <i class="fa-solid fa-xmark"></i> Reject Return
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        <% } else if (item.itemStatus === 'delivered' && item.returnRequestStatus === 'rejected' && item.returnStatus === 'none') { %>
+                            <div class="card return-request-admin-card rejected">
+                                <div class="card-header return-card-header">
+                                    <h2><i class="fa-solid fa-circle-xmark"></i> Return Request Rejected</h2>
+                                    <span class="badge badge-danger">Rejected</span>
+                                </div>
+                                <div class="card-body">
+                                    <p><strong>Customer Return Reason:</strong> <%= item.returnReason || 'No reason specified' %></p>
+                                    <p class="text-muted">You have rejected this customer return request.</p>
+                                </div>
+                            </div>
+                        <% } %>
+
                         <% if (item.itemStatus === 'cancelled' && item.cancellationReason) { %>
                             <div class="card reason-card">
                                 <div class="card-header">
@@ -259,6 +293,12 @@
                                         <span>Subtotal</span>
                                         <span class="fw-500">₹<%= subtotal.toLocaleString('en-IN') %>.00</span>
                                     </li>
+                                    <% if (order.couponUsed && order.couponDiscount > 0) { %>
+                                        <li>
+                                            <span>Coupon (<%= order.couponUsed %>)</span>
+                                            <span class="fw-500 text-success">-₹<%= order.couponDiscount.toLocaleString('en-IN') %>.00</span>
+                                        </li>
+                                    <% } %>
                                     <li>
                                         <span>Shipping Fee</span>
                                         <span class="fw-500">₹0.00</span>
@@ -266,7 +306,7 @@
                                     <hr class="divider">
                                     <li>
                                         <span class="grand-total">Grand Total</span>
-                                        <span class="grand-total grand-total-price">₹<%= grandTotal.toLocaleString('en-IN') %>.00</span>
+                                        <span class="grand-total grand-total-price">₹<%= Math.max(0, grandTotal - (order.couponDiscount || 0)).toLocaleString('en-IN') %>.00</span>
                                     </li>
                                 </ul>
                             </div>
@@ -310,8 +350,9 @@
                                 <% 
                                     const isCancelled = item.itemStatus === 'cancelled';
                                     const isReturnReached = item.returnStatus === 'item reached';
+                                    const isPendingReturnRequest = item.itemStatus === 'delivered' && item.returnRequestStatus === 'requested';
                                     const isDeliveredNoReturn = item.itemStatus === 'delivered' && item.returnStatus === 'none';
-                                    const canUpdate = !isCancelled && !isReturnReached && !isDeliveredNoReturn;
+                                    const canUpdate = !isCancelled && !isReturnReached && !isPendingReturnRequest && !isDeliveredNoReturn;
                                 %>
                                 <% if (canUpdate) { %>
                                     <button type="button" class="btn btn-secondary btn-sm" id="openStatusModalBtn"

@@ -242,11 +242,15 @@ export const postCancelOrder = async (req, res) => {
 
         const result = await orderService.cancelOrderOrItem(userId, orderId, orderItemId || null, reason);
 
-        const msg = result.isEntireOrder 
+        let msg = result.isEntireOrder 
             ? 'Your entire order has been cancelled successfully.' 
             : 'Selected item has been cancelled successfully.';
 
-        logger.info(`User (${userEmail}) cancelled ${result.isEntireOrder ? 'Order' : 'Item ' + orderItemId} [${orderId}] | IP: ${clientIp}`);
+        if (result.refundedAmount && result.refundedAmount > 0) {
+            msg += ` ₹${result.refundedAmount.toLocaleString('en-IN')} has been refunded to your wallet.`;
+        }
+
+        logger.info(`User (${userEmail}) cancelled ${result.isEntireOrder ? 'Order' : 'Item ' + orderItemId} [${orderId}] | Refunded: ₹${result.refundedAmount || 0} | IP: ${clientIp}`);
 
         return res.status(200).json({
             success: true,

@@ -172,7 +172,6 @@ export const updateCouponDetails = async (couponId, data) => {
         }
 
         const {
-            code,
             discountType,
             discountValue,
             minPurchase,
@@ -182,29 +181,10 @@ export const updateCouponDetails = async (couponId, data) => {
             status
         } = data;
 
-        const cleanCode = code ? code.trim().toUpperCase() : '';
         const cleanType = discountType ? discountType.trim().toLowerCase() : '';
         const numDiscount = Number(discountValue);
         const numMinPurchase = Number(minPurchase);
         const numUsageLimit = Number(usageLimit);
-
-        if (!cleanCode) {
-            const err = new Error('Coupon code is required.');
-            err.statusCode = 400;
-            throw err;
-        }
-
-        const duplicateCoupon = await Coupon.findOne({
-            _id: { $ne: couponId },
-            code: cleanCode,
-            isDeleted: false
-        });
-
-        if (duplicateCoupon) {
-            const err = new Error(`Another coupon with code "${cleanCode}" already exists.`);
-            err.statusCode = 409;
-            throw err;
-        }
 
         if (!['percentage', 'flat'].includes(cleanType)) {
             const err = new Error('Discount type must be either percentage or flat.');
@@ -232,8 +212,8 @@ export const updateCouponDetails = async (couponId, data) => {
                 err.statusCode = 400;
                 throw err;
             }
-            if (numDiscount >= numMinPurchase){
-                const err = new Error(`Discount should not be greater than min purchase.`);
+            if (numDiscount >= numMinPurchase) {
+                const err = new Error('Discount should not be greater than min purchase.');
                 err.statusCode = 400;
                 throw err;
             }
@@ -270,7 +250,6 @@ export const updateCouponDetails = async (couponId, data) => {
             throw err;
         }
 
-        coupon.code = cleanCode;
         coupon.discountType = cleanType;
         coupon.discountValue = numDiscount;
         coupon.minPurchase = numMinPurchase;

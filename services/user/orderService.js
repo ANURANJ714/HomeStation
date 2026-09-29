@@ -27,7 +27,12 @@ const generateNextOrderId = async () => {
 export const createNewOrder = async (userId, validatedCheckoutData, shippingAddr, billingAddr, paymentMode, couponData = {}) => {
     try {
         const { validItems, subtotal, deliveryCharges, totalPayable } = validatedCheckoutData;
-        const { couponUsed = null, couponDiscount = 0 } = couponData;
+        const { 
+            couponUsed = null, 
+            couponType = null, 
+            couponDiscountValue = null,
+            couponDiscount = 0 
+        } = couponData;
 
         if (!validItems || validItems.length === 0) {
             throw new Error('No valid items found for creating the order.');
@@ -58,6 +63,7 @@ export const createNewOrder = async (userId, validatedCheckoutData, shippingAddr
                 discount: item.discount || 0,
                 itemStatus: 'processing',
                 returnStatus: 'none',
+                returnRequestStatus: null,
                 cancellationReason: null,
                 returnReason: null,
                 cancelledAt: null,
@@ -91,6 +97,8 @@ export const createNewOrder = async (userId, validatedCheckoutData, shippingAddr
             },
             paymentMode,
             couponUsed: couponUsed ? couponUsed.trim().toUpperCase() : null,
+            couponType: couponType ? couponType.toLowerCase() : null,
+            couponDiscountValue: (couponDiscountValue !== null && !isNaN(Number(couponDiscountValue))) ? Number(couponDiscountValue) : null,
             couponDiscount: Number(couponDiscount) || 0
         });
 
@@ -111,6 +119,9 @@ export const createNewOrder = async (userId, validatedCheckoutData, shippingAddr
             order: newOrder,
             subtotal,
             deliveryCharges,
+            couponUsed,
+            couponType,
+            couponDiscountValue,
             couponDiscount,
             totalPayable
         };
@@ -361,6 +372,8 @@ export const cancelOrderOrItem = async (userId, orderId, orderItemId, reason) =>
 
         const trimmedReason = reason.trim();
         const now = new Date();
+        const allowedCancelStages = ['processing', 'packed'];
+        const isOnlinePayment = order.paymentMode === 'razorpay' || order.paymentMode === 'wallet';
 
         if (orderItemId) {
             const item = order.orderItems.id(orderItemId);
@@ -370,8 +383,8 @@ export const cancelOrderOrItem = async (userId, orderId, orderItemId, reason) =>
                 throw err;
             }
 
-            if (item.itemStatus === 'delivered' || item.itemStatus === 'cancelled') {
-                const err = new Error(`Cannot cancel an item that is already ${item.itemStatus}.`);
+            if (!allowedCancelStages.includes(item.itemStatus)) {
+                const err = new Error(`Item cannot be cancelled once it is ${item.itemStatus}.`);
                 err.statusCode = 400;
                 throw err;
             }
@@ -380,40 +393,65 @@ export const cancelOrderOrItem = async (userId, orderId, orderItemId, reason) =>
             item.cancellationReason = trimmedReason;
             item.cancelledAt = now;
 
-            const allCancelled = order.orderItems.every(i => i.itemStatus === 'cancelled');
-            order.status = allCancelled ? 'cancelled' : 'partially cancelled';
+            await ProductVariant.findByIdAndUpdate(item.productVariantId, {
+                $inc: { stock: item.quantity }
+            });
+
+            let refundedAmount = 0;
+            if (isOnlinePayment) {
+                refundedAmount = calculateItemRefundAmount(order, item);
+                if (refundedAmount > 0) {
+                    await walletService.creditWalletRefund(
+                        userId,
+                        refundedAmount,
+                        `Refund for Cancelled Item in Order ${order.orderId}`,
+                        order.orderId,
+                        'cancellation_refund'
+                    );
+                }
+            }
 
             await order.save();
+
+            return { isEntireOrder: false, order, refundedAmount };
+        }
+
+        const cancellableItems = order.orderItems.filter(i => allowedCancelStages.includes(i.itemStatus));
+        if (cancellableItems.length === 0) {
+            const err = new Error('None of the items in this order are eligible for cancellation.');
+            err.statusCode = 400;
+            throw err;
+        }
+
+        let totalRefunded = 0;
+
+        for (const item of cancellableItems) {
+            item.itemStatus = 'cancelled';
+            item.cancellationReason = trimmedReason;
+            item.cancelledAt = now;
 
             await ProductVariant.findByIdAndUpdate(item.productVariantId, {
                 $inc: { stock: item.quantity }
             });
 
-            return { isEntireOrder: false, order };
-        }
-
-        if (order.status === 'delivered' || order.status === 'cancelled') {
-            const err = new Error(`Cannot cancel an order that is already ${order.status}.`);
-            err.statusCode = 400;
-            throw err;
-        }
-
-        order.status = 'cancelled';
-
-        for (const item of order.orderItems) {
-            if (item.itemStatus !== 'cancelled') {
-                item.itemStatus = 'cancelled';
-                item.cancellationReason = trimmedReason;
-                item.cancelledAt = now;
-
-                await ProductVariant.findByIdAndUpdate(item.productVariantId, {
-                    $inc: { stock: item.quantity }
-                });
+            if (isOnlinePayment) {
+                const refundForItem = calculateItemRefundAmount(order, item);
+                totalRefunded += refundForItem;
             }
         }
 
+        if (isOnlinePayment && totalRefunded > 0) {
+            await walletService.creditWalletRefund(
+                userId,
+                totalRefunded,
+                `Refund for Cancelled Order ${order.orderId}`,
+                order.orderId,
+                'cancellation_refund'
+            );
+        }
+
         await order.save();
-        return { isEntireOrder: true, order };
+        return { isEntireOrder: true, order, refundedAmount: totalRefunded };
 
     } catch (error) {
         throw error;
@@ -497,40 +535,25 @@ export const returnOrderOrItem = async (userId, orderId, orderItemId, reason) =>
                 throw err;
             }
 
-            if (item.returnStatus && item.returnStatus !== 'none') {
+            if (item.returnRequestStatus && item.returnRequestStatus !== null) {
                 const err = new Error('A return request has already been submitted for this item.');
                 err.statusCode = 400;
                 throw err;
             }
 
-            item.returnStatus = 'return initiated';
+            item.returnRequestStatus = 'requested';
+            item.returnStatus = 'none';
             item.returnReason = trimmedReason;
             item.returnedAt = now;
-
-            const allReturned = order.orderItems.every(i => i.returnStatus === 'return initiated' || i.returnStatus === 'item reached');
-            order.returnStatus = allReturned ? 'return initiated' : 'partially returned';
 
             await order.save();
             return { isEntireOrder: false, order };
         }
 
-        if (order.status !== 'delivered') {
-            const err = new Error('Only delivered orders can be returned.');
-            err.statusCode = 400;
-            throw err;
-        }
-
-        if (order.returnStatus === 'return initiated' || order.returnStatus === 'returned') {
-            const err = new Error('A return request has already been submitted for this order.');
-            err.statusCode = 400;
-            throw err;
-        }
-
-        order.returnStatus = 'return initiated';
-
         order.orderItems.forEach(item => {
-            if (item.itemStatus === 'delivered') {
-                item.returnStatus = 'return initiated';
+            if (item.itemStatus === 'delivered' && !item.returnRequestStatus) {
+                item.returnRequestStatus = 'requested';
+                item.returnStatus = 'none';
                 item.returnReason = trimmedReason;
                 item.returnedAt = now;
             }
@@ -542,4 +565,34 @@ export const returnOrderOrItem = async (userId, orderId, orderItemId, reason) =>
     } catch (error) {
         throw error;
     }
+};
+
+export const calculateItemRefundAmount = (order, item) => {
+    const itemTotal = Number(item.currentPrice) * Number(item.quantity);
+
+    if (!order.couponUsed) {
+        return itemTotal;
+    }
+
+    if (order.couponType === 'percentage') {
+        const percent = Number(order.couponDiscountValue) || 0;
+        const discountForThisItem = Math.round((itemTotal * percent) / 100);
+        const finalRefund = Math.max(0, itemTotal - discountForThisItem);
+        return finalRefund;
+    }
+
+    if (order.couponType === 'flat') {
+        const totalOrderAmount = order.orderItems.reduce((acc, curr) => {
+            return acc + (Number(curr.currentPrice) * Number(curr.quantity));
+        }, 0);
+
+        if (totalOrderAmount <= 0) return itemTotal;
+
+        const flatDiscountValue = Number(order.couponDiscountValue) || 0;
+        const itemShareOfDiscount = Math.round((itemTotal / totalOrderAmount) * flatDiscountValue);
+        const finalRefund = Math.max(0, itemTotal - itemShareOfDiscount);
+        return finalRefund;
+    }
+
+    return itemTotal;
 };

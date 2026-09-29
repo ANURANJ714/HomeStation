@@ -56,6 +56,8 @@ export const postCartItems = async (req, res) => {
         const basePayable = subtotal + shippingCharges;
 
         let verifiedCouponCode = null;
+        let verifiedCouponType = null;
+        let verifiedCouponDiscountValue = null;
         let verifiedCouponDiscount = 0;
 
         if (appliedCouponCode && typeof appliedCouponCode === 'string' && appliedCouponCode.trim() !== '') {
@@ -67,6 +69,8 @@ export const postCartItems = async (req, res) => {
                 );
 
                 verifiedCouponCode = couponRes.couponCode;
+                verifiedCouponType = couponRes.discountType;
+                verifiedCouponDiscountValue = couponRes.discountValue;
                 verifiedCouponDiscount = couponRes.discountAmount;
             } catch (couponError) {
                 logger.warn(`Checkout coupon rejection for (${userEmail}) with code [${appliedCouponCode}]: ${couponError.message}`);
@@ -87,12 +91,14 @@ export const postCartItems = async (req, res) => {
             subtotal,
             offerDiscount: 0,
             couponUsed: verifiedCouponCode,
+            couponType: verifiedCouponType,
+            couponDiscountValue: verifiedCouponDiscountValue,
             couponDiscount: verifiedCouponDiscount,
             shippingCharges,
             totalPayable
         };
 
-        logger.info(`Checkout session prepared for (${userEmail}). Subtotal: ₹${subtotal}, Shipping: ₹${shippingCharges}, Coupon: ${verifiedCouponCode || 'None'} (-₹${verifiedCouponDiscount}), Total Payable: ₹${totalPayable} | IP: ${clientIp}`);
+        logger.info(`Checkout session prepared for (${userEmail}). Subtotal: ₹${subtotal}, Coupon: ${verifiedCouponCode || 'None'} [Type: ${verifiedCouponType || 'N/A'}, Value: ${verifiedCouponDiscountValue || 'N/A'}] (-₹${verifiedCouponDiscount}), Total Payable: ₹${totalPayable} | IP: ${clientIp}`);
 
         return res.status(200).json({
             success: true,
@@ -205,6 +211,8 @@ export const postCheckoutAddress = async (req, res) => {
         const basePayable = validation.subtotal + shippingCharges;
 
         let verifiedCouponCode = null;
+        let verifiedCouponType = null;
+        let verifiedCouponDiscountValue = null;
         let verifiedCouponDiscount = 0;
 
         const activeCouponCode = req.session.checkoutOrder.couponUsed;
@@ -217,6 +225,8 @@ export const postCheckoutAddress = async (req, res) => {
                 );
 
                 verifiedCouponCode = couponRes.couponCode;
+                verifiedCouponType = couponRes.discountType;
+                verifiedCouponDiscountValue = couponRes.discountValue;
                 verifiedCouponDiscount = couponRes.discountAmount;
             } catch (couponError) {
                 logger.warn(`Address checkout coupon rejection for (${userEmail}) on code [${activeCouponCode}]: ${couponError.message}`);
@@ -239,11 +249,13 @@ export const postCheckoutAddress = async (req, res) => {
             subtotal: validation.subtotal,
             shippingCharges,
             couponUsed: verifiedCouponCode,
+            couponType: verifiedCouponType,
+            couponDiscountValue: verifiedCouponDiscountValue,
             couponDiscount: verifiedCouponDiscount,
             totalPayable
         };
 
-        logger.info(`User (${userEmail}) confirmed delivery address [${selectedAddressId}]. Subtotal: ₹${validation.subtotal}, Delivery: ₹${shippingCharges}, Coupon: ${verifiedCouponCode || 'None'} (-₹${verifiedCouponDiscount}), Total Payable: ₹${totalPayable} | IP: ${clientIp}`);
+        logger.info(`User (${userEmail}) confirmed delivery address [${selectedAddressId}]. Subtotal: ₹${validation.subtotal}, Coupon: ${verifiedCouponCode || 'None'} [Type: ${verifiedCouponType || 'N/A'}, Value: ${verifiedCouponDiscountValue || 'N/A'}] (-₹${verifiedCouponDiscount}), Total Payable: ₹${totalPayable} | IP: ${clientIp}`);
 
         return res.status(200).json({
             success: true,
@@ -336,6 +348,8 @@ export const postCheckoutPaymentMode = async (req, res) => {
         const basePayable = validation.subtotal + shippingCharges;
 
         let verifiedCouponCode = null;
+        let verifiedCouponType = null;
+        let verifiedCouponDiscountValue = null;
         let verifiedCouponDiscount = 0;
 
         const activeCouponCode = req.session.checkoutOrder.couponUsed;
@@ -349,6 +363,8 @@ export const postCheckoutPaymentMode = async (req, res) => {
                 );
 
                 verifiedCouponCode = couponRes.couponCode;
+                verifiedCouponType = couponRes.discountType;
+                verifiedCouponDiscountValue = couponRes.discountValue;
                 verifiedCouponDiscount = couponRes.discountAmount;
             } catch (couponError) {
                 logger.warn(`Payment mode checkout coupon rejection for (${userEmail}) on code [${activeCouponCode}]: ${couponError.message}`);
@@ -385,11 +401,13 @@ export const postCheckoutPaymentMode = async (req, res) => {
             subtotal: validation.subtotal,
             shippingCharges,
             couponUsed: verifiedCouponCode,
+            couponType: verifiedCouponType,
+            couponDiscountValue: verifiedCouponDiscountValue,
             couponDiscount: verifiedCouponDiscount,
             totalPayable
         };
 
-        logger.info(`User (${userEmail}) selected payment mode: [${paymentMode}]. Final Total: ₹${totalPayable} | IP: ${clientIp}`);
+        logger.info(`User (${userEmail}) selected payment mode: [${paymentMode}]. Final Total: ₹${totalPayable}, Coupon: ${verifiedCouponCode || 'None'} [Type: ${verifiedCouponType || 'N/A'}, Value: ${verifiedCouponDiscountValue || 'N/A'}] | IP: ${clientIp}`);
 
         return res.status(200).json({
             success: true,
@@ -553,6 +571,8 @@ export const placeOrder = async (req, res) => {
         const basePayable = validation.subtotal + shippingCharges;
 
         let verifiedCouponCode = null;
+        let verifiedCouponType = null;
+        let verifiedCouponDiscountValue = null;
         let verifiedCouponDiscount = 0;
 
         if (checkout.couponUsed && typeof checkout.couponUsed === 'string' && checkout.couponUsed.trim() !== '') {
@@ -564,6 +584,8 @@ export const placeOrder = async (req, res) => {
                 );
 
                 verifiedCouponCode = couponRes.couponCode;
+                verifiedCouponType = couponRes.discountType;
+                verifiedCouponDiscountValue = couponRes.discountValue;
                 verifiedCouponDiscount = couponRes.discountAmount;
             } catch (couponError) {
                 logger.warn(`Order placement blocked: Coupon [${checkout.couponUsed}] failed validation for (${userEmail}): ${couponError.message}`);
@@ -621,7 +643,12 @@ export const placeOrder = async (req, res) => {
                 validatedCheckoutData: { ...validation, deliveryCharges: shippingCharges, totalPayable },
                 shippingAddress,
                 billingAddress,
-                couponData: { couponUsed: verifiedCouponCode, couponDiscount: verifiedCouponDiscount },
+                couponData: { 
+                    couponUsed: verifiedCouponCode, 
+                    couponType: verifiedCouponType,
+                    couponDiscountValue: verifiedCouponDiscountValue,
+                    couponDiscount: verifiedCouponDiscount 
+                },
                 razorpayOrderId: razorpayOrder.id
             };
 
@@ -648,12 +675,17 @@ export const placeOrder = async (req, res) => {
             shippingAddress,
             billingAddress,
             checkout.paymentMode,
-            { couponUsed: verifiedCouponCode, couponDiscount: verifiedCouponDiscount }
+            { 
+                couponUsed: verifiedCouponCode, 
+                couponType: verifiedCouponType,
+                couponDiscountValue: verifiedCouponDiscountValue,
+                couponDiscount: verifiedCouponDiscount 
+            }
         );
 
         const order = createdData.order;
 
-        logger.info(`Order placed successfully! Order ID: ${order.orderId}, Coupon: ${verifiedCouponCode || 'None'}, Discount: ₹${verifiedCouponDiscount}, Total: ₹${totalPayable} by User: (${userEmail}) | IP: ${clientIp}`);
+        logger.info(`Order placed successfully! ID: ${order.orderId}, Coupon: ${verifiedCouponCode || 'None'}, Type: ${verifiedCouponType || 'N/A'}, Value: ${verifiedCouponDiscountValue || 'N/A'}, Discount: ₹${verifiedCouponDiscount}, Total: ₹${totalPayable} by (${userEmail}) | IP: ${clientIp}`);
 
         req.session.lastPlacedOrderId = order.orderId;
         req.session.orderSuccessTimestamp = Date.now();
@@ -738,7 +770,7 @@ export const verifyRazorpayPayment = async (req, res) => {
 
         const order = createdData.order;
 
-        logger.info(`Razorpay payment verified & Order generated! ID: ${order.orderId}, User: (${userEmail}) | IP: ${clientIp}`);
+        logger.info(`Razorpay payment verified & Order generated! ID: ${order.orderId}, Coupon: ${pendingOrder.couponData?.couponUsed || 'None'}, Type: ${pendingOrder.couponData?.couponType || 'N/A'}, Value: ${pendingOrder.couponData?.couponDiscountValue || 'N/A'}, User: (${userEmail}) | IP: ${clientIp}`);
 
         req.session.lastPlacedOrderId = order.orderId;
         req.session.orderSuccessTimestamp = Date.now();
