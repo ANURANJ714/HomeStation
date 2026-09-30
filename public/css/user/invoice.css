@@ -223,6 +223,36 @@ body {
     border-color: #999;
 }
 
+.category-text {
+    color: #6b7280;
+    font-size: 12px;
+}
+
+.original-price-col {
+    color: #9ca3af;
+    text-decoration: line-through;
+}
+
+.current-price-col {
+    font-weight: 500;
+    color: #111827;
+}
+
+.discount-row {
+    color: #15803d;
+}
+
+.discount-value {
+    color: #15803d;
+    font-weight: 600;
+}
+
+.coupon-highlight {
+    background-color: #f0fdf4;
+    padding: 4px 6px;
+    border-radius: 4px;
+}
+
 @media print {
     body {
         background-color: #fff;

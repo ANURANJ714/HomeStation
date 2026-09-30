@@ -482,6 +482,13 @@ export const getUserDeliveredOrderInvoice = async (userId, orderId) => {
             })
             .lean();
 
+        if (!order) return null;
+
+        order.orderItemsSnapshot = order.orderItems.map(item => ({
+            currentPrice: item.currentPrice,
+            quantity: item.quantity
+        }));
+
         return order;
     } catch (error) {
         throw new Error(`Service Layer failure fetching invoice details: ${error.message}`);

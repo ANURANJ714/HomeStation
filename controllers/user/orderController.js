@@ -272,7 +272,6 @@ export const loadInvoicePage = async (req, res) => {
         const userEmail = req.user?.email || 'Unknown User';
         const userId = req.user._id;
         const { orderId } = req.params;
-        const targetItemId = req.query.itemId || null;
 
         const order = await orderService.getUserDeliveredOrderInvoice(userId, orderId);
 
@@ -281,41 +280,89 @@ export const loadInvoicePage = async (req, res) => {
             return res.redirect('/user/orders');
         }
 
-        let eligibleItems = order.orderItems.filter(i => 
-            i.itemStatus === 'delivered' && (!i.returnStatus || i.returnStatus === 'none')
+        const activeInvoiceItems = order.orderItems.filter(item => 
+            item.itemStatus !== 'cancelled' && (!item.returnStatus || item.returnStatus === 'none')
         );
 
-        if (targetItemId) {
-            eligibleItems = eligibleItems.filter(i => i._id.toString() === targetItemId.toString());
-        }
-
-        if (eligibleItems.length === 0) {
-            logger.warn(`User (${userEmail}) attempted to access invoice with no delivered items for order: ${orderId} | IP: ${clientIp}`);
+        if (activeInvoiceItems.length === 0) {
+            logger.warn(`User (${userEmail}) tried to view invoice with zero active items for order: ${orderId} | IP: ${clientIp}`);
             return res.redirect('/user/orders');
         }
 
-        order.orderItems = eligibleItems;
+        let originalSubtotal = 0;
+        let subtotal = 0;
 
-        const subtotal = eligibleItems.reduce((acc, item) => acc + (item.currentPrice * item.quantity), 0);
+        activeInvoiceItems.forEach(item => {
+            const qty = Number(item.quantity) || 1;
+            const originalPrice = Number(item.originalPrice) || Number(item.currentPrice);
+            const currentPrice = Number(item.currentPrice);
+
+            originalSubtotal += originalPrice * qty;
+            subtotal += currentPrice * qty;
+        });
+
+        const productDiscount = Math.max(0, originalSubtotal - subtotal);
+
+        const excludedItems = order.orderItems.filter(item =>
+            item.itemStatus === 'cancelled' || (item.returnStatus && item.returnStatus !== 'none')
+        );
+
+        let totalCouponDiscountExcluded = 0;
+
+        if (order.couponUsed && excludedItems.length > 0) {
+            if (order.couponType === 'percentage') {
+                const percent = Number(order.couponDiscountValue) || 0;
+
+                excludedItems.forEach(item => {
+                    const itemTotal = Number(item.currentPrice) * Number(item.quantity);
+                    const discountForThisItem = Math.round((itemTotal * percent) / 100);
+                    totalCouponDiscountExcluded += discountForThisItem;
+                });
+            }
+            else if (order.couponType === 'flat') {
+                const totalOrderAmount = order.orderItems.reduce((acc, curr) => {
+                    return acc + (Number(curr.currentPrice) * Number(curr.quantity));
+                }, 0);
+
+                if (totalOrderAmount > 0) {
+                    const flatDiscountValue = Number(order.couponDiscountValue) || Number(order.couponDiscount) || 0;
+
+                    excludedItems.forEach(item => {
+                        const itemTotal = Number(item.currentPrice) * Number(item.quantity);
+                        const itemShareOfDiscount = Math.round((itemTotal / totalOrderAmount) * flatDiscountValue);
+                        totalCouponDiscountExcluded += itemShareOfDiscount;
+                    });
+                }
+            }
+        }
+
+        const originalCouponDiscount = Number(order.couponDiscount) || 0;
+        const couponDiscountAmount = Math.max(0, originalCouponDiscount - totalCouponDiscountExcluded);
+
         const shippingCharges = 0;
-        const totalAmount = subtotal + shippingCharges;
+        const totalAmount = Math.max(0, subtotal - couponDiscountAmount + shippingCharges);
 
         let paymentMethodName = 'Cash on Delivery';
-        if (order.paymentMode === 'razorpay') paymentMethodName = 'Razorpay';
+        if (order.paymentMode === 'razorpay') paymentMethodName = 'Razorpay Online';
         if (order.paymentMode === 'wallet') paymentMethodName = 'HomeStation Wallet';
 
-        const formattedOrderDate = new Date(order.createdAt).toLocaleDateString('en-US', {
+        const formattedOrderDate = new Date(order.createdAt).toLocaleDateString('en-IN', {
             year: 'numeric',
             month: 'long',
             day: 'numeric'
         });
 
-        logger.info(`User (${userEmail}) viewed/printed invoice for order: ${order.orderId} | IP: ${clientIp}`);
+        order.orderItems = activeInvoiceItems;
+
+        logger.info(`User (${userEmail}) viewed invoice for order: ${order.orderId} | Active Items: ${activeInvoiceItems.length} | Net Coupon Discount: ₹${couponDiscountAmount} | Total: ₹${totalAmount} | IP: ${clientIp}`);
 
         return res.render('user/invoice', {
             pageTitle: `HomeStation - Invoice ${order.orderId}`,
             order,
+            originalSubtotal,
             subtotal,
+            productDiscount,
+            couponDiscountAmount,
             shippingCharges,
             totalAmount,
             paymentMethodName,
@@ -331,7 +378,6 @@ export const loadInvoicePage = async (req, res) => {
         });
     }
 };
-
 
 export const postReturnOrder = async (req, res) => {
     try {
