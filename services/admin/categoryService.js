@@ -1,6 +1,7 @@
 import Category from '../../models/Category.js';
 import Product from '../../models/Products.js';
 import ProductVariant from '../../models/ProductVariant.js';
+import Order from '../../models/Order.js';
 import { calculateProductStats } from '../../services/admin/productService.js';
 import mongoose from 'mongoose';
 
@@ -17,7 +18,7 @@ export const getPaginatedCategories = async (sortQuery, page, limit, searchQuery
 
         let filterConditions = {};
         if (searchQuery && searchQuery.trim() !== '') {
-            filterConditions.name = { $regex: searchQuery.trim(), $options: 'i' };
+            filterConditions.name = { $regex: searchQuery.trim(),$options: 'i' };
         }
 
         const skip = (page - 1) * limit;
@@ -31,23 +32,87 @@ export const getPaginatedCategories = async (sortQuery, page, limit, searchQuery
                 .lean()
         ]);
 
-        const categoriesWithProductCounts = await Promise.all(
+        if (!rawCategories || rawCategories.length === 0) {
+            return { categories: [], totalPages: 0 };
+        }
+
+        const categoryIds = rawCategories.map(cat => cat._id);
+
+        const salesAggregation = await Order.aggregate([
+            { $unwind: '$orderItems' },
+            {
+                $match: {
+                    'orderItems.itemStatus': { $ne: 'cancelled' },
+                    'orderItems.returnStatus': { $ne: 'item reached' }
+                }
+            },
+            {
+                $lookup: {
+                    from: 'productvariants',
+                    localField: 'orderItems.productVariantId',
+                    foreignField: '_id',
+                    as: 'variant'
+                }
+            },
+            { $unwind: '$variant' },
+            {
+                $lookup: {
+                    from: 'products',
+                    localField: 'variant.productId',
+                    foreignField: '_id',
+                    as: 'product'
+                }
+            },
+            { $unwind: '$product' },
+            {
+                $match: {
+                    'product.categoryId': { $in: categoryIds }
+                }
+            },
+            {
+                $group: {
+                    _id: '$product.categoryId',
+                    totalSold: { $sum: '$orderItems.quantity' },
+                    totalSales: { 
+                        $sum: {$multiply: ['$orderItems.currentPrice', '$orderItems.quantity'] } 
+                    }
+                }
+            }
+        ]);
+
+        const salesMap = {};
+        salesAggregation.forEach(stat => {
+            if (stat._id) {
+                salesMap[stat._id.toString()] = {
+                    soldCount: stat.totalSold || 0,
+                    salesAmount: stat.totalSales || 0
+                };
+            }
+        });
+
+        const categoriesWithStats = await Promise.all(
             rawCategories.map(async (category) => {
+                const catIdStr = category._id.toString();
+
                 const productCount = await Product.countDocuments({ 
                     categoryId: category._id,
                     isDeleted: false 
                 });
+
+                const stats = salesMap[catIdStr] || { soldCount: 0, salesAmount: 0 };
                 
                 return {
                     ...category,
-                    productCount
+                    productCount,
+                    soldCount: stats.soldCount,
+                    salesAmount: stats.salesAmount
                 };
             })
         );
 
         const totalPages = Math.max(1, Math.ceil(totalCategories / limit));
         
-        return { categories: categoriesWithProductCounts, totalPages };
+        return { categories: categoriesWithStats, totalPages };
         
     } catch (error) {
         throw new Error(`Database error while fetching categories: ${error.message}`);

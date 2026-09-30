@@ -109,10 +109,19 @@
                                         <%= category.name %>
                                     </h3>
                                     <div class="sub-stats">
-                                        <div class="stat-item"><span class="stat-label">Products</span><span class="stat-value"><%= category.productCount %></span></div>
-                                        <div class="stat-item"><span class="stat-label">Sold</span><span class="stat-value">0</span></div>
-                                        <div class="stat-item"><span class="stat-label">Sales</span><span class="stat-value">₹0</span></div>
-                                    </div>
+    <div class="stat-item">
+        <span class="stat-label">Products</span>
+        <span class="stat-value"><%= category.productCount %></span>
+    </div>
+    <div class="stat-item">
+        <span class="stat-label">Sold</span>
+        <span class="stat-value"><%= (category.soldCount || 0).toLocaleString('en-IN') %></span>
+    </div>
+    <div class="stat-item">
+        <span class="stat-label">Sales</span>
+        <span class="stat-value">₹<%= (category.salesAmount || 0).toLocaleString('en-IN') %></span>
+    </div>
+</div>
                                     <div class="card-actions-wrapper">
                                         <a href="/admin/categories/<%= category._id %>/products"
                                             class="btn btn-outline-primary action-view-link <%= category.isDeleted ? 'hide-btn' : '' %>">View</a>

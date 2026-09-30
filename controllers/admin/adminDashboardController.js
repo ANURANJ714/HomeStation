@@ -1,23 +1,30 @@
 import * as bannerService from '../../services/admin/bannerService.js';
+import * as dashboardService from '../../services/admin/dashboardService.js';
 import logger from '../../utils/logger.js';
 
 export const getAdminDashboard = async (req, res) => {
     try {
-        logger.info(`Admin dashboard accessed by: ${req.user ? req.user.email : 'Unknown'}`);
+        const adminEmail = req.user ? req.user.email : 'Unknown Admin';
+        logger.info(`Admin dashboard accessed by: ${adminEmail}`);
 
-        const banner = await bannerService.getActiveBanner();
-        
-        res.render('admin/dashboard', { 
+        const [banner, analytics] = await Promise.all([
+            bannerService.getActiveBanner(),
+            dashboardService.getDashboardAnalytics()
+        ]);
+
+        return res.render('admin/dashboard', { 
             admin: req.user,
-            bannerText: banner ? banner.bannerText : ''
+            csrfToken: req.csrfToken ? req.csrfToken() : '',
+            bannerText: banner ? banner.bannerText : '',
+            stats: analytics
         });
     } catch (error) {
         logger.error(`Error loading admin dashboard: ${error.message}\nStack: ${error.stack}`);
         
-        res.status(500).json({
+        return res.status(500).json({
             success: false, 
             title: "Server Error", 
-            message: "An Internal Error has occurred!"
+            message: "An internal server error occurred while loading the dashboard analytics."
         });
     }
 };
