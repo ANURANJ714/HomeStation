@@ -156,7 +156,7 @@ export const getCartItems = async (userId) => {
         let totalQuantity = 0;
         const validCartItems = [];
         let stockExceededItem = null;
-        const unavailableNames = [];
+        const removedItemMessages = [];
 
         for (const item of cartItems) {
             const variant = item.productVariantId;
@@ -165,7 +165,7 @@ export const getCartItems = async (userId) => {
 
             const isVariantMissing = !variant;
             const isProductDeleted = !product || product.isDeleted === true || product.isDeleted === 'true';
-            const isCategoryDeleted = category && (category.isDeleted === true || category.isDeleted === 'true');
+            const isCategoryDeleted = !category || category.isDeleted === true || category.isDeleted === 'true';
             const isOutOfStock = typeof variant?.stock === 'number' && variant.stock <= 0;
 
             if (isVariantMissing || isProductDeleted || isCategoryDeleted || isOutOfStock) {
@@ -175,8 +175,16 @@ export const getCartItems = async (userId) => {
                     await Cart.deleteMany({ userId, _id: item._id });
                 }
 
-                const name = product ? `${product.name} (${variant?.variantName || 'Item'})` : 'An item in your cart';
-                unavailableNames.push(name);
+                const itemName = product 
+                    ? `${product.name} (${variant?.variantName || 'Standard'})` 
+                    : 'A selected product';
+
+                if (isOutOfStock) {
+                    removedItemMessages.push(`"${itemName}" is currently out of stock`);
+                } else {
+                    removedItemMessages.push(`"${itemName}" has been removed as it is no longer available`);
+                }
+
                 continue;
             }
 
@@ -210,9 +218,9 @@ export const getCartItems = async (userId) => {
             });
         }
 
-        const unavailableNotice = unavailableNames.length > 0 ? {
-            title: "Product Unavailable",
-            message: `${unavailableNames.join(', ')} was removed from your cart because it is out of stock or no longer available.`
+        const unavailableNotice = removedItemMessages.length > 0 ? {
+            title: "Cart Update",
+            message: `${removedItemMessages.join(' and ')} and has been removed from your cart.`
         } : null;
 
         return { 

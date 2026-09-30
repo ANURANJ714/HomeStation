@@ -2,6 +2,7 @@ import * as cartService from '../../services/user/cartService.js';
 import * as couponService from '../../services/user/userCouponService.js';
 import {getActivePromoBanner} from '../../services/user/bannerService.js';
 import { getUserHeaderCounts } from '../../services/user/badgeService.js';
+import * as reviewService from '../../services/user/reviewService.js';
 import { getMultipleProductReviewSummaries } from '../../services/user/reviewService.js';
 import logger from '../../utils/logger.js';
 
@@ -76,17 +77,10 @@ export const loadCartPage = async (req, res) => {
             .map(item => item.productVariantId?.productId?._id || item.productVariantId?.productId)
             .filter(Boolean);
 
-        const productRatingsMap = await getMultipleProductReviewSummaries(productIds);
+        const productRatingsMap = await reviewService.getMultipleProductReviewSummaries(productIds);
 
-        let noticeToShow = null;
         if (cartData.unavailableNotice) {
-            const noticeSignature = cartData.unavailableNotice.message;
-            if (req.session.lastSeenUnavailableNotice !== noticeSignature) {
-                noticeToShow = cartData.unavailableNotice;
-                req.session.lastSeenUnavailableNotice = noticeSignature;
-            }
-        } else {
-            delete req.session.lastSeenUnavailableNotice;
+            logger.warn(`Cart cleanup for (${userEmail}): ${cartData.unavailableNotice.message} | IP: ${clientIp}`);
         }
 
         const shippingCharges = (cartData.subtotal > 0 && cartData.subtotal <= 500) ? 100 : 0;
@@ -106,7 +100,7 @@ export const loadCartPage = async (req, res) => {
             totalPayable,
             totalQuantity: cartData.totalQuantity,
             stockExceededItem: cartData.stockExceededItem,
-            unavailableNotice: noticeToShow,
+            unavailableNotice: cartData.unavailableNotice || null,
             availableCoupons: validCouponsForCart,
             productRatingsMap,
             bannerText,
