@@ -1,5 +1,4 @@
 import * as categoryService from '../../services/admin/categoryService.js';
-import { calculateProductStats } from '../../services/admin/productService.js';
 import { handleAdminNotFound } from '../admin/adminErrorController.js';
 import logger from '../../utils/logger.js';
 
@@ -12,14 +11,15 @@ export const loadCategories = async (req, res) => {
 
         const { categories, totalPages } = await categoryService.getPaginatedCategories(sortQuery, page, limit, searchQuery);
 
-        logger.info(`Admin (${req.user ? req.user.email : 'Unknown'}) loaded categories page ${page} filtered by: "${searchQuery}"`);
+        logger.info(`Admin (${req.user ? req.user.email : 'Unknown'}) loaded categories page ${page} with sort: "${sortQuery}" and filter: "${searchQuery}"`);
 
         return res.render('admin/categories', { 
             categories, 
             currentSort: sortQuery,
             searchQuery: searchQuery,
             currentPage: page,
-            totalPages: totalPages
+            totalPages: totalPages,
+            csrfToken: req.csrfToken ? req.csrfToken() : ''
         });
 
     } catch (error) {
