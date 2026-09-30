@@ -540,30 +540,21 @@ body {
   background-color: #9c27b0;
 }
 
-.notification-wrapper {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    cursor: pointer;
-    padding: 6px;
-    border-radius: 50%;
-    transition: background-color 0.2s ease;
-}
-
-.notification-wrapper:hover {
-    background-color: #f0f0f5;
-}
-
-.notification-bell {
-    font-size: 18px;
-    color: var(--text-main);
-}
-
 .flex-end-row {
     display: flex !important;
     justify-content: flex-end !important;
     align-items: center;
     width: 100%;
+}
+
+.progress-gray {
+    background-color: #5f6368;
+}
+
+.no-data-text {
+    font-size: 14px;
+    color: #70757a;
+    padding: 12px 0;
 }
 
 @media (max-width: 992px) {

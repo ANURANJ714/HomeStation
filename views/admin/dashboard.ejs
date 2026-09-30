@@ -23,7 +23,7 @@
         <aside class="sidebar" id="appSidebar">
             <div class="sidebar-header sidebar-header-flex">
                 <h2 class="brand-title">HomeStation</h2>
-                <button id="closeSidebar" class="close-sidebar-btn"><i class="fa-solid fa-xmark"></i></button>
+                <button id="closeSidebar" class="close-sidebar-btn" type="button"><i class="fa-solid fa-xmark"></i></button>
             </div>
 
             <nav class="sidebar-nav">
@@ -91,7 +91,7 @@
         <div class="main-panel">
             <header class="top-header">
                 <div class="header-left">
-                    <button id="hamburgerBtn" class="hamburger-btn">
+                    <button id="hamburgerBtn" class="hamburger-btn" type="button">
                         <i class="fa-solid fa-bars"></i>
                     </button>
                 </div>
@@ -107,7 +107,7 @@
                 <input type="hidden" id="csrfToken" value="<%= csrfToken %>">
 
                 <div class="page-header-row page-header-spacing flex-end-row">
-                    <button class="btn btn-primary" id="openBannerModalBtn">Banner Details</button>
+                    <button class="btn btn-primary" id="openBannerModalBtn" type="button">Banner Details</button>
                 </div>
 
                 <h2 class="stats-heading">Lifetime Statistics</h2>
@@ -116,21 +116,21 @@
                         <div class="stat-icon total-revenue-icon"><i class="fa-solid fa-wallet"></i></div>
                         <div class="stat-details">
                             <p class="stat-label">Total Revenue</p>
-                            <h3 class="stat-value">₹54,20,000</h3>
+                            <h3 class="stat-value">₹<%= stats.lifetime.totalRevenue.toLocaleString('en-IN') %></h3>
                         </div>
                     </div>
                     <div class="stat-card">
                         <div class="stat-icon total-items-icon"><i class="fa-solid fa-boxes-stacked"></i></div>
                         <div class="stat-details">
                             <p class="stat-label">Total Items Sold</p>
-                            <h3 class="stat-value">3,842</h3>
+                            <h3 class="stat-value"><%= stats.lifetime.totalItemsSold.toLocaleString('en-IN') %></h3>
                         </div>
                     </div>
                     <div class="stat-card">
                         <div class="stat-icon total-users-icon"><i class="fa-solid fa-users-viewfinder"></i></div>
                         <div class="stat-details">
                             <p class="stat-label">Total Users</p>
-                            <h3 class="stat-value">1,248</h3>
+                            <h3 class="stat-value"><%= stats.lifetime.totalUsers.toLocaleString('en-IN') %></h3>
                         </div>
                     </div>
                 </div>
@@ -141,66 +141,45 @@
                         <div class="stat-icon revenue-icon"><i class="fa-solid fa-indian-rupee-sign"></i></div>
                         <div class="stat-details">
                             <p class="stat-label">Revenue</p>
-                            <h3 class="stat-value">₹4,25,000</h3>
+                            <h3 class="stat-value">₹<%= stats.recent.revenue.toLocaleString('en-IN') %></h3>
                         </div>
                     </div>
                     <div class="stat-card">
                         <div class="stat-icon items-icon"><i class="fa-solid fa-couch"></i></div>
                         <div class="stat-details">
                             <p class="stat-label">Items Sold</p>
-                            <h3 class="stat-value">342</h3>
+                            <h3 class="stat-value"><%= stats.recent.itemsSold.toLocaleString('en-IN') %></h3>
                         </div>
                     </div>
                     <div class="stat-card">
                         <div class="stat-icon users-icon"><i class="fa-solid fa-user-plus"></i></div>
                         <div class="stat-details">
                             <p class="stat-label">New Users</p>
-                            <h3 class="stat-value">128</h3>
+                            <h3 class="stat-value"><%= stats.recent.newUsers.toLocaleString('en-IN') %></h3>
                         </div>
                     </div>
                 </div>
 
                 <div class="performance-section">
-                    <h2 class="section-title">Category Performance</h2>
-                    <div class="category-list">
-                        <div class="category-item">
-                            <div class="cat-info">
-                                <span class="cat-name">Spring Mattress</span>
-                                <span class="cat-sales">45% of total sales</span>
-                            </div>
-                            <div class="progress-bar-bg">
-                                <div class="progress-bar-fill progress-green" data-width="45"></div>
-                            </div>
-                        </div>
-                        <div class="category-item">
-                            <div class="cat-info">
-                                <span class="cat-name">Coir Mattress</span>
-                                <span class="cat-sales">25% of total sales</span>
-                            </div>
-                            <div class="progress-bar-bg">
-                                <div class="progress-bar-fill progress-blue" data-width="25"></div>
-                            </div>
-                        </div>
-                        <div class="category-item">
-                            <div class="cat-info">
-                                <span class="cat-name">Orthopedic Mattress</span>
-                                <span class="cat-sales">18% of total sales</span>
-                            </div>
-                            <div class="progress-bar-bg">
-                                <div class="progress-bar-fill progress-orange" data-width="18"></div>
-                            </div>
-                        </div>
-                        <div class="category-item">
-                            <div class="cat-info">
-                                <span class="cat-name">Pillows</span>
-                                <span class="cat-sales">12% of total sales</span>
-                            </div>
-                            <div class="progress-bar-bg">
-                                <div class="progress-bar-fill progress-purple" data-width="12"></div>
-                            </div>
-                        </div>
+    <h2 class="section-title">Category Performance</h2>
+    <div class="category-list">
+        <% if (stats.categoryPerformance && stats.categoryPerformance.length > 0) { %>
+            <% stats.categoryPerformance.forEach(cat => { %>
+                <div class="category-item">
+                    <div class="cat-info">
+                        <span class="cat-name"><%= cat.name %></span>
+                        <span class="cat-sales"><%= cat.percentage %>% of total sales (₹<%= cat.salesAmount.toLocaleString('en-IN') %>)</span>
+                    </div>
+                    <div class="progress-bar-bg">
+                        <div class="progress-bar-fill <%= cat.colorClass %>" data-width="<%= cat.percentage %>"></div>
                     </div>
                 </div>
+            <% }) %>
+        <% } else { %>
+            <p class="no-data-text">No active categories found.</p>
+        <% } %>
+    </div>
+</div>
             </main>
         </div>
     </div>
@@ -215,7 +194,7 @@
             <div class="modal-body">
                 <form id="bannerDetailsForm">
                     <div class="form-group">
-                        <label>Banner Text</label>
+                        <label for="bannerText">Banner Text</label>
                         <textarea id="bannerText" rows="3" class="banner-textarea"
                             placeholder="Enter banner text or leave blank to clear..."><%= typeof bannerText !== 'undefined' ? bannerText : '' %></textarea>
                     </div>
