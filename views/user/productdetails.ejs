@@ -25,6 +25,22 @@
 
     <%- include('../partials/user/header', { activePage: '' }) %>
 
+    <nav class="breadcrumb-nav" aria-label="breadcrumb">
+        <div class="container">
+            <ol class="breadcrumb-list">
+                <li class="breadcrumb-item">
+                    <a href="/" class="breadcrumb-link"><i class="fa-solid fa-house breadcrumb-home-icon"></i> Home</a>
+                </li>
+                <li class="breadcrumb-separator" aria-hidden="true">/</li>
+                <li class="breadcrumb-item">
+                    <a href="/products?categories=<%= category._id %>" class="breadcrumb-link"><%= category.name %></a>
+                </li>
+                <li class="breadcrumb-separator" aria-hidden="true">/</li>
+                <li class="breadcrumb-item active" aria-current="page"><%= product.name %></li>
+            </ol>
+        </div>
+    </nav>
+
     <main class="product-details-main container">
         <div class="product-split-layout">
 

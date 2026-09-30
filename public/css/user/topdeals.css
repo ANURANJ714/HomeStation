@@ -222,6 +222,55 @@
     letter-spacing: 0.5px;
 }
 
+.breadcrumb-nav {
+    background: transparent;
+    border: none;
+    padding: 16px 0 8px 0;
+}
+
+.breadcrumb-list {
+    display: flex;
+    align-items: center;
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    font-size: 14px;
+    font-weight: 500;
+}
+
+.breadcrumb-item {
+    display: inline-flex;
+    align-items: center;
+}
+
+.breadcrumb-link {
+    color: #4b5563;
+    text-decoration: none;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    transition: color 0.2s ease;
+}
+
+.breadcrumb-link:hover {
+    color: #111827;
+}
+
+.breadcrumb-home-icon {
+    font-size: 12px;
+}
+
+.breadcrumb-separator {
+    margin: 0 10px;
+    color: #9ca3af;
+    user-select: none;
+}
+
+.breadcrumb-item.active {
+    color: #8b0000;
+    font-weight: 600;
+}
+
 @media (max-width: 1200px) {
     .products-grid {
         grid-template-columns: repeat(3, 1fr);

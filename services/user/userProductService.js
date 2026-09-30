@@ -1,229 +1,269 @@
-import Product from '../../models/Products.js';
-import ProductVariant from '../../models/ProductVariant.js';
-import Category from '../../models/Category.js';
-import Order from '../../models/Order.js';
-import Offer from '../../models/Offer.js';
+import Product from "../../models/Products.js";
+import ProductVariant from "../../models/ProductVariant.js";
+import Category from "../../models/Category.js";
+import Order from "../../models/Order.js";
+import Offer from "../../models/Offer.js";
 
 export const getProductsPageData = async (queryOptions) => {
-    const { searchQuery, categoryFilter, maxPriceFilter, safeSkip, limit } = queryOptions;
+  const { searchQuery, categoryFilter, maxPriceFilter, safeSkip, limit } =
+    queryOptions;
 
-    let dbQuery = { isDeleted: false };
+  let dbQuery = { isDeleted: false };
 
-    if (categoryFilter) {
-        dbQuery.categoryId = categoryFilter;
-    } else {
-        const activeCategories = await Category.find({ isDeleted: false });
-        dbQuery.categoryId = { $in: activeCategories.map(c => c._id) };
-    }
+  if (categoryFilter) {
+    dbQuery.categoryId = categoryFilter;
+  } else {
+    const activeCategories = await Category.find({ isDeleted: false });
+    dbQuery.categoryId = { $in: activeCategories.map((c) => c._id) };
+  }
 
-    if (searchQuery) {
-        dbQuery.name = { $regex: searchQuery, $options: 'i' };
-    }
+  if (searchQuery) {
+    dbQuery.name = { $regex: searchQuery, $options: "i" };
+  }
 
-    const rawProducts = await Product.find(dbQuery)
-        .populate('categoryId', 'name')
-        .sort({ createdAt: -1 })
-        .lean();
+  const rawProducts = await Product.find(dbQuery)
+    .populate("categoryId", "name")
+    .sort({ createdAt: -1 })
+    .lean();
 
-    let processedProducts = await Promise.all(rawProducts.map(async (product) => {
-        const primaryVariant = await ProductVariant.findOne({ productId: product._id }).lean();
-        
-        if (!primaryVariant) return null;
+  let processedProducts = await Promise.all(
+    rawProducts.map(async (product) => {
+      const primaryVariant = await ProductVariant.findOne({
+        productId: product._id,
+      }).lean();
 
-        const originalPrice = primaryVariant.originalPrice || 0;
-        const discount = primaryVariant.discount || 0;
-        const currentPrice = originalPrice - (originalPrice * (discount / 100));
+      if (!primaryVariant) return null;
 
-        return {
-            ...product,
-            originalPrice,
-            discount,
-            currentPrice,
-            stock: primaryVariant.stock || 0
-        };
-    }));
+      const originalPrice = primaryVariant.originalPrice || 0;
+      const discount = primaryVariant.discount || 0;
+      const currentPrice = originalPrice - originalPrice * (discount / 100);
 
-    processedProducts = processedProducts.filter(p => p !== null);
+      return {
+        ...product,
+        originalPrice,
+        discount,
+        currentPrice,
+        stock: primaryVariant.stock || 0,
+      };
+    }),
+  );
 
-    if (maxPriceFilter) {
-        processedProducts = processedProducts.filter(p => p.currentPrice <= maxPriceFilter);
-    }
+  processedProducts = processedProducts.filter((p) => p !== null);
 
-    const totalCount = processedProducts.length;
-    const paginatedResults = processedProducts.slice(safeSkip, safeSkip + limit);
+  if (maxPriceFilter) {
+    processedProducts = processedProducts.filter(
+      (p) => p.currentPrice <= maxPriceFilter,
+    );
+  }
 
-    return {
-        products: paginatedResults,
-        totalCount
-    };
+  const totalCount = processedProducts.length;
+  const paginatedResults = processedProducts.slice(safeSkip, safeSkip + limit);
+
+  return {
+    products: paginatedResults,
+    totalCount,
+  };
 };
 
 export const getCatalogPageMetadata = async (selectedCategoriesArray = []) => {
-    try {
-        const activeCategories = await Category.find({ isDeleted: false }).sort({ name: 1 }).lean();
+  try {
+    const activeCategories = await Category.find({ isDeleted: false })
+      .sort({ name: 1 })
+      .lean();
 
-        let pageHeading = 'World of Mattress';
-        let categoryNotFound = false;
+    let pageHeading = "World of Mattress";
+    let categoryNotFound = false;
 
-        if (selectedCategoriesArray.length === 1) {
-            const singleCat = activeCategories.find(c => c._id.toString() === selectedCategoriesArray[0]);
-            if (singleCat) {
-                pageHeading = singleCat.name;
-            } else {
-                categoryNotFound = true;
-            }
-        } else if (selectedCategoriesArray.length > 1) {
-            const activeCategoryIds = new Set(activeCategories.map(c => c._id.toString()));
-            const hasInvalidCategory = selectedCategoriesArray.some(catId => !activeCategoryIds.has(catId));
-            if (hasInvalidCategory) {
-                categoryNotFound = true;
-            } else {
-                pageHeading = `Selected Categories (${selectedCategoriesArray.length})`;
-            }
-        }
-
-        return {
-            categories: activeCategories,
-            pageHeading,
-            categoryNotFound
-        };
-    } catch (error) {
-        throw new Error(`Database error while fetching catalog metadata: ${error.message}`);
+    if (selectedCategoriesArray.length === 1) {
+      const singleCat = activeCategories.find(
+        (c) => c._id.toString() === selectedCategoriesArray[0],
+      );
+      if (singleCat) {
+        pageHeading = singleCat.name;
+      } else {
+        categoryNotFound = true;
+      }
+    } else if (selectedCategoriesArray.length > 1) {
+      const activeCategoryIds = new Set(
+        activeCategories.map((c) => c._id.toString()),
+      );
+      const hasInvalidCategory = selectedCategoriesArray.some(
+        (catId) => !activeCategoryIds.has(catId),
+      );
+      if (hasInvalidCategory) {
+        categoryNotFound = true;
+      } else {
+        pageHeading = `Selected Categories (${selectedCategoriesArray.length})`;
+      }
     }
+
+    return {
+      categories: activeCategories,
+      pageHeading,
+      categoryNotFound,
+    };
+  } catch (error) {
+    throw new Error(
+      `Database error while fetching catalog metadata: ${error.message}`,
+    );
+  }
 };
 
 export const getUniqueActiveBrands = async () => {
-    try {
-        return await Product.distinct('brand', { isDeleted: false });
-    } catch (error) {
-        throw new Error(`Failed to pull distinct brands: ${error.message}`);
-    }
+  try {
+    return await Product.distinct("brand", { isDeleted: false });
+  } catch (error) {
+    throw new Error(`Failed to pull distinct brands: ${error.message}`);
+  }
 };
 
-
 export const getFilteredProductsCatalog = async (filters) => {
-    try {
-        const { categories, brands, sort, searchQuery, page, limit } = filters;
-        const currentDate = new Date();
+  try {
+    const { categories, brands, sort, searchQuery, page, limit } = filters;
+    const currentDate = new Date();
 
-        const activeOffers = await Offer.find({
-            isDeleted: false,
-            status: 'active',
-            startDate: { $lte: currentDate },
-            endDate: { $gte: currentDate }
-        }).lean();
+    const activeOffers = await Offer.find({
+      isDeleted: false,
+      status: "active",
+      startDate: { $lte: currentDate },
+      endDate: { $gte: currentDate },
+    }).lean();
 
-        const productOffersMap = {};
-        const categoryOffersMap = {};
+    const productOffersMap = {};
+    const categoryOffersMap = {};
 
-        activeOffers.forEach(offer => {
-            const targetIdStr = offer.targetId ? offer.targetId.toString() : null;
-            if (!targetIdStr) return;
+    activeOffers.forEach((offer) => {
+      const targetIdStr = offer.targetId ? offer.targetId.toString() : null;
+      if (!targetIdStr) return;
 
-            if (offer.offerType === 'product') {
-                if (!productOffersMap[targetIdStr] || offer.discount > productOffersMap[targetIdStr]) {
-                    productOffersMap[targetIdStr] = offer.discount;
-                }
-            } else if (offer.offerType === 'category') {
-                if (!categoryOffersMap[targetIdStr] || offer.discount > categoryOffersMap[targetIdStr]) {
-                    categoryOffersMap[targetIdStr] = offer.discount;
-                }
-            }
-        });
-
-        const calculateBestDiscount = (variantDiscount = 0, productId, categoryId) => {
-            const pIdStr = productId ? productId.toString() : '';
-            const cIdStr = categoryId ? categoryId.toString() : '';
-
-            const productOfferDiscount = productOffersMap[pIdStr] || 0;
-            const categoryOfferDiscount = categoryOffersMap[cIdStr] || 0;
-            const baseDiscount = Number(variantDiscount) || 0;
-
-            return Math.max(baseDiscount, productOfferDiscount, categoryOfferDiscount);
-        };
-
-        let matchedCategoryIds = [];
-        if (categories && Array.isArray(categories) && categories.length > 0) {
-            matchedCategoryIds = categories;
-        } else {
-            const activeCategories = await Category.find({ isDeleted: false }).select('_id').lean();
-            matchedCategoryIds = activeCategories.map(c => c._id);
+      if (offer.offerType === "product") {
+        if (
+          !productOffersMap[targetIdStr] ||
+          offer.discount > productOffersMap[targetIdStr]
+        ) {
+          productOffersMap[targetIdStr] = offer.discount;
         }
-
-        const productMatchQuery = {
-            isDeleted: false,
-            categoryId: { $in: matchedCategoryIds }
-        };
-
-        if (brands && Array.isArray(brands) && brands.length > 0) {
-            productMatchQuery.brand = { $in: brands };
+      } else if (offer.offerType === "category") {
+        if (
+          !categoryOffersMap[targetIdStr] ||
+          offer.discount > categoryOffersMap[targetIdStr]
+        ) {
+          categoryOffersMap[targetIdStr] = offer.discount;
         }
+      }
+    });
 
-        if (searchQuery) {
-            productMatchQuery.name = { $regex: searchQuery,$options: 'i' };
-        }
+    const calculateBestDiscount = (
+      variantDiscount = 0,
+      productId,
+      categoryId,
+    ) => {
+      const pIdStr = productId ? productId.toString() : "";
+      const cIdStr = categoryId ? categoryId.toString() : "";
 
-        const baseProductsList = await Product.find(productMatchQuery).lean();
-        const finalCatalog = [];
+      const productOfferDiscount = productOffersMap[pIdStr] || 0;
+      const categoryOfferDiscount = categoryOffersMap[cIdStr] || 0;
+      const baseDiscount = Number(variantDiscount) || 0;
 
-        for (const product of baseProductsList) {
-            const variants = await ProductVariant.find({ productId: product._id })
-                .sort({ originalPrice: 1 })
-                .lean();
+      return Math.max(
+        baseDiscount,
+        productOfferDiscount,
+        categoryOfferDiscount,
+      );
+    };
 
-            let totalStockAccumulator = 0;
-            let firstInStockVariant = null;
-
-            variants.forEach(variant => {
-                totalStockAccumulator += variant.stock;
-
-                if (variant.stock > 0 && !firstInStockVariant) {
-                    const effectiveDiscount = calculateBestDiscount(
-                        variant.discount,
-                        product._id,
-                        product.categoryId
-                    );
-
-                    const finalCalculatedPrice = Math.round(
-                        variant.originalPrice * (1 - effectiveDiscount / 100)
-                    );
-
-                    firstInStockVariant = {
-                        ...variant,
-                        effectiveDiscount,
-                        calculatedPrice: finalCalculatedPrice
-                    };
-                }
-            });
-
-            if (totalStockAccumulator > 0 && firstInStockVariant) {
-                finalCatalog.push({
-                    ...product,
-                    displayVariant: firstInStockVariant
-                });
-            }
-        }
-
-        if (sort === 'lowToHigh') {
-            finalCatalog.sort((a, b) => a.displayVariant.calculatedPrice - b.displayVariant.calculatedPrice);
-        } else if (sort === 'highToLow') {
-            finalCatalog.sort((a, b) => b.displayVariant.calculatedPrice - a.displayVariant.calculatedPrice);
-        }
-
-        const totalItemsCount = finalCatalog.length;
-        const totalPagesCount = Math.ceil(totalItemsCount / limit) || 1;
-        const startIndexOffset = (page - 1) * limit;
-        const paginatedResultItems = finalCatalog.slice(startIndexOffset, startIndexOffset + limit);
-
-        return {
-            products: paginatedResultItems,
-            totalItems: totalItemsCount,
-            totalPages: totalPagesCount
-        };
-
-    } catch (error) {
-        throw new Error(`Catalog engine processing failed: ${error.message}`);
+    let matchedCategoryIds = [];
+    if (categories && Array.isArray(categories) && categories.length > 0) {
+      matchedCategoryIds = categories;
+    } else {
+      const activeCategories = await Category.find({ isDeleted: false })
+        .select("_id")
+        .lean();
+      matchedCategoryIds = activeCategories.map((c) => c._id);
     }
+
+    const productMatchQuery = {
+      isDeleted: false,
+      categoryId: { $in: matchedCategoryIds },
+    };
+
+    if (brands && Array.isArray(brands) && brands.length > 0) {
+      productMatchQuery.brand = { $in: brands };
+    }
+
+    if (searchQuery) {
+      productMatchQuery.name = { $regex: searchQuery, $options: "i" };
+    }
+
+    const baseProductsList = await Product.find(productMatchQuery).lean();
+    const finalCatalog = [];
+
+    for (const product of baseProductsList) {
+      const variants = await ProductVariant.find({ productId: product._id })
+        .sort({ originalPrice: 1 })
+        .lean();
+
+      let totalStockAccumulator = 0;
+      let firstInStockVariant = null;
+
+      variants.forEach((variant) => {
+        totalStockAccumulator += variant.stock;
+
+        if (variant.stock > 0 && !firstInStockVariant) {
+          const effectiveDiscount = calculateBestDiscount(
+            variant.discount,
+            product._id,
+            product.categoryId,
+          );
+
+          const finalCalculatedPrice = Math.round(
+            variant.originalPrice * (1 - effectiveDiscount / 100),
+          );
+
+          firstInStockVariant = {
+            ...variant,
+            effectiveDiscount,
+            calculatedPrice: finalCalculatedPrice,
+          };
+        }
+      });
+
+      if (totalStockAccumulator > 0 && firstInStockVariant) {
+        finalCatalog.push({
+          ...product,
+          displayVariant: firstInStockVariant,
+        });
+      }
+    }
+
+    if (sort === "lowToHigh") {
+      finalCatalog.sort(
+        (a, b) =>
+          a.displayVariant.calculatedPrice - b.displayVariant.calculatedPrice,
+      );
+    } else if (sort === "highToLow") {
+      finalCatalog.sort(
+        (a, b) =>
+          b.displayVariant.calculatedPrice - a.displayVariant.calculatedPrice,
+      );
+    }
+
+    const totalItemsCount = finalCatalog.length;
+    const totalPagesCount = Math.ceil(totalItemsCount / limit) || 1;
+    const startIndexOffset = (page - 1) * limit;
+    const paginatedResultItems = finalCatalog.slice(
+      startIndexOffset,
+      startIndexOffset + limit,
+    );
+
+    return {
+      products: paginatedResultItems,
+      totalItems: totalItemsCount,
+      totalPages: totalPagesCount,
+    };
+  } catch (error) {
+    throw new Error(`Catalog engine processing failed: ${error.message}`);
+  }
 };
 
 export const getValidatedProductDetails = async (productId) => {
@@ -349,6 +389,7 @@ export const getValidatedProductDetails = async (productId) => {
 
         return {
             product,
+            category,
             variants: activeInStockVariants,
             relatedProducts: processedSuggestionsDeck
         };
@@ -360,366 +401,444 @@ export const getValidatedProductDetails = async (productId) => {
 };
 
 export const searchActiveProductsCatalog = async (searchFilters) => {
-    try {
-        const { query, sort, page, limit } = searchFilters;
+  try {
+    const { query, sort, page, limit } = searchFilters;
 
-        if (!query || !query.trim()) {
-            return { products: [], totalItems: 0, totalPages: 0 };
-        }
-
-        const currentDate = new Date();
-
-        const activeOffers = await Offer.find({
-            isDeleted: false,
-            status: 'active',
-            startDate: { $lte: currentDate },
-            endDate: { $gte: currentDate }
-        }).lean();
-
-        const productOffersMap = {};
-        const categoryOffersMap = {};
-
-        activeOffers.forEach((offer) => {
-            const targetIdStr = offer.targetId ? offer.targetId.toString() : null;
-            if (!targetIdStr) return;
-
-            if (offer.offerType === 'product') {
-                if (!productOffersMap[targetIdStr] || offer.discount > productOffersMap[targetIdStr]) {
-                    productOffersMap[targetIdStr] = offer.discount;
-                }
-            } else if (offer.offerType === 'category') {
-                if (!categoryOffersMap[targetIdStr] || offer.discount > categoryOffersMap[targetIdStr]) {
-                    categoryOffersMap[targetIdStr] = offer.discount;
-                }
-            }
-        });
-
-        const calculateBestDiscount = (variantDiscount = 0, productId, categoryId) => {
-            const pIdStr = productId ? productId.toString() : '';
-            const cIdStr = categoryId ? categoryId.toString() : '';
-
-            const productOfferDiscount = productOffersMap[pIdStr] || 0;
-            const categoryOfferDiscount = categoryOffersMap[cIdStr] || 0;
-            const baseDiscount = Number(variantDiscount) || 0;
-
-            return Math.max(baseDiscount, productOfferDiscount, categoryOfferDiscount);
-        };
-
-        const activeCategories = await Category.find({ isDeleted: false }).select('_id').lean();
-        const activeCategoryIds = activeCategories.map(c => c._id.toString());
-
-        const cleanedQuery = query.trim();
-        const searchTokens = cleanedQuery.split(/\s+/).filter(Boolean);
-
-        const tokenRegexConditions = searchTokens.map(token => ({
-            $or: [
-                { name: { $regex: token,$options: 'i' } },
-                { brand: { $regex: token,$options: 'i' } }
-            ]
-        }));
-
-        const productMatchQuery = {
-            isDeleted: false,
-            categoryId: { $in: activeCategoryIds },$and: tokenRegexConditions
-        };
-
-        const productsList = await Product.find(productMatchQuery).lean();
-        const outputCatalog = [];
-
-        for (const product of productsList) {
-            const variants = await ProductVariant.find({ productId: product._id })
-                .sort({ originalPrice: 1 })
-                .lean();
-
-            let totalStockAccumulator = 0;
-            let firstAvailableVariant = null;
-
-            variants.forEach(variant => {
-                totalStockAccumulator += variant.stock;
-                if (variant.stock > 0 && !firstAvailableVariant) {
-                    const effectiveDiscount = calculateBestDiscount(
-                        variant.discount,
-                        product._id,
-                        product.categoryId
-                    );
-
-                    const finalCalculatedPrice = Math.round(
-                        variant.originalPrice * (1 - (effectiveDiscount / 100))
-                    );
-
-                    firstAvailableVariant = { 
-                        ...variant, 
-                        effectiveDiscount,
-                        calculatedPrice: finalCalculatedPrice 
-                    };
-                }
-            });
-
-            if (totalStockAccumulator > 0 && firstAvailableVariant) {
-                outputCatalog.push({
-                    ...product,
-                    displayVariant: firstAvailableVariant
-                });
-            }
-        }
-
-        if (sort === 'lowToHigh') {
-            outputCatalog.sort((a, b) => a.displayVariant.calculatedPrice - b.displayVariant.calculatedPrice);
-        } else if (sort === 'highToLow') {
-            outputCatalog.sort((a, b) => b.displayVariant.calculatedPrice - a.displayVariant.calculatedPrice);
-        }
-
-        const totalItems = outputCatalog.length;
-        const totalPages = Math.ceil(totalItems / limit) || 1;
-        const safePage = Math.min(Math.max(1, page), totalPages);
-        const startIndexOffset = (safePage - 1) * limit;
-        const paginatedItemsSlice = outputCatalog.slice(startIndexOffset, startIndexOffset + limit);
-
-        return {
-            products: paginatedItemsSlice,
-            totalItems,
-            totalPages
-        };
-
-    } catch (error) {
-        throw new Error(`Data search processing layer failure subroutine execution: ${error.message}`);
+    if (!query || !query.trim()) {
+      return { products: [], totalItems: 0, totalPages: 0 };
     }
+
+    const currentDate = new Date();
+
+    const activeOffers = await Offer.find({
+      isDeleted: false,
+      status: "active",
+      startDate: { $lte: currentDate },
+      endDate: { $gte: currentDate },
+    }).lean();
+
+    const productOffersMap = {};
+    const categoryOffersMap = {};
+
+    activeOffers.forEach((offer) => {
+      const targetIdStr = offer.targetId ? offer.targetId.toString() : null;
+      if (!targetIdStr) return;
+
+      if (offer.offerType === "product") {
+        if (
+          !productOffersMap[targetIdStr] ||
+          offer.discount > productOffersMap[targetIdStr]
+        ) {
+          productOffersMap[targetIdStr] = offer.discount;
+        }
+      } else if (offer.offerType === "category") {
+        if (
+          !categoryOffersMap[targetIdStr] ||
+          offer.discount > categoryOffersMap[targetIdStr]
+        ) {
+          categoryOffersMap[targetIdStr] = offer.discount;
+        }
+      }
+    });
+
+    const calculateBestDiscount = (
+      variantDiscount = 0,
+      productId,
+      categoryId,
+    ) => {
+      const pIdStr = productId ? productId.toString() : "";
+      const cIdStr = categoryId ? categoryId.toString() : "";
+
+      const productOfferDiscount = productOffersMap[pIdStr] || 0;
+      const categoryOfferDiscount = categoryOffersMap[cIdStr] || 0;
+      const baseDiscount = Number(variantDiscount) || 0;
+
+      return Math.max(
+        baseDiscount,
+        productOfferDiscount,
+        categoryOfferDiscount,
+      );
+    };
+
+    const activeCategories = await Category.find({ isDeleted: false })
+      .select("_id")
+      .lean();
+    const activeCategoryIds = activeCategories.map((c) => c._id.toString());
+
+    const cleanedQuery = query.trim();
+    const searchTokens = cleanedQuery.split(/\s+/).filter(Boolean);
+
+    const tokenRegexConditions = searchTokens.map((token) => ({
+      $or: [
+        { name: { $regex: token, $options: "i" } },
+        { brand: { $regex: token, $options: "i" } },
+      ],
+    }));
+
+    const productMatchQuery = {
+      isDeleted: false,
+      categoryId: { $in: activeCategoryIds },
+      $and: tokenRegexConditions,
+    };
+
+    const productsList = await Product.find(productMatchQuery).lean();
+    const outputCatalog = [];
+
+    for (const product of productsList) {
+      const variants = await ProductVariant.find({ productId: product._id })
+        .sort({ originalPrice: 1 })
+        .lean();
+
+      let totalStockAccumulator = 0;
+      let firstAvailableVariant = null;
+
+      variants.forEach((variant) => {
+        totalStockAccumulator += variant.stock;
+        if (variant.stock > 0 && !firstAvailableVariant) {
+          const effectiveDiscount = calculateBestDiscount(
+            variant.discount,
+            product._id,
+            product.categoryId,
+          );
+
+          const finalCalculatedPrice = Math.round(
+            variant.originalPrice * (1 - effectiveDiscount / 100),
+          );
+
+          firstAvailableVariant = {
+            ...variant,
+            effectiveDiscount,
+            calculatedPrice: finalCalculatedPrice,
+          };
+        }
+      });
+
+      if (totalStockAccumulator > 0 && firstAvailableVariant) {
+        outputCatalog.push({
+          ...product,
+          displayVariant: firstAvailableVariant,
+        });
+      }
+    }
+
+    if (sort === "lowToHigh") {
+      outputCatalog.sort(
+        (a, b) =>
+          a.displayVariant.calculatedPrice - b.displayVariant.calculatedPrice,
+      );
+    } else if (sort === "highToLow") {
+      outputCatalog.sort(
+        (a, b) =>
+          b.displayVariant.calculatedPrice - a.displayVariant.calculatedPrice,
+      );
+    }
+
+    const totalItems = outputCatalog.length;
+    const totalPages = Math.ceil(totalItems / limit) || 1;
+    const safePage = Math.min(Math.max(1, page), totalPages);
+    const startIndexOffset = (safePage - 1) * limit;
+    const paginatedItemsSlice = outputCatalog.slice(
+      startIndexOffset,
+      startIndexOffset + limit,
+    );
+
+    return {
+      products: paginatedItemsSlice,
+      totalItems,
+      totalPages,
+    };
+  } catch (error) {
+    throw new Error(
+      `Data search processing layer failure subroutine execution: ${error.message}`,
+    );
+  }
 };
 
 export const getTopDealsCatalog = async (filters) => {
-    try {
-        const { priceSort, page, limit } = filters;
-        const currentDate = new Date();
+  try {
+    const { priceSort, page, limit } = filters;
+    const currentDate = new Date();
 
-        const activeOffers = await Offer.find({
-            isDeleted: false,
-            status: 'active',
-            startDate: { $lte: currentDate },
-            endDate: { $gte: currentDate }
-        }).lean();
+    const activeOffers = await Offer.find({
+      isDeleted: false,
+      status: "active",
+      startDate: { $lte: currentDate },
+      endDate: { $gte: currentDate },
+    }).lean();
 
-        const productOffersMap = {};
-        const categoryOffersMap = {};
+    const productOffersMap = {};
+    const categoryOffersMap = {};
 
-        activeOffers.forEach((offer) => {
-            const targetIdStr = offer.targetId ? offer.targetId.toString() : null;
-            if (!targetIdStr) return;
+    activeOffers.forEach((offer) => {
+      const targetIdStr = offer.targetId ? offer.targetId.toString() : null;
+      if (!targetIdStr) return;
 
-            if (offer.offerType === 'product') {
-                if (!productOffersMap[targetIdStr] || offer.discount > productOffersMap[targetIdStr]) {
-                    productOffersMap[targetIdStr] = offer.discount;
-                }
-            } else if (offer.offerType === 'category') {
-                if (!categoryOffersMap[targetIdStr] || offer.discount > categoryOffersMap[targetIdStr]) {
-                    categoryOffersMap[targetIdStr] = offer.discount;
-                }
-            }
-        });
-
-        const calculateBestDiscount = (variantDiscount = 0, productId, categoryId) => {
-            const pIdStr = productId ? productId.toString() : '';
-            const cIdStr = categoryId ? categoryId.toString() : '';
-
-            const productOfferDiscount = productOffersMap[pIdStr] || 0;
-            const categoryOfferDiscount = categoryOffersMap[cIdStr] || 0;
-            const baseDiscount = Number(variantDiscount) || 0;
-
-            return Math.max(baseDiscount, productOfferDiscount, categoryOfferDiscount);
-        };
-
-        const activeCategories = await Category.find({ isDeleted: false }).select('_id').lean();
-        const activeCategoryIds = activeCategories.map(c => c._id.toString());
-
-        const variants = await ProductVariant.find({ stock: { $gt: 0 } })
-            .populate({
-                path: 'productId',
-                match: { isDeleted: false, categoryId: { $in: activeCategoryIds } }
-            })
-            .lean();
-
-        const validVariants = variants.filter(v => v.productId !== null && v.productId !== undefined);
-
-        const dealsWithEffectiveDiscounts = [];
-
-        validVariants.forEach((v) => {
-            const effectiveDiscount = calculateBestDiscount(
-                v.discount,
-                v.productId._id,
-                v.productId.categoryId
-            );
-
-            if (effectiveDiscount > 0) {
-                const calculatedPrice = Math.round(v.originalPrice * (1 - (effectiveDiscount / 100)));
-                const discountValue = Math.round(v.originalPrice - calculatedPrice);
-
-                dealsWithEffectiveDiscounts.push({
-                    ...v,
-                    effectiveDiscount,
-                    calculatedPrice,
-                    discountValue
-                });
-            }
-        });
-
-        const productDealsMap = {};
-
-        dealsWithEffectiveDiscounts.forEach(v => {
-            const prodIdStr = v.productId._id.toString();
-
-            if (
-                !productDealsMap[prodIdStr] || 
-                v.effectiveDiscount > productDealsMap[prodIdStr].effectiveDiscount
-            ) {
-                productDealsMap[prodIdStr] = v;
-            }
-        });
-
-        let uniqueProductDeals = Object.values(productDealsMap);
-
-        if (priceSort === 'low-to-high') {
-            uniqueProductDeals.sort((a, b) => a.calculatedPrice - b.calculatedPrice);
-        } else if (priceSort === 'high-to-low') {
-            uniqueProductDeals.sort((a, b) => b.calculatedPrice - a.calculatedPrice);
-        } else {
-            uniqueProductDeals.sort((a, b) => b.effectiveDiscount - a.effectiveDiscount);
+      if (offer.offerType === "product") {
+        if (
+          !productOffersMap[targetIdStr] ||
+          offer.discount > productOffersMap[targetIdStr]
+        ) {
+          productOffersMap[targetIdStr] = offer.discount;
         }
+      } else if (offer.offerType === "category") {
+        if (
+          !categoryOffersMap[targetIdStr] ||
+          offer.discount > categoryOffersMap[targetIdStr]
+        ) {
+          categoryOffersMap[targetIdStr] = offer.discount;
+        }
+      }
+    });
 
-        const totalItems = uniqueProductDeals.length;
-        const totalPages = Math.ceil(totalItems / limit) || 1;
-        const skipOffset = (page - 1) * limit;
-        const paginatedSlice = uniqueProductDeals.slice(skipOffset, skipOffset + limit);
+    const calculateBestDiscount = (
+      variantDiscount = 0,
+      productId,
+      categoryId,
+    ) => {
+      const pIdStr = productId ? productId.toString() : "";
+      const cIdStr = categoryId ? categoryId.toString() : "";
 
-        return {
-            variants: paginatedSlice,
-            totalItems,
-            totalPages,
-            currentPage: page
-        };
-    } catch (error) {
-        throw new Error(`Data extraction failure caught inside getTopDealsCatalog service layer: ${error.message}`);
+      const productOfferDiscount = productOffersMap[pIdStr] || 0;
+      const categoryOfferDiscount = categoryOffersMap[cIdStr] || 0;
+      const baseDiscount = Number(variantDiscount) || 0;
+
+      return Math.max(
+        baseDiscount,
+        productOfferDiscount,
+        categoryOfferDiscount,
+      );
+    };
+
+    const activeCategories = await Category.find({ isDeleted: false })
+      .select("_id")
+      .lean();
+    const activeCategoryIds = activeCategories.map((c) => c._id.toString());
+
+    const variants = await ProductVariant.find({ stock: { $gt: 0 } })
+      .populate({
+        path: "productId",
+        match: { isDeleted: false, categoryId: { $in: activeCategoryIds } },
+      })
+      .lean();
+
+    const validVariants = variants.filter(
+      (v) => v.productId !== null && v.productId !== undefined,
+    );
+
+    const dealsWithEffectiveDiscounts = [];
+
+    validVariants.forEach((v) => {
+      const effectiveDiscount = calculateBestDiscount(
+        v.discount,
+        v.productId._id,
+        v.productId.categoryId,
+      );
+
+      if (effectiveDiscount > 0) {
+        const calculatedPrice = Math.round(
+          v.originalPrice * (1 - effectiveDiscount / 100),
+        );
+        const discountValue = Math.round(v.originalPrice - calculatedPrice);
+
+        dealsWithEffectiveDiscounts.push({
+          ...v,
+          effectiveDiscount,
+          calculatedPrice,
+          discountValue,
+        });
+      }
+    });
+
+    const productDealsMap = {};
+
+    dealsWithEffectiveDiscounts.forEach((v) => {
+      const prodIdStr = v.productId._id.toString();
+
+      if (
+        !productDealsMap[prodIdStr] ||
+        v.effectiveDiscount > productDealsMap[prodIdStr].effectiveDiscount
+      ) {
+        productDealsMap[prodIdStr] = v;
+      }
+    });
+
+    let uniqueProductDeals = Object.values(productDealsMap);
+
+    if (priceSort === "low-to-high") {
+      uniqueProductDeals.sort((a, b) => a.calculatedPrice - b.calculatedPrice);
+    } else if (priceSort === "high-to-low") {
+      uniqueProductDeals.sort((a, b) => b.calculatedPrice - a.calculatedPrice);
+    } else {
+      uniqueProductDeals.sort(
+        (a, b) => b.effectiveDiscount - a.effectiveDiscount,
+      );
     }
+
+    const totalItems = uniqueProductDeals.length;
+    const totalPages = Math.ceil(totalItems / limit) || 1;
+    const skipOffset = (page - 1) * limit;
+    const paginatedSlice = uniqueProductDeals.slice(
+      skipOffset,
+      skipOffset + limit,
+    );
+
+    return {
+      variants: paginatedSlice,
+      totalItems,
+      totalPages,
+      currentPage: page,
+    };
+  } catch (error) {
+    throw new Error(
+      `Data extraction failure caught inside getTopDealsCatalog service layer: ${error.message}`,
+    );
+  }
 };
 
 export const getBestsellersCatalog = async (filters) => {
-    try {
-        const { priceSort, page = 1, limit = 8 } = filters;
-        const currentDate = new Date();
+  try {
+    const { priceSort, page = 1, limit = 8 } = filters;
+    const currentDate = new Date();
 
-        const activeOffers = await Offer.find({
-            isDeleted: false,
-            status: 'active',
-            startDate: { $lte: currentDate },
-            endDate: { $gte: currentDate }
-        }).lean();
+    const activeOffers = await Offer.find({
+      isDeleted: false,
+      status: "active",
+      startDate: { $lte: currentDate },
+      endDate: { $gte: currentDate },
+    }).lean();
 
-        const productOffersMap = {};
-        const categoryOffersMap = {};
+    const productOffersMap = {};
+    const categoryOffersMap = {};
 
-        activeOffers.forEach((offer) => {
-            const targetIdStr = offer.targetId ? offer.targetId.toString() : null;
-            if (!targetIdStr) return;
+    activeOffers.forEach((offer) => {
+      const targetIdStr = offer.targetId ? offer.targetId.toString() : null;
+      if (!targetIdStr) return;
 
-            if (offer.offerType === 'product') {
-                if (!productOffersMap[targetIdStr] || offer.discount > productOffersMap[targetIdStr]) {
-                    productOffersMap[targetIdStr] = offer.discount;
-                }
-            } else if (offer.offerType === 'category') {
-                if (!categoryOffersMap[targetIdStr] || offer.discount > categoryOffersMap[targetIdStr]) {
-                    categoryOffersMap[targetIdStr] = offer.discount;
-                }
-            }
-        });
-
-        const calculateBestDiscount = (variantDiscount = 0, productId, categoryId) => {
-            const pIdStr = productId ? productId.toString() : '';
-            const cIdStr = categoryId ? categoryId.toString() : '';
-
-            const productOfferDiscount = productOffersMap[pIdStr] || 0;
-            const categoryOfferDiscount = categoryOffersMap[cIdStr] || 0;
-            const baseDiscount = Number(variantDiscount) || 0;
-
-            return Math.max(baseDiscount, productOfferDiscount, categoryOfferDiscount);
-        };
-
-        const activeCategories = await Category.find({ isDeleted: false }).select('_id').lean();
-        const activeCategoryIds = activeCategories.map(c => c._id);
-
-        const salesStats = await Order.aggregate([
-            { $unwind: '$orderItems' },
-            { 
-                $match: { 
-                    'orderItems.itemStatus': { $ne: 'cancelled' } 
-                } 
-            },
-            {
-                $group: {
-                    _id: '$orderItems.productVariantId',
-                    totalSold: { $sum: '$orderItems.quantity' }
-                }
-            }
-        ]);
-
-        const salesMap = new Map();
-        salesStats.forEach(stat => {
-            salesMap.set(stat._id.toString(), stat.totalSold);
-        });
-
-        const productsList = await Product.find({ 
-            isDeleted: false, 
-            categoryId: { $in: activeCategoryIds } 
-        }).lean();
-
-        const bestsellerItems = [];
-
-        for (const product of productsList) {
-            const firstVariant = await ProductVariant.findOne({ productId: product._id, stock: { $gt: 0 } })
-                .sort({ createdAt: 1 })
-                .lean();
-
-            if (firstVariant) {
-                const effectiveDiscount = calculateBestDiscount(
-                    firstVariant.discount,
-                    product._id,
-                    product.categoryId
-                );
-
-                const calculatedPrice = Math.round(
-                    firstVariant.originalPrice * (1 - (effectiveDiscount / 100))
-                );
-
-                const totalSold = salesMap.get(firstVariant._id.toString()) || 0;
-
-                bestsellerItems.push({
-                    ...firstVariant,
-                    effectiveDiscount,
-                    calculatedPrice,
-                    totalSold,
-                    productId: product 
-                });
-            }
+      if (offer.offerType === "product") {
+        if (
+          !productOffersMap[targetIdStr] ||
+          offer.discount > productOffersMap[targetIdStr]
+        ) {
+          productOffersMap[targetIdStr] = offer.discount;
         }
-
-        if (priceSort === 'low-to-high') {
-            bestsellerItems.sort((a, b) => a.calculatedPrice - b.calculatedPrice);
-        } else if (priceSort === 'high-to-low') {
-            bestsellerItems.sort((a, b) => b.calculatedPrice - a.calculatedPrice);
-        } else {
-            bestsellerItems.sort((a, b) => b.totalSold - a.totalSold);
+      } else if (offer.offerType === "category") {
+        if (
+          !categoryOffersMap[targetIdStr] ||
+          offer.discount > categoryOffersMap[targetIdStr]
+        ) {
+          categoryOffersMap[targetIdStr] = offer.discount;
         }
+      }
+    });
 
-        const totalItems = bestsellerItems.length;
-        const totalPages = Math.ceil(totalItems / limit) || 1;
-        const safePage = Math.min(Math.max(1, page), totalPages);
-        const skipOffset = (safePage - 1) * limit;
-        const paginatedSlice = bestsellerItems.slice(skipOffset, skipOffset + limit);
+    const calculateBestDiscount = (
+      variantDiscount = 0,
+      productId,
+      categoryId,
+    ) => {
+      const pIdStr = productId ? productId.toString() : "";
+      const cIdStr = categoryId ? categoryId.toString() : "";
 
-        return {
-            variants: paginatedSlice,
-            totalItems,
-            totalPages,
-            currentPage: safePage
-        };
-    } catch (error) {
-        throw new Error(`Data layer error running getBestsellersCatalog: ${error.message}`);
+      const productOfferDiscount = productOffersMap[pIdStr] || 0;
+      const categoryOfferDiscount = categoryOffersMap[cIdStr] || 0;
+      const baseDiscount = Number(variantDiscount) || 0;
+
+      return Math.max(
+        baseDiscount,
+        productOfferDiscount,
+        categoryOfferDiscount,
+      );
+    };
+
+    const activeCategories = await Category.find({ isDeleted: false })
+      .select("_id")
+      .lean();
+    const activeCategoryIds = activeCategories.map((c) => c._id);
+
+    const salesStats = await Order.aggregate([
+      { $unwind: "$orderItems" },
+      {
+        $match: {
+          "orderItems.itemStatus": { $ne: "cancelled" },
+        },
+      },
+      {
+        $group: {
+          _id: "$orderItems.productVariantId",
+          totalSold: { $sum: "$orderItems.quantity" },
+        },
+      },
+    ]);
+
+    const salesMap = new Map();
+    salesStats.forEach((stat) => {
+      salesMap.set(stat._id.toString(), stat.totalSold);
+    });
+
+    const productsList = await Product.find({
+      isDeleted: false,
+      categoryId: { $in: activeCategoryIds },
+    }).lean();
+
+    const bestsellerItems = [];
+
+    for (const product of productsList) {
+      const firstVariant = await ProductVariant.findOne({
+        productId: product._id,
+        stock: { $gt: 0 },
+      })
+        .sort({ createdAt: 1 })
+        .lean();
+
+      if (firstVariant) {
+        const effectiveDiscount = calculateBestDiscount(
+          firstVariant.discount,
+          product._id,
+          product.categoryId,
+        );
+
+        const calculatedPrice = Math.round(
+          firstVariant.originalPrice * (1 - effectiveDiscount / 100),
+        );
+
+        const totalSold = salesMap.get(firstVariant._id.toString()) || 0;
+
+        bestsellerItems.push({
+          ...firstVariant,
+          effectiveDiscount,
+          calculatedPrice,
+          totalSold,
+          productId: product,
+        });
+      }
     }
+
+    if (priceSort === "low-to-high") {
+      bestsellerItems.sort((a, b) => a.calculatedPrice - b.calculatedPrice);
+    } else if (priceSort === "high-to-low") {
+      bestsellerItems.sort((a, b) => b.calculatedPrice - a.calculatedPrice);
+    } else {
+      bestsellerItems.sort((a, b) => b.totalSold - a.totalSold);
+    }
+
+    const totalItems = bestsellerItems.length;
+    const totalPages = Math.ceil(totalItems / limit) || 1;
+    const safePage = Math.min(Math.max(1, page), totalPages);
+    const skipOffset = (safePage - 1) * limit;
+    const paginatedSlice = bestsellerItems.slice(
+      skipOffset,
+      skipOffset + limit,
+    );
+
+    return {
+      variants: paginatedSlice,
+      totalItems,
+      totalPages,
+      currentPage: safePage,
+    };
+  } catch (error) {
+    throw new Error(
+      `Data layer error running getBestsellersCatalog: ${error.message}`,
+    );
+  }
 };

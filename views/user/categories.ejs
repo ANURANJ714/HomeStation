@@ -24,6 +24,65 @@
 
     <%- include('../partials/user/header', { activePage: 'products' }) %>
 
+    <% 
+        // 1. Resolve selected category names from active categories
+        let matchedCategoryNames = [];
+        if (typeof currentCategories !== 'undefined' && currentCategories && currentCategories.length > 0 && typeof categories !== 'undefined' && categories.length > 0) {
+            matchedCategoryNames = categories
+                .filter(cat => currentCategories.includes(cat._id.toString()))
+                .map(cat => cat.name);
+        }
+
+        const hasCategorySelected = matchedCategoryNames.length > 0;
+        const categoryDisplayText = hasCategorySelected ? matchedCategoryNames.join(', ') : 'World of Mattress';
+
+        // 2. Resolve selected brands
+        const hasBrandSelected = typeof currentBrands !== 'undefined' && currentBrands && currentBrands.length > 0;
+        const brandDisplayText = hasBrandSelected ? currentBrands.join(', ') : '';
+
+        // Query link preserved when clicking category level with active categories
+        const categoryHref = hasCategorySelected ? `/products?categories=${currentCategories.join(',')}` : '/products';
+    %>
+
+    <nav class="breadcrumb-nav" aria-label="breadcrumb">
+        <div class="container-fluid mattress-container">
+            <ol class="breadcrumb-list">
+                <li class="breadcrumb-item">
+                    <a href="/" class="breadcrumb-link"><i class="fa-solid fa-house breadcrumb-home-icon"></i> Home</a>
+                </li>
+                <li class="breadcrumb-separator" aria-hidden="true">/</li>
+
+                <% if (hasCategorySelected) { %>
+                    <li class="breadcrumb-item">
+                        <a href="/products" class="breadcrumb-link">World of Mattress</a>
+                    </li>
+                    <li class="breadcrumb-separator" aria-hidden="true">/</li>
+
+                    <% if (hasBrandSelected) { %>
+                        <li class="breadcrumb-item">
+                            <a href="<%= categoryHref %>" class="breadcrumb-link"><%= categoryDisplayText %></a>
+                        </li>
+                        <li class="breadcrumb-separator" aria-hidden="true">/</li>
+                        <li class="breadcrumb-item active" aria-current="page"><%= brandDisplayText %></li>
+                    <% } else { %>
+                        <li class="breadcrumb-item active" aria-current="page"><%= categoryDisplayText %></li>
+                    <% } %>
+
+                <% } else { %>
+                    <% if (hasBrandSelected) { %>
+                        <li class="breadcrumb-item">
+                            <a href="/products" class="breadcrumb-link">World of Mattress</a>
+                        </li>
+                        <li class="breadcrumb-separator" aria-hidden="true">/</li>
+                        <li class="breadcrumb-item active" aria-current="page"><%= brandDisplayText %></li>
+                    <% } else { %>
+                        <li class="breadcrumb-item active" aria-current="page">World of Mattress</li>
+                    <% } %>
+                <% } %>
+            </ol>
+        </div>
+    </nav>
+
     <main class="mattress-page">
         <div class="container-fluid mattress-container">
             <aside class="sidebar">
