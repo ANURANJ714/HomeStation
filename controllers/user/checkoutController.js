@@ -6,7 +6,6 @@ import * as checkoutService from '../../services/user/checkoutService.js';
 import * as orderService from '../../services/user/orderService.js';
 import * as userService from '../../services/user/authService.js';
 import * as couponService from '../../services/user/userCouponService.js';
-import * as walletService from '../../services/user/walletService.js';
 import * as razorpayService from '../../services/user/razorpayService.js';
 
 export const postCartItems = async (req, res) => {

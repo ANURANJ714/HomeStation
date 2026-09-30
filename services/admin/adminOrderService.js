@@ -1,11 +1,6 @@
 import Order from '../../models/Order.js';
 import ProductVariant from '../../models/ProductVariant.js';
 
-const formatOrderId = (id) => {
-    if (!id) return '';
-    return id.startsWith('#') ? id : `#${id}`;
-};
-
 export const getAdminOrdersPageData = async (page = 1, limit = 5, searchQuery = '', statusFilter = '') => {
     try {
         const query = {};
@@ -298,7 +293,7 @@ export const updateOrderItemStatus = async (orderId, orderItemId, newStatus) => 
                 }
             }
         } 
-        
+
         else {
             if (item.itemStatus === 'cancelled') {
                 const err = new Error('Cancelled items cannot be updated.');

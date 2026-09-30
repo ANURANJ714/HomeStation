@@ -31,11 +31,17 @@ export const validateCartForCheckout = async (userId) => {
             const category = product?.categoryId;
 
             const isVariantMissing = !variant;
-            const isProductDeleted = !product || product.isDeleted === true;
-            const isCategoryDeleted = category && category.isDeleted === true;
+            const isProductDeleted = !product || product.isDeleted === true || product.isDeleted === 'true';
+            const isCategoryDeleted = category && (category.isDeleted === true || category.isDeleted === 'true');
             const isOutOfStock = typeof variant?.stock === 'number' && variant.stock <= 0;
 
             if (isVariantMissing || isProductDeleted || isCategoryDeleted || isOutOfStock) {
+                if (variant?._id) {
+                    await Cart.deleteMany({ userId, productVariantId: variant._id });
+                } else {
+                    await Cart.deleteMany({ userId, _id: item._id });
+                }
+
                 const name = product ? `${product.name} (${variant?.variantName || 'Item'})` : 'An item';
                 unavailableProductNames.push(name);
                 continue;
@@ -64,7 +70,7 @@ export const validateCartForCheckout = async (userId) => {
         }
 
         const warningNotice = unavailableProductNames.length > 0 
-            ? `${unavailableProductNames.join(', ')} is out of stock or no longer available and was excluded from checkout.`
+            ? `${unavailableProductNames.join(', ')} was out of stock or no longer available and was removed from your cart.`
             : null;
 
         return {

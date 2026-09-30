@@ -169,6 +169,12 @@ export const getCartItems = async (userId) => {
             const isOutOfStock = typeof variant?.stock === 'number' && variant.stock <= 0;
 
             if (isVariantMissing || isProductDeleted || isCategoryDeleted || isOutOfStock) {
+                if (variant?._id) {
+                    await Cart.deleteMany({ userId, productVariantId: variant._id });
+                } else {
+                    await Cart.deleteMany({ userId, _id: item._id });
+                }
+
                 const name = product ? `${product.name} (${variant?.variantName || 'Item'})` : 'An item in your cart';
                 unavailableNames.push(name);
                 continue;
@@ -206,7 +212,7 @@ export const getCartItems = async (userId) => {
 
         const unavailableNotice = unavailableNames.length > 0 ? {
             title: "Product Unavailable",
-            message: `${unavailableNames.join(', ')} is currently out of stock or no longer available.`
+            message: `${unavailableNames.join(', ')} was removed from your cart because it is out of stock or no longer available.`
         } : null;
 
         return { 
