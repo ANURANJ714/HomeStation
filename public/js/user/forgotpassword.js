@@ -1,34 +1,52 @@
 document.addEventListener('DOMContentLoaded', () => {
     const csrfToken = document.getElementById('csrfToken')?.value || '';
     const forgotPasswordForm = document.getElementById('forgotPasswordForm');
+    const emailInput = document.getElementById('email');
+    const emailError = document.getElementById('emailError');
+
+    function showError(message) {
+        if (emailError) {
+            emailError.innerText = message;
+            emailError.classList.add('active');
+        }
+        const container = emailInput?.closest('.input-container');
+        if (container) {
+            container.classList.add('has-error');
+        }
+    }
+
+    function clearError() {
+        if (emailError) {
+            emailError.innerText = '';
+            emailError.classList.remove('active');
+        }
+        const container = emailInput?.closest('.input-container');
+        if (container) {
+            container.classList.remove('has-error');
+        }
+    }
+
+    if (emailInput) {
+        emailInput.addEventListener('input', clearError);
+    }
 
     if (forgotPasswordForm) {
         forgotPasswordForm.addEventListener('submit', async (e) => {
             e.preventDefault();
-            
-            const emailInput = document.getElementById('email');
+            clearError();
+
             const email = emailInput ? emailInput.value.trim() : '';
             const submitBtn = document.getElementById('submitBtn');
 
             if (!email) {
-                return Swal.fire({
-                    icon: 'warning',
-                    title: 'Missing Field',
-                    text: 'Please enter your registered email address.',
-                    confirmButtonColor: '#1a1a1a',
-                    heightAuto: false
-                });
+                showError('Please enter your registered email address.');
+                return;
             }
 
             const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
             if (!emailRegex.test(email)) {
-                return Swal.fire({
-                    icon: 'warning',
-                    title: 'Invalid Email',
-                    text: 'Please enter a valid email address configuration.',
-                    confirmButtonColor: '#1a1a1a',
-                    heightAuto: false
-                });
+                showError('Please enter a valid email address.');
+                return;
             }
 
             const originalText = submitBtn.innerText;
@@ -38,7 +56,11 @@ document.addEventListener('DOMContentLoaded', () => {
             try {
                 const response = await fetch('/user/forgot-password', {
                     method: 'POST',
-                    headers: { 'Content-Type': 'application/json', 'CSRF-Token': csrfToken },
+                    headers: { 
+                        'Content-Type': 'application/json', 
+                        'CSRF-Token': csrfToken,
+                        'x-csrf-token': csrfToken
+                    },
                     body: JSON.stringify({ email })
                 });
 
@@ -58,6 +80,7 @@ document.addEventListener('DOMContentLoaded', () => {
                         window.location.href = '/user/register'; 
                     });
                 } else {
+                    showError(data.message || 'Unable to process your request.');
                     Swal.fire({
                         icon: 'error',
                         title: 'Error',
@@ -72,7 +95,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     icon: 'error', 
                     title: 'Error', 
                     text: 'A network error occurred. Please check your connection.', 
-                    confirmButtonColor: '#1a1a1a',
+                    confirmButtonColor: '#1a1a1a', 
                     heightAuto: false 
                 });
             } finally {

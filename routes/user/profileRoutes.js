@@ -3,7 +3,7 @@ import { ensureAuthenticated } from '../../middlewares/auth.js';
 import {noCache} from '../../middlewares/cache.js';
 import { upload } from '../../config/cloudinary.js';
 import { getProfile, updateProfile, updatePassword, logoutUser,
-         loadVerifyEmailPage, verifyEmailChange, resendEmailOtp } from '../../controllers/user/profileController.js';
+         loadVerifyEmailPage, verifyEmailChange, resendEmailOtp, applyReferralCode } from '../../controllers/user/profileController.js';
 import { loadWishlistPage } from '../../controllers/user/wishlistController.js';
 import { loadWalletPage, initiateAddMoney, verifyAddMoneyPayment } from '../../controllers/user/walletController.js';
 
@@ -17,6 +17,7 @@ router.patch('/password', ensureAuthenticated, updatePassword);
 router.get('/verify-email', ensureAuthenticated, loadVerifyEmailPage);
 router.post('/verify-email-change', ensureAuthenticated, verifyEmailChange);
 router.post('/resend-email-otp', ensureAuthenticated, resendEmailOtp);
+router.post('/profile/apply-referral', ensureAuthenticated, applyReferralCode);
 
 router.get('/wishlist', ensureAuthenticated, loadWishlistPage);
 

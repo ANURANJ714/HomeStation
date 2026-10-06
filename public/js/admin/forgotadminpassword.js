@@ -1,36 +1,63 @@
 document.addEventListener("DOMContentLoaded", () => {
   const forgotPasswordForm = document.getElementById("forgotPasswordForm");
+  const emailInput = document.getElementById("email");
+  const emailError = document.getElementById("emailError");
   const submitBtn = document.getElementById("submitBtn");
-  const csrfToken = document.getElementById("csrfToken").value;
+  const csrfToken = document.getElementById("csrfToken")?.value || "";
+
+  function showError(message) {
+    if (emailError) {
+      emailError.innerText = message;
+      emailError.classList.add("active");
+    }
+    const container = emailInput?.closest(".input-container");
+    if (container) {
+      container.classList.add("has-error");
+    }
+  }
+
+  function clearError() {
+    if (emailError) {
+      emailError.innerText = "";
+      emailError.classList.remove("active");
+    }
+    const container = emailInput?.closest(".input-container");
+    if (container) {
+      container.classList.remove("has-error");
+    }
+  }
+
+  if (emailInput) {
+    emailInput.addEventListener("input", clearError);
+  }
+
   forgotPasswordForm.addEventListener("submit", async (e) => {
     e.preventDefault();
-    const email = document.getElementById("email").value.trim();
+    clearError();
 
+    const email = emailInput ? emailInput.value.trim() : "";
+
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     if (!email) {
-      return Swal.fire({
-        icon: "warning",
-        title: "Oops...",
-        text: "Please enter your email.",
-        heightAuto: false,
-      });
+      showError("Please enter your registered email address.");
+      return;
+    } else if (!emailRegex.test(email)) {
+      showError("Please enter a valid email address.");
+      return;
     }
 
-    submitBtn.innerHTML =
-      '<i class="fa-solid fa-spinner fa-spin"></i> Sending...';
-
+    const originalText = submitBtn.innerHTML;
+    submitBtn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Sending...';
     submitBtn.disabled = true;
 
     try {
       const response = await fetch("/admin/forgot-password", {
         method: "POST",
-
         headers: {
           "Content-Type": "application/json",
           "CSRF-Token": csrfToken,
         },
-        body: JSON.stringify({
-          email,
-        }),
+        body: JSON.stringify({ email }),
       });
 
       const data = await response.json();
@@ -47,6 +74,7 @@ document.addEventListener("DOMContentLoaded", () => {
           window.location.href = data.redirectUrl;
         });
       } else {
+        showError(data.message || "Failed to process request.");
         Swal.fire({
           icon: "error",
           title: "Request Failed",
@@ -54,12 +82,11 @@ document.addEventListener("DOMContentLoaded", () => {
           heightAuto: false,
         });
 
-        submitBtn.innerHTML = "Next";
+        submitBtn.innerHTML = originalText;
         submitBtn.disabled = false;
       }
     } catch (error) {
       console.error("Forgot Password Error:", error);
-
       Swal.fire({
         icon: "error",
         title: "System Error",
@@ -67,7 +94,7 @@ document.addEventListener("DOMContentLoaded", () => {
         heightAuto: false,
       });
 
-      submitBtn.innerHTML = "Next";
+      submitBtn.innerHTML = originalText;
       submitBtn.disabled = false;
     }
   });

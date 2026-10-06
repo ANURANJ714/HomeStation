@@ -2,10 +2,10 @@ import passport from "passport";
 import { Strategy as LocalStrategy } from "passport-local";
 import { Strategy as GoogleStrategy } from "passport-google-oauth20";
 import bcrypt from "bcryptjs";
-import { generateNextUserId } from "../utils/generateUserId.js";
 import User from "../models/User.js";
-
+import * as userAuthService from "../services/user/authService.js";
 import dotenv from "dotenv";
+
 dotenv.config();
 
 const configurePassport = (passport) => {
@@ -36,7 +36,6 @@ const configurePassport = (passport) => {
 
           return done(null, user);
         } catch (error) {
-          console.error("Local Strategy Error:", error);
           return done(error);
         }
       },
@@ -52,30 +51,9 @@ const configurePassport = (passport) => {
       },
       async (accessToken, refreshToken, profile, done) => {
         try {
-          let user = await User.findOne({ googleId: profile.id });
-          if (user) return done(null, user);
-
-          user = await User.findOne({ email: profile.emails[0].value });
-          if (user) {
-            user.googleId = profile.id;
-
-            await user.save();
-            return done(null, user);
-          }
-
-          const newUserId = await generateNextUserId();
-
-          const newUser = new User({
-            userId: newUserId,
-            fullName: profile.displayName,
-            email: profile.emails[0].value,
-            googleId: profile.id,
-            authProvider: "google",
-          });
-
-          await newUser.save();
-          newUser.isNewRegistration = true;
-          return done(null, newUser);
+          const { user, isNewUser } = await userAuthService.handleGoogleAuthUser(profile);
+          user.isNewRegistration = isNewUser;
+          return done(null, user);
         } catch (error) {
           return done(error, false);
         }

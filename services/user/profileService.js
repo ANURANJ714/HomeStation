@@ -1,4 +1,5 @@
 import User from '../../models/User.js';
+import * as walletService from '../../services/user/walletService.js';
 
 export const validateData = async (fullName, email, phone) =>{
     try{
@@ -97,5 +98,71 @@ export const updateUserEmail = async (userId, newEmail) => {
 
     } catch (error) {
         throw new Error(`Database error while updating user email: ${error.message}`);
+    }
+};
+
+export const applyReferralCodeService = async (userId, referralCodeInput) => {
+    try {
+        const currentUser = await User.findById(userId);
+        if (!currentUser) {
+            const error = new Error("User account not found.");
+            error.statusCode = 404;
+            throw error;
+        }
+
+        if (currentUser.referredBy) {
+            const error = new Error("You have already applied a referral code.");
+            error.statusCode = 400;
+            throw error;
+        }
+
+        if (currentUser.createdAt) {
+            const createdDate = new Date(currentUser.createdAt);
+            const daysDiff = (Date.now() - createdDate.getTime()) / (1000 * 60 * 60 * 24);
+            if (daysDiff > 30) {
+                const error = new Error("The referral code offer is only valid within 30 days of registration.");
+                error.statusCode = 400;
+                throw error;
+            }
+        }
+
+        const cleanCode = referralCodeInput ? String(referralCodeInput).trim() : '';
+        if (!cleanCode) {
+            const error = new Error("Please enter a referral code.");
+            error.statusCode = 400;
+            throw error;
+        }
+
+        if (currentUser.referralCode && currentUser.referralCode.toLowerCase() === cleanCode.toLowerCase()) {
+            const error = new Error("You cannot use your own referral code.");
+            error.statusCode = 400;
+            throw error;
+        }
+
+        const referrerUser = await User.findOne({ 
+            referralCode: cleanCode, 
+            status: 'Active' 
+        });
+
+        if (!referrerUser) {
+            const error = new Error("Invalid referral code. No active account found with this code.");
+            error.statusCode = 404;
+            throw error;
+        }
+
+        currentUser.referredBy = referrerUser._id;
+        await currentUser.save();
+
+        await walletService.handleReferralBonus(currentUser._id, referrerUser._id);
+
+        return {
+            success: true,
+            message: "Referral code applied successfully! ₹200 has been added to your wallet."
+        };
+    } catch (error) {
+        if (!error.statusCode) {
+            error.statusCode = 500;
+        }
+        throw error;
     }
 };

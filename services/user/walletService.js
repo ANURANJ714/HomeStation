@@ -184,3 +184,79 @@ export const creditWalletRefund = async (userId, refundAmount, description, orde
         throw new Error(`Database error while crediting refund to wallet: ${error.message}`);
     }
 };
+
+export const creditWallet = async (userId, amount, purpose, description) => {
+    try {
+        let wallet = await Wallet.findOne({ userId });
+
+        if (!wallet) {
+            wallet = new Wallet({
+                userId,
+                balance: 0,
+                transactions: []
+            });
+        }
+
+        if (Array.isArray(wallet.transactions)) {
+            wallet.transactions.forEach((txn) => {
+                if (!txn.purpose) {
+                    txn.purpose = 'add_money';
+                }
+            });
+        }
+
+        const creditAmount = Number(amount);
+        if (isNaN(creditAmount) || creditAmount <= 0) {
+            throw new Error('Credit amount must be a valid positive number.');
+        }
+
+        const validPurposes = [
+            'return_refund',
+            'add_money',
+            'order_purchase',
+            'cancellation_refund',
+            'referral_bonus',
+            'referral_signup_bonus'
+        ];
+        const assignedPurpose = validPurposes.includes(purpose) ? purpose : 'referral_signup_bonus';
+
+        wallet.balance += creditAmount;
+
+        wallet.transactions.push({
+            amount: creditAmount,
+            type: 'credit',
+            purpose: assignedPurpose,
+            description: description || 'Wallet credit',
+            date: new Date()
+        });
+
+        await wallet.save();
+        return wallet;
+    } catch (error) {
+        throw new Error(`Failed to credit wallet for user (${userId}): ${error.message}`);
+    }
+};
+
+export const handleReferralBonus = async (newUserId, referrerUserId) => {
+    try {
+        if (!newUserId || !referrerUserId) {
+            throw new Error('Both newUserId and referrerUserId are required for referral bonus.');
+        }
+
+        await creditWallet(
+            referrerUserId, 
+            1000, 
+            'referral_bonus', 
+            'Referral bonus credited for referring a friend'
+        );
+
+        await creditWallet(
+            newUserId, 
+            200, 
+            'referral_signup_bonus', 
+            'Bonus credited for applying referral code'
+        );
+    } catch (error) {
+        throw new Error(`Referral bonus distribution error: ${error.message}`);
+    }
+};

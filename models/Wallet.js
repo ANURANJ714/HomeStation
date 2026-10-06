@@ -18,7 +18,14 @@ const transactionSchema = new mongoose.Schema({
     },
     purpose: {
         type: String,
-        enum: ['return_refund', 'add_money', 'order_purchase', 'cancellation_refund'],
+        enum: [
+            'return_refund',
+            'add_money',
+            'order_purchase',
+            'cancellation_refund',
+            'referral_bonus',
+            'referral_signup_bonus'
+        ],
         required: true
     },
     description: {

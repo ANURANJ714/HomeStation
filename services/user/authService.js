@@ -1,6 +1,8 @@
 import bcrypt from 'bcryptjs';
 import User from '../../models/User.js';
 import { generateNextUserId } from '../../utils/generateUserId.js';
+import { generateUniqueReferralCode } from '../../utils/generateReferralCode.js';
+import * as walletService from '../../services/user/walletService.js';
 
 export const validateRegistrationData = async (fullName, email, phone, password) => {
     try {
@@ -57,12 +59,21 @@ export const validateRegistrationData = async (fullName, email, phone, password)
 
 export const createLocalUser = async (userData) => {
     try {
-        const { fullName, email, phone, password } = userData;
-        
+        const { fullName, email, phone, password, referredBy } = userData;
+
         const salt = await bcrypt.genSalt(10);
         const passwordHash = await bcrypt.hash(password, salt);
 
-        const userId = await generateNextUserId(); 
+        const userId = await generateNextUserId();
+        const referralCode = await generateUniqueReferralCode();
+
+        let referrerUser = null;
+        if (referredBy && referredBy.trim() !== '') {
+            referrerUser = await User.findOne({ 
+                referralCode: referredBy.trim(),
+                status: 'Active'
+            });
+        }
 
         const newUser = new User({
             userId,
@@ -70,14 +81,63 @@ export const createLocalUser = async (userData) => {
             email,
             phone,
             passwordHash,
+            referralCode,
+            referredBy: referrerUser ? referrerUser._id : null,
             authProvider: 'local'
         });
 
         await newUser.save();
-        
+
+        if (referrerUser) {
+            await walletService.handleReferralBonus(newUser._id, referrerUser._id);
+        }
+
         return newUser;
     } catch (error) {
         throw new Error(`Failed to create local user account: ${error.message}`);
+    }
+};
+
+export const handleGoogleAuthUser = async (profile) => {
+    try {
+        const email = profile.emails && profile.emails[0] ? profile.emails[0].value : null;
+        if (!email) {
+            throw new Error('Google profile does not contain an email address.');
+        }
+
+        let existingUser = await User.findOne({ googleId: profile.id });
+        if (existingUser) {
+            return { user: existingUser, isNewUser: false };
+        }
+
+        existingUser = await User.findOne({ email });
+        if (existingUser) {
+            existingUser.googleId = profile.id;
+            
+            if (!existingUser.referralCode) {
+                existingUser.referralCode = await generateUniqueReferralCode();
+            }
+
+            await existingUser.save();
+            return { user: existingUser, isNewUser: false };
+        }
+
+        const newUserId = await generateNextUserId();
+        const referralCode = await generateUniqueReferralCode();
+
+        const newUser = new User({
+            userId: newUserId,
+            fullName: profile.displayName,
+            email,
+            googleId: profile.id,
+            referralCode,
+            authProvider: 'google'
+        });
+
+        await newUser.save();
+        return { user: newUser, isNewUser: true };
+    } catch (error) {
+        throw new Error(`Google Auth service failure: ${error.message}`);
     }
 };
 

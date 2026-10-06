@@ -1,15 +1,38 @@
 document.addEventListener('DOMContentLoaded', () => {
-    const csrfToken = document.getElementById('csrfToken').value;
+    const csrfToken = document.getElementById('csrfToken')?.value || '';
     const otpInputs = document.querySelectorAll('.otp-input');
     const timerContainer = document.getElementById('timerContainer');
     const otpForm = document.getElementById('otpForm');
+    const otpError = document.getElementById('otpError');
+    const otpInputContainer = document.getElementById('otpInputContainer');
 
     let timeLeft = 60;
     let countdown;
 
+    function showOtpError(message) {
+        if (otpError) {
+            otpError.innerText = message;
+            otpError.classList.add('active');
+        }
+        if (otpInputContainer) {
+            otpInputContainer.classList.add('has-error');
+        }
+    }
+
+    function clearOtpError() {
+        if (otpError) {
+            otpError.innerText = '';
+            otpError.classList.remove('active');
+        }
+        if (otpInputContainer) {
+            otpInputContainer.classList.remove('has-error');
+        }
+    }
+
     otpInputs.forEach((input, index) => {
         input.addEventListener('input', () => {
             input.value = input.value.replace(/[^0-9]/g, '');
+            clearOtpError();
         });
 
         input.addEventListener('keyup', (e) => {
@@ -47,6 +70,7 @@ document.addEventListener('DOMContentLoaded', () => {
     document.addEventListener('click', async (e) => {
         if (e.target && e.target.id === 'resendOtpBtn') {
             e.preventDefault();
+            clearOtpError();
             
             timerContainer.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Sending...';
 
@@ -55,7 +79,8 @@ document.addEventListener('DOMContentLoaded', () => {
                     method: 'POST',
                     headers: { 
                         'Content-Type': 'application/json',
-                        'CSRF-Token': csrfToken 
+                        'CSRF-Token': csrfToken,
+                        'x-csrf-token': csrfToken
                     }
                 });
 
@@ -94,6 +119,7 @@ document.addEventListener('DOMContentLoaded', () => {
     if (otpForm) {
         otpForm.addEventListener('submit', async function (e) {
             e.preventDefault();
+            clearOtpError();
 
             let otp = '';
             otpInputs.forEach(input => {
@@ -101,23 +127,13 @@ document.addEventListener('DOMContentLoaded', () => {
             });
 
             if (otp.length === 0) {
-                return Swal.fire({
-                    icon: 'warning',
-                    title: 'Field Required',
-                    text: 'Please enter the verification code sent to your email.',
-                    confirmButtonColor: '#222',
-                    heightAuto: false
-                });
+                showOtpError('Please enter the 6-digit verification code.');
+                return;
             }
 
-            if (otp.length !== 6) {
-                return Swal.fire({
-                    icon: 'warning',
-                    title: 'Incomplete Code',
-                    text: 'The verification code must be exactly 6 digits.',
-                    confirmButtonColor: '#222',
-                    heightAuto: false
-                });
+            if (otp.length !== 6 || !/^\d{6}$/.test(otp)) {
+                showOtpError('The verification code must be exactly 6 digits.');
+                return;
             }
 
             const combinedOtpInput = document.getElementById('combinedOtp');
@@ -133,7 +149,8 @@ document.addEventListener('DOMContentLoaded', () => {
                     method: 'POST',
                     headers: { 
                         'Content-Type': 'application/json',
-                        'CSRF-Token': csrfToken 
+                        'CSRF-Token': csrfToken,
+                        'x-csrf-token': csrfToken
                     },
                     body: JSON.stringify({ otp: otp })
                 });
@@ -149,9 +166,10 @@ document.addEventListener('DOMContentLoaded', () => {
                         showConfirmButton: false,
                         heightAuto: false
                     }).then(() => {
-                        window.location.href = data.redirectUrl || '/user/login';
+                        window.location.href = data.redirectUrl || '/user/profile';
                     });
                 } else {
+                    showOtpError(data.message || 'Verification failed. Please check the OTP.');
                     Swal.fire({
                         icon: 'error',
                         title: 'Verification Failed',
@@ -161,11 +179,11 @@ document.addEventListener('DOMContentLoaded', () => {
                     });
                 }
             } catch (error) {
-                console.error("Asynchronous verification process failure:", error);
+                console.error("Verification network error:", error);
                 Swal.fire({
                     icon: 'error',
                     title: 'Server Error',
-                    text: 'An error occurred during verification.',
+                    text: 'An error occurred during verification. Please try again.',
                     confirmButtonColor: '#222',
                     heightAuto: false
                 });

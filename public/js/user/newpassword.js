@@ -1,20 +1,22 @@
 document.addEventListener('DOMContentLoaded', () => {
     const csrfToken = document.getElementById('csrfToken')?.value || '';
     const resetPasswordForm = document.getElementById('resetPasswordForm');
+    const passwordInput = document.getElementById('new-password');
+    const confirmPasswordInput = document.getElementById('confirm-password');
 
     document.addEventListener('click', (e) => {
         const toggleBtn = e.target.closest('.toggle-password');
         if (toggleBtn) {
             const targetId = toggleBtn.getAttribute('data-target');
-            const passwordInput = document.getElementById(targetId);
+            const targetInput = document.getElementById(targetId);
             
-            if (passwordInput && passwordInput.type === "password") {
-                passwordInput.type = "text";
+            if (targetInput && targetInput.type === "password") {
+                targetInput.type = "text";
                 toggleBtn.classList.remove("fa-eye-slash");
                 toggleBtn.classList.add("fa-eye");
                 toggleBtn.style.color = "#222";
-            } else if (passwordInput) {
-                passwordInput.type = "password";
+            } else if (targetInput) {
+                targetInput.type = "password";
                 toggleBtn.classList.remove("fa-eye");
                 toggleBtn.classList.add("fa-eye-slash");
                 toggleBtn.style.color = "#888";
@@ -22,44 +24,75 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     });
 
+    function showError(fieldId, errorId, message) {
+        const inputField = document.getElementById(fieldId);
+        const errorEl = document.getElementById(errorId);
+        const container = inputField?.closest('.input-container');
+
+        if (errorEl) {
+            errorEl.innerText = message;
+            errorEl.classList.add('active');
+        }
+        if (container) {
+            container.classList.add('has-error');
+        }
+    }
+
+    function clearError(fieldId, errorId) {
+        const inputField = document.getElementById(fieldId);
+        const errorEl = document.getElementById(errorId);
+        const container = inputField?.closest('.input-container');
+
+        if (errorEl) {
+            errorEl.innerText = '';
+            errorEl.classList.remove('active');
+        }
+        if (container) {
+            container.classList.remove('has-error');
+        }
+    }
+
+    function clearAllErrors() {
+        clearError('new-password', 'passwordError');
+        clearError('confirm-password', 'confirmPasswordError');
+    }
+
+    if (passwordInput) {
+        passwordInput.addEventListener('input', () => clearError('new-password', 'passwordError'));
+    }
+    if (confirmPasswordInput) {
+        confirmPasswordInput.addEventListener('input', () => clearError('confirm-password', 'confirmPasswordError'));
+    }
+
     if (resetPasswordForm) {
         resetPasswordForm.addEventListener('submit', async (e) => {
             e.preventDefault();
+            clearAllErrors();
 
-            const password = document.getElementById('new-password').value.trim();
-            const confirmPassword = document.getElementById('confirm-password').value.trim();
+            const password = passwordInput ? passwordInput.value : '';
+            const confirmPassword = confirmPasswordInput ? confirmPasswordInput.value : '';
             const submitBtn = document.getElementById('submitBtn');
 
-            if (!password || !confirmPassword) {
-                return Swal.fire({ 
-                    icon: 'warning', 
-                    title: 'Fields Required', 
-                    text: 'Please fill out both password fields.', 
-                    confirmButtonColor: '#222', 
-                    heightAuto: false 
-                });
-            }
-
-            if (password !== confirmPassword) {
-                return Swal.fire({ 
-                    icon: 'warning', 
-                    title: 'Check Passwords', 
-                    text: 'Your passwords do not match!', 
-                    confirmButtonColor: '#222', 
-                    heightAuto: false 
-                });
-            }
+            let isValid = true;
 
             const passwordRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[!@#$]).{12,}$/;
-            if (!passwordRegex.test(password)) {
-                return Swal.fire({ 
-                    icon: 'warning', 
-                    title: 'Weak Password', 
-                    text: 'Password must be at least 12 characters long and include an uppercase letter, a lowercase letter, a number, and a special character (!, @, #, $).', 
-                    confirmButtonColor: '#222',
-                    heightAuto: false 
-                });
+            if (!password) {
+                showError('new-password', 'passwordError', 'Please enter a new password.');
+                isValid = false;
+            } else if (!passwordRegex.test(password)) {
+                showError('new-password', 'passwordError', 'Must be 12+ chars with uppercase, lowercase, number, and special char (!, @, #, $).');
+                isValid = false;
             }
+
+            if (!confirmPassword) {
+                showError('confirm-password', 'confirmPasswordError', 'Please confirm your new password.');
+                isValid = false;
+            } else if (password !== confirmPassword) {
+                showError('confirm-password', 'confirmPasswordError', 'Passwords do not match.');
+                isValid = false;
+            }
+
+            if (!isValid) return;
 
             const originalText = submitBtn.innerText;
             submitBtn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Updating...';
@@ -69,8 +102,9 @@ document.addEventListener('DOMContentLoaded', () => {
                 const response = await fetch('/user/reset-password', {
                     method: 'PATCH',
                     headers: { 
-                        'Content-Type': 'application/json',
-                        'CSRF-Token': csrfToken 
+                        'Content-Type': 'application/json', 
+                        'CSRF-Token': csrfToken,
+                        'x-csrf-token': csrfToken
                     },
                     body: JSON.stringify({ password })
                 });
@@ -89,6 +123,7 @@ document.addEventListener('DOMContentLoaded', () => {
                         window.location.href = data.redirectUrl || '/user/login';
                     });
                 } else {
+                    showError('new-password', 'passwordError', data.message || 'Failed to update password.');
                     Swal.fire({ icon: 'error', title: 'Error', text: data.message, confirmButtonColor: '#222', heightAuto: false });
                 }
             } catch (error) {

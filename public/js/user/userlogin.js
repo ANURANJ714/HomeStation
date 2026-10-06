@@ -15,6 +15,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     const togglePasswordBtn = document.getElementById('togglePasswordBtn');
     const passwordInput = document.getElementById('password');
+    const emailInput = document.getElementById('email');
 
     if (togglePasswordBtn && passwordInput) {
         togglePasswordBtn.addEventListener('click', function () {
@@ -30,36 +31,76 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
+    function showError(fieldId, errorId, message) {
+        const inputField = document.getElementById(fieldId);
+        const errorEl = document.getElementById(errorId);
+        const container = inputField?.closest('.input-container');
+
+        if (errorEl) {
+            errorEl.innerText = message;
+            errorEl.classList.add('active');
+        }
+        if (container) {
+            container.classList.add('has-error');
+        }
+    }
+
+    function clearError(fieldId, errorId) {
+        const inputField = document.getElementById(fieldId);
+        const errorEl = document.getElementById(errorId);
+        const container = inputField?.closest('.input-container');
+
+        if (errorEl) {
+            errorEl.innerText = '';
+            errorEl.classList.remove('active');
+        }
+        if (container) {
+            container.classList.remove('has-error');
+        }
+    }
+
+    function clearAllErrors() {
+        clearError('email', 'emailError');
+        clearError('password', 'passwordError');
+    }
+
+    if (emailInput) {
+        emailInput.addEventListener('input', () => clearError('email', 'emailError'));
+    }
+    if (passwordInput) {
+        passwordInput.addEventListener('input', () => clearError('password', 'passwordError'));
+    }
+
     const loginForm = document.getElementById('loginForm');
     if (loginForm) {
         loginForm.addEventListener('submit', async (e) => {
             e.preventDefault();
+            clearAllErrors();
 
-            const email = document.getElementById('email').value.trim();
-            const password = document.getElementById('password').value;
+            const email = emailInput ? emailInput.value.trim() : '';
+            const password = passwordInput ? passwordInput.value : '';
             const submitBtn = document.getElementById('submitBtn');
             const csrfToken = document.getElementById('csrfToken')?.value || '';
 
-            if (!email || !password) {
-                return Swal.fire({
-                    icon: 'warning',
-                    title: 'Missing Details',
-                    text: 'Please enter both your email address and account password.',
-                    confirmButtonColor: '#222',
-                    heightAuto: false
-                });
+            let isValid = true;
+
+            if (!email) {
+                showError('email', 'emailError', 'Please enter your email address.');
+                isValid = false;
+            } else {
+                const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+                if (!emailRegex.test(email)) {
+                    showError('email', 'emailError', 'Please enter a valid email address.');
+                    isValid = false;
+                }
             }
 
-            const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-            if (!emailRegex.test(email)) {
-                return Swal.fire({
-                    icon: 'warning',
-                    title: 'Invalid Format',
-                    text: 'Please enter a valid email address configuration.',
-                    confirmButtonColor: '#222',
-                    heightAuto: false
-                });
+            if (!password) {
+                showError('password', 'passwordError', 'Please enter your account password.');
+                isValid = false;
             }
+
+            if (!isValid) return;
 
             const originalText = submitBtn.innerText;
             submitBtn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Verifying...';
@@ -84,13 +125,19 @@ document.addEventListener('DOMContentLoaded', () => {
                         heightAuto: false,
                         scrollbarPadding: false
                     }).then(() => {
-                        window.location.href = '/home'; 
+                        window.location.href = data.redirectUrl || '/home'; 
                     });
                 } else {
+                    if (data.message && data.message.toLowerCase().includes('password')) {
+                        showError('password', 'passwordError', data.message);
+                    } else if (data.message && data.message.toLowerCase().includes('email')) {
+                        showError('email', 'emailError', data.message);
+                    }
+
                     Swal.fire({
                         icon: 'error',
                         title: 'Login Failed',
-                        text: data.message,
+                        text: data.message || 'Invalid credentials provided.',
                         confirmButtonColor: '#222',
                         heightAuto: false,
                         scrollbarPadding: false

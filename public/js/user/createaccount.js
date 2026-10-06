@@ -1,5 +1,5 @@
 document.addEventListener('DOMContentLoaded', () => {
-    const csrfToken = document.getElementById('csrfToken').value;
+    const csrfToken = document.getElementById('csrfToken')?.value || '';
 
     document.querySelectorAll('.toggle-password').forEach(icon => {
         icon.addEventListener('click', function () {
@@ -27,60 +27,115 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
+    function showError(fieldId, errorId, message) {
+        const inputField = document.getElementById(fieldId);
+        const errorEl = document.getElementById(errorId);
+        const inputContainer = inputField?.closest('.input-container');
+
+        if (errorEl) {
+            errorEl.innerText = message;
+            errorEl.classList.add('active');
+        }
+        if (inputContainer) {
+            inputContainer.classList.add('has-error');
+        }
+    }
+
+    function clearError(fieldId, errorId) {
+        const inputField = document.getElementById(fieldId);
+        const errorEl = document.getElementById(errorId);
+        const inputContainer = inputField?.closest('.input-container');
+
+        if (errorEl) {
+            errorEl.innerText = '';
+            errorEl.classList.remove('active');
+        }
+        if (inputContainer) {
+            inputContainer.classList.remove('has-error');
+        }
+    }
+
+    function clearAllErrors() {
+        clearError('name', 'nameError');
+        clearError('email', 'emailError');
+        clearError('phone', 'phoneError');
+        clearError('password', 'passwordError');
+        clearError('confirm-password', 'confirmPasswordError');
+        clearError('referredBy', 'referredByError');
+    }
+
+    ['name', 'email', 'phone', 'password', 'confirm-password', 'referredBy'].forEach(id => {
+        const el = document.getElementById(id);
+        if (el) {
+            el.addEventListener('input', () => {
+                const errorId = id === 'confirm-password' ? 'confirmPasswordError' : `${id}Error`;
+                clearError(id, errorId);
+            });
+        }
+    });
+
     const registerForm = document.getElementById('registerForm');
     if (registerForm) {
         registerForm.addEventListener('submit', async (e) => {
             e.preventDefault();
+            clearAllErrors();
 
             const fullName = document.getElementById('name').value.trim();
             const email = document.getElementById('email').value.trim();
             const phone = document.getElementById('phone').value.trim();
             const password = document.getElementById('password').value;
             const confirmPassword = document.getElementById('confirm-password').value;
+            const referredBy = document.getElementById('referredBy').value.trim();
             const submitBtn = document.getElementById('submitBtn');
 
-            if (!fullName || !email || !phone || !password || !confirmPassword) {
-                return Swal.fire({
-                    icon: 'warning',
-                    title: 'Missing Information',
-                    text: 'Please fill out all fields before creating an account.',
-                    confirmButtonColor: '#222',
-                    heightAuto: false,
-                    scrollbarPadding: false
-                });
+            let isValid = true;
+
+            const nameRegex = /^[A-Za-z]+(?:[ '-][A-Za-z]+)*$/;
+            if (!fullName) {
+                showError('name', 'nameError', 'Please enter your full name.');
+                isValid = false;
+            } else if (!nameRegex.test(fullName)) {
+                showError('name', 'nameError', 'Name can only contain letters and single spaces.');
+                isValid = false;
             }
 
             const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-            if (!emailRegex.test(email)) {
-                return Swal.fire({
-                    icon: 'warning',
-                    title: 'Invalid Email',
-                    text: 'Please enter a valid email address.',
-                    confirmButtonColor: '#222',
-                    heightAuto: false,
-                });
+            if (!email) {
+                showError('email', 'emailError', 'Please enter your email address.');
+                isValid = false;
+            } else if (!emailRegex.test(email)) {
+                showError('email', 'emailError', 'Please enter a valid email address.');
+                isValid = false;
             }
 
             const phoneRegex = /^[0-9]{10}$/;
-            if (!phoneRegex.test(phone)) {
-                return Swal.fire({
-                    icon: 'warning',
-                    title: 'Invalid Phone Number',
-                    text: 'Please enter a valid 10-digit mobile number.',
-                    confirmButtonColor: '#222',
-                    heightAuto: false,
-                });
+            if (!phone) {
+                showError('phone', 'phoneError', 'Please enter your phone number.');
+                isValid = false;
+            } else if (!phoneRegex.test(phone)) {
+                showError('phone', 'phoneError', 'Please enter a valid 10-digit mobile number.');
+                isValid = false;
             }
 
-            if (password !== confirmPassword) {
-                return Swal.fire({
-                    icon: 'warning',
-                    title: 'Check Passwords',
-                    text: 'Your passwords do not match!',
-                    confirmButtonColor: '#222',
-                    heightAuto: false,
-                    scrollbarPadding: false
-                });
+            const passwordRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[!@#$]).{12,}$/;
+            if (!password) {
+                showError('password', 'passwordError', 'Please enter a password.');
+                isValid = false;
+            } else if (!passwordRegex.test(password)) {
+                showError('password', 'passwordError', 'Must be 12+ chars with uppercase, lowercase, number, and special char (!, @, #, $).');
+                isValid = false;
+            }
+
+            if (!confirmPassword) {
+                showError('confirm-password', 'confirmPasswordError', 'Please confirm your password.');
+                isValid = false;
+            } else if (password !== confirmPassword) {
+                showError('confirm-password', 'confirmPasswordError', 'Passwords do not match.');
+                isValid = false;
+            }
+
+            if (!isValid) {
+                return;
             }
 
             const originalText = submitBtn.innerText;
@@ -90,8 +145,19 @@ document.addEventListener('DOMContentLoaded', () => {
             try {
                 const response = await fetch('/user/register', {
                     method: 'POST',
-                    headers: { 'Content-Type': 'application/json', 'CSRF-Token': csrfToken },
-                    body: JSON.stringify({ fullName, email, phone, password, confirmPassword })
+                    headers: { 
+                        'Content-Type': 'application/json', 
+                        'CSRF-Token': csrfToken,
+                        'x-csrf-token': csrfToken
+                    },
+                    body: JSON.stringify({ 
+                        fullName, 
+                        email, 
+                        phone, 
+                        password, 
+                        confirmPassword,
+                        referredBy
+                    })
                 });
 
                 const data = await response.json();
@@ -102,7 +168,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     Swal.fire({
                         icon: 'error',
                         title: 'Registration Failed',
-                        text: data.message,
+                        text: data.message || 'Failed to complete registration.',
                         confirmButtonColor: '#222',
                         heightAuto: false,
                         scrollbarPadding: false

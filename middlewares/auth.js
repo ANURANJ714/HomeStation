@@ -19,16 +19,6 @@ export const ensureAuthenticated = (req, res, next) => {
     return res.redirect('/user/login');
 };;
 
-export const forwardAuthenticated = (req, res, next) => {
-    if (req.isAuthenticated() && req.user) {
-        if (req.user.role === 'Admin') {
-            return res.redirect('/admin/dashboard');
-        }
-        return res.redirect('/home'); 
-    }
-    next();
-};
-
 export const checkOptionalAuth = (req, res, next) => {
     if (!req.isAuthenticated() || !req.user) {
         return next();

@@ -17,10 +17,20 @@ export const getProfile = async (req, res) => {
             getUserHeaderCounts(userId)
         ]);
 
+        let canApplyReferral = false;
+        if (user && !user.referredBy && user.createdAt) {
+            const createdDate = new Date(user.createdAt);
+            const daysSinceCreated = (Date.now() - createdDate.getTime()) / (1000 * 60 * 60 * 24);
+            if (daysSinceCreated <= 30) {
+                canApplyReferral = true;
+            }
+        }
+
         logger.info(`User profile page accessed by ${userEmail}. IP: ${clientIp}`);
 
         return res.render('user/profile', { 
             user,
+            canApplyReferral,
             bannerText,
             wishlistCount: headerCounts.wishlistCount,
             cartCount: headerCounts.cartCount,
@@ -34,6 +44,29 @@ export const getProfile = async (req, res) => {
             success: false,
             title: "Server Error",
             message: "An internal server error occurred while loading the profile page."
+        });
+    }
+};
+
+export const applyReferralCode = async (req, res) => {
+    try {
+        const userId = req.user._id;
+        const { referralCode } = req.body;
+        const clientIp = req.ip;
+
+        const result = await profileService.applyReferralCodeService(userId, referralCode);
+
+        logger.info(`User (${req.user.email}) successfully applied referral code: ${referralCode} | IP: ${clientIp}`);
+        return res.status(200).json(result);
+    } catch (error) {
+        const statusCode = error.statusCode || 500;
+        const message = error.message || "An unexpected error occurred while applying the referral code.";
+        
+        logger.warn(`Referral application failed for (${req.user?.email || 'Unknown'}): ${message} [Status: ${statusCode}] | IP: ${req.ip}\nStack: ${error.stack}`);
+        
+        return res.status(statusCode).json({ 
+            success: false, 
+            message: message 
         });
     }
 };

@@ -1,4 +1,3 @@
-import bcrypt from 'bcryptjs';
 import crypto from 'crypto';
 import passport from 'passport';
 import * as userAuthService from '../../services/user/authService.js'
@@ -110,7 +109,7 @@ export const loadRegister = async (req, res) => {
 
 export const processRegister = async (req, res) => {
     try {
-        const { fullName, email, phone, password, confirmPassword } = req.body;
+        const { fullName, email, phone, password, confirmPassword, referredBy } = req.body;
         const clientIp = req.ip;
 
         if (password !== confirmPassword) {
@@ -135,7 +134,15 @@ export const processRegister = async (req, res) => {
 
         req.session.resetEmail = null; 
         req.session.canResetPassword = false;
-        req.session.tempUserData = { fullName, email, phone, password };
+        
+        req.session.tempUserData = { 
+            fullName, 
+            email, 
+            phone, 
+            password,
+            referredBy: referredBy ? referredBy.trim() : null 
+        };
+        
         req.session.otp = otp;
         req.session.otpExpires = Date.now() + 60 * 1000; 
         req.session.otpContext = 'registration';
@@ -146,7 +153,7 @@ export const processRegister = async (req, res) => {
                 return res.status(500).json({ success: false, message: "Session error occurred." });
             }
 
-            logger.info(`Registration initiated. OTP sent to ${email}. IP: ${clientIp}`);
+            logger.info(`Registration initiated. OTP sent to ${email} | Referred By: ${referredBy || 'None'} | IP: ${clientIp}`);
             return res.status(200).json({ success: true, message: "OTP sent successfully." });
         });
 
@@ -276,8 +283,9 @@ export const verifyOtp = async (req, res) => {
         }
 
         if (req.session.otpContext === 'registration') {
-            
             const newUser = await userAuthService.createLocalUser(req.session.tempUserData);
+
+            logger.info(`User registered successfully: ${newUser.email} | Assigned Code: ${newUser.referralCode} | Referred By: ${newUser.referredBy || 'None'} | IP: ${clientIp}`);
 
             req.session.tempUserData = null;
             req.session.otp = null;
@@ -299,7 +307,7 @@ export const verifyOtp = async (req, res) => {
                         return res.status(500).json({ success: false, message: "Session error during login." });
                     }
                     
-                    logger.info(`User (${newUser.email}) registered and auto-logged in successfully. IP: ${clientIp}`);
+                    logger.info(`User (${newUser.email}) auto-logged in. Redirecting to profile. IP: ${clientIp}`);
                     
                     return res.status(200).json({
                         success: true, 
@@ -311,7 +319,6 @@ export const verifyOtp = async (req, res) => {
             return; 
 
         } else if (req.session.otpContext === 'forgot_password') {
-            
             req.session.canResetPassword = true;
 
             req.session.otp = null;
@@ -336,7 +343,6 @@ export const verifyOtp = async (req, res) => {
 
     } catch (error) {
         logger.error(`Verify OTP Error (IP: ${req.ip}): ${error.message}\nStack: ${error.stack}`);
-        
         return res.status(500).json({ 
             success: false, 
             message: "An error occurred during verification." 

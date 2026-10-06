@@ -3,7 +3,6 @@ import * as couponService from '../../services/user/userCouponService.js';
 import {getActivePromoBanner} from '../../services/user/bannerService.js';
 import { getUserHeaderCounts } from '../../services/user/badgeService.js';
 import * as reviewService from '../../services/user/reviewService.js';
-import { getMultipleProductReviewSummaries } from '../../services/user/reviewService.js';
 import logger from '../../utils/logger.js';
 
 export const addToCartController = async (req, res) => {

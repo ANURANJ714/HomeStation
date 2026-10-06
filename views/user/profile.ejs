@@ -27,7 +27,7 @@
             <aside class="profile-sidebar" id="appSidebar">
                 <div class="profile-user-info">
                     <img src="<%= user.profileImage || 'https://cdn.pixabay.com/photo/2015/10/05/22/37/blank-profile-picture-973460_1280.png' %>"
-                        alt="Profile" class="sidebar-avatar">
+                        alt="Profile" class="sidebar-avatar" id="sidebarAvatar">
                     <div class="user-greeting">
                         <span class="hello-text">Hello,</span>
                         <span class="user-name" id="sidebarName">
@@ -86,11 +86,13 @@
                                 <label for="fullName">Full Name</label>
                                 <input type="text" id="fullName" name="fullName" class="form-control"
                                     value="<%= user.fullName %>" disabled>
+                                <small class="field-error-text" id="fullNameError"></small>
                             </div>
                             <div class="form-col form-group">
                                 <label for="phone">Phone Number</label>
                                 <input type="tel" id="phone" name="phone" class="form-control"
-                                    value="<%= user.phone %>" disabled>
+                                    value="<%= user.phone %>" disabled maxlength="10">
+                                <small class="field-error-text" id="phoneError"></small>
                             </div>
                         </div>
 
@@ -98,6 +100,7 @@
                             <label for="email">Email Address</label>
                             <input type="email" id="email" name="email" class="form-control"
                                 value="<%= user.email %>" disabled data-provider="<%= user.authProvider %>">
+                            <small class="field-error-text" id="emailError"></small>
 
                             <% if (user.authProvider === 'google') { %>
                                 <small class="google-auth-warning">
@@ -108,45 +111,75 @@
 
                         <div class="profile-actions" id="profileActions">
                             <button type="button" class="btn-cancel-gray" id="cancelBtn">Cancel</button>
-                            <button type="submit" class="btn-save">Save Changes</button>
+                            <button type="submit" class="btn-save" id="saveProfileBtn">Save Changes</button>
                         </div>
                     </form>
 
+                    <div class="referral-section">
+                        <h3 class="section-title">Referral & Earning</h3>
+
+                        <% if (typeof canApplyReferral !== 'undefined' && canApplyReferral) { %>
+                            <div class="claim-referral-block" id="claimReferralContainer">
+                                <form id="applyReferralForm" novalidate>
+                                    <div class="referral-input-group">
+                                        <input type="text" id="claimReferralCodeInput" placeholder="Enter friend's referral code" class="form-control referral-large-input">
+                                        <button type="submit" class="btn-proceed-large" id="proceedReferralBtn">Proceed</button>
+                                    </div>
+                                    <small class="field-error-text" id="referralCodeError"></small>
+                                    <p class="referral-subtext"><i class="fa-solid fa-circle-check"></i> Get ₹200 in your wallet by adding a referral code</p>
+                                </form>
+                            </div>
+                        <% } %>
+
+                        <div class="share-referral-block">
+                            <p class="referral-share-lead">Your Referral Code</p>
+                            <p class="referral-subtext-highlight">Get ₹1000 in your wallet by referring your friend.</p>
+                            
+                            <div class="attractive-code-box">
+                                <span class="referral-code-badge" id="myReferralCodeText"><%= user.referralCode || 'NOT AVAILABLE' %></span>
+                                <button type="button" class="copy-referral-btn" id="copyReferralCodeBtn" title="Copy Referral Code">
+                                    <i class="fa-regular fa-copy" id="copyIcon"></i>
+                                    <span class="copy-label-text" id="copyLabelText">Copy</span>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+
                     <% if (user.authProvider === 'local') { %>
-                        <div class="profile-form mt-50">
+                        <div class="profile-form">
                             <form id="passwordForm" class="password-section" novalidate>
                                 <h3 class="section-title">Change Password</h3>
 
                                 <div class="form-group">
                                     <label for="oldPassword">Old Password</label>
                                     <div class="password-input-relative">
-                                        <input type="password" id="oldPassword" name="oldPassword"
-                                            class="form-control" required>
-                                        <i class="fa-regular fa-eye-slash toggle-password"></i>
+                                        <input type="password" id="oldPassword" name="oldPassword" class="form-control">
+                                        <i class="fa-regular fa-eye-slash toggle-password" data-target="oldPassword"></i>
                                     </div>
+                                    <small class="field-error-text" id="oldPasswordError"></small>
                                 </div>
 
                                 <div class="form-group">
                                     <label for="newPassword">New Password</label>
                                     <div class="password-input-relative">
-                                        <input type="password" id="newPassword" name="newPassword"
-                                            class="form-control" required>
-                                        <i class="fa-regular fa-eye-slash toggle-password"></i>
+                                        <input type="password" id="newPassword" name="newPassword" class="form-control">
+                                        <i class="fa-regular fa-eye-slash toggle-password" data-target="newPassword"></i>
                                     </div>
+                                    <small class="field-error-text" id="newPasswordError"></small>
                                 </div>
 
                                 <div class="form-group">
                                     <label for="confirmPassword">Confirm New Password</label>
                                     <div class="password-input-relative">
-                                        <input type="password" id="confirmPassword" name="confirmPassword"
-                                            class="form-control" required>
-                                        <i class="fa-regular fa-eye-slash toggle-password"></i>
+                                        <input type="password" id="confirmPassword" name="confirmPassword" class="form-control">
+                                        <i class="fa-regular fa-eye-slash toggle-password" data-target="confirmPassword"></i>
                                     </div>
+                                    <small class="field-error-text" id="confirmPasswordError"></small>
                                 </div>
 
                                 <div class="password-actions">
                                     <button type="button" class="btn-cancel-gray" id="clearPasswordBtn">Clear</button>
-                                    <button type="submit" class="btn-save change-password-submit-btn">Update Password</button>
+                                    <button type="submit" class="btn-save change-password-submit-btn" id="updatePasswordBtn">Update Password</button>
                                 </div>
                             </form>
                         </div>

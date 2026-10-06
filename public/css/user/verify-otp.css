@@ -112,6 +112,23 @@ body {
     margin: 0;
 }
 
+.field-error-text {
+    display: none;
+    color: #dc2626;
+    font-size: 13px;
+    font-weight: 500;
+    margin-top: 8px;
+    text-align: center;
+}
+
+.field-error-text.active {
+    display: block;
+}
+
+.otp-container.has-error .otp-input {
+    border-color: #dc2626;
+}
+
 .timer-text {
     text-align: center;
     font-size: 14px;
