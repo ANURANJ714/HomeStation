@@ -5,7 +5,7 @@ import logger from '../../utils/logger.js';
 export const getAdminDashboard = async (req, res) => {
     try {
         const adminEmail = req.user ? req.user.email : 'Unknown Admin';
-        logger.info(`Admin dashboard accessed by: ${adminEmail}`);
+        logger.info(`Admin dashboard accessed by: ${adminEmail} | IP: ${req.ip}`);
 
         const [banner, analytics] = await Promise.all([
             bannerService.getActiveBanner(),
