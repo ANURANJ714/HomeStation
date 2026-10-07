@@ -1,0 +1,252 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>HomeStation - ADMIN</title>
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,600;0,700;1,600&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="icon" type="image/x-icon" href="https://res.cloudinary.com/dz7fuqwnr/image/upload/v1778395481/WhatsApp_Image_2026-05-10_at_12.12.36_nra5vk.jpg">
+    <link rel="stylesheet" href="/css/admin/salesreport.css">
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+</head>
+
+<body>
+    <div class="dashboard-layout">
+
+        <aside class="sidebar">
+            <div class="sidebar-header">
+                <h2 class="brand-title">HomeStation</h2>
+                <button class="close-sidebar-btn" id="closeSidebar">
+                    <i class="fa-solid fa-xmark"></i>
+                </button>
+            </div>
+
+            <nav class="sidebar-nav">
+                <ul class="nav-list">
+                    <li class="nav-item">
+                        <a href="/admin/dashboard" class="nav-link">
+                            <i class="fa-solid fa-chart-pie nav-icon"></i> Dashboard
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a href="/admin/products" class="nav-link">
+                            <i class="fa-solid fa-box nav-icon"></i> Products
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a href="/admin/categories" class="nav-link">
+                            <i class="fa-solid fa-tags nav-icon"></i> Categories
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a href="/admin/orders" class="nav-link">
+                            <i class="fa-solid fa-cart-shopping nav-icon"></i> Orders
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a href="/admin/users" class="nav-link">
+                            <i class="fa-solid fa-users nav-icon"></i> User Management
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a href="/admin/sales-report" class="nav-link active">
+                            <i class="fa-solid fa-file-invoice-dollar nav-icon"></i> Sales Report
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a href="/admin/coupons" class="nav-link">
+                            <i class="fa-solid fa-ticket nav-icon"></i> Manage Coupons
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a href="/admin/enquiries" class="nav-link">
+                            <i class="fa-solid fa-envelope nav-icon"></i> Enquiry
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a href="/admin/offers" class="nav-link">
+                            <i class="fa-solid fa-gift nav-icon"></i> Offers
+                        </a>
+                    </li>
+                </ul>
+
+                <ul class="nav-list logout-section">
+                    <li class="nav-item">
+                        <form action="/admin/logout" method="POST" id="adminLogoutForm" class="logout-form">
+                            <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+                            <button type="submit" class="logout-link logout-btn">
+                                <i class="fa-solid fa-right-from-bracket nav-icon"></i> Logout
+                            </button>
+                        </form>
+                    </li>
+                </ul>
+            </nav>
+        </aside>
+
+        <div class="main-panel">
+
+            <header class="top-header">
+                <div class="header-left">
+                    <button class="hamburger-menu" id="hamburgerMenu">
+                        <i class="fa-solid fa-bars"></i>
+                    </button>
+                </div>
+                <div class="header-right">
+                    <div class="datetime-display" id="datetimeDisplay"></div>
+                    <div class="admin-badge">
+                        <i class="fa-solid fa-user-shield"></i> Admin
+                    </div>
+                </div>
+            </header>
+
+            <main class="content-wrapper">
+
+                <div class="page-header-row page-header-gap">
+                    <h1 class="page-title">Sales Report</h1>
+                    <div class="header-actions">
+                        <button class="btn-export btn-export-pdf" id="btnDownloadPDF">
+                            <i class="fa-solid fa-file-pdf"></i> Download PDF
+                        </button>
+                        <button class="btn-export" id="btnExportExcel">
+                            <i class="fa-solid fa-file-excel"></i> Export as Spreadsheet
+                        </button>
+                    </div>
+                </div>
+
+                <div class="filter-controls-card">
+                    <div class="filter-group">
+                        <label for="timeFilter" class="filter-label">Filter Period:</label>
+                        <select class="filter-select highlight-select" id="timeFilter">
+                            <option value="lifetime" <%= data.filter === 'lifetime' ? 'selected' : '' %>>Lifetime</option>
+                            <option value="last30" <%= data.filter === 'last30' ? 'selected' : '' %>>Last 30 Days</option>
+                            <option value="last6months" <%= data.filter === 'last6months' ? 'selected' : '' %>>Last 6 Months</option>
+                            <option value="lastyear" <%= data.filter === 'lastyear' ? 'selected' : '' %>>Last Year</option>
+                            <option value="custom" <%= data.filter === 'custom' ? 'selected' : '' %>>Custom</option>
+                        </select>
+                    </div>
+
+                    <div class="custom-date-container <%= data.filter === 'custom' ? 'd-flex' : 'd-none' %>" id="customDateContainer">
+                        <div class="date-field">
+                            <label for="fromDate">From:</label>
+                            <input type="date" id="fromDate" class="date-input" value="<%= data.fromDate %>">
+                        </div>
+                        <div class="date-field">
+                            <label for="toDate">To:</label>
+                            <input type="date" id="toDate" class="date-input" value="<%= data.toDate %>">
+                        </div>
+                        <button type="button" class="btn-apply" id="btnApplyCustomDate">Apply</button>
+                    </div>
+                </div>
+
+                <div class="stats-grid">
+                    <div class="stat-card">
+                        <div class="stat-icon bg-blue"><i class="fa-solid fa-cubes"></i></div>
+                        <div class="stat-details">
+                            <p class="stat-label">Total Sales</p>
+                            <h3 class="stat-value"><%= data.summary.totalSales.toLocaleString('en-IN') %></h3>
+                        </div>
+                    </div>
+
+                    <div class="stat-card">
+                        <div class="stat-icon bg-green"><i class="fa-solid fa-indian-rupee-sign"></i></div>
+                        <div class="stat-details">
+                            <p class="stat-label">Total Revenue</p>
+                            <h3 class="stat-value">₹<%= data.summary.totalRevenue.toLocaleString('en-IN') %></h3>
+                        </div>
+                    </div>
+
+                    <div class="stat-card">
+                        <div class="stat-icon bg-purple"><i class="fa-solid fa-tag"></i></div>
+                        <div class="stat-details">
+                            <p class="stat-label">Total Discount</p>
+                            <h3 class="stat-value">₹<%= data.summary.totalDiscount.toLocaleString('en-IN') %></h3>
+                        </div>
+                    </div>
+
+                    <div class="stat-card">
+                        <div class="stat-icon bg-orange"><i class="fa-solid fa-ticket"></i></div>
+                        <div class="stat-details">
+                            <p class="stat-label">Total Coupon Discount</p>
+                            <h3 class="stat-value">₹<%= data.summary.totalCouponDiscount.toLocaleString('en-IN') %></h3>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="section-container">
+                    <h2 class="section-title">Detailed Transaction Log</h2>
+                    <div class="table-container">
+                        <table class="data-table min-w-900">
+                            <thead>
+                                <tr>
+                                    <th class="col-sl">SL No</th>
+                                    <th>Date</th>
+                                    <th>Total Items Sold</th>
+                                    <th>Total Discount</th>
+                                    <th>Coupon Discount</th>
+                                    <th>Total Revenue</th>
+                                </tr>
+                            </thead>
+                            <tbody id="transactionLogBody">
+                                <% if (data.records && data.records.length > 0) { %>
+                                    <% data.records.forEach(row => { %>
+                                        <tr>
+                                            <td class="fw-500"><%= row.sl %></td>
+                                            <td class="fw-500"><%= row.date %></td>
+                                            <td><%= row.orders %></td>
+                                            <td class="text-red">-₹<%= row.totalDiscount.toLocaleString('en-IN') %></td>
+                                            <td class="text-red">-₹<%= row.couponDiscount.toLocaleString('en-IN') %></td>
+                                            <td class="text-green">₹<%= row.revenue.toLocaleString('en-IN') %></td>
+                                        </tr>
+                                    <% }) %>
+                                <% } else { %>
+                                    <tr>
+                                        <td colspan="6" class="no-data-cell">No transaction records found for the selected timeframe.</td>
+                                    </tr>
+                                <% } %>
+                            </tbody>
+                        </table>
+                    </div>
+
+                    <% if (data.totalEntries > 0) { %>
+                        <div class="pagination-container pagination-spacing">
+                            <span class="pagination-info" id="paginationInfo">
+                                Showing <%= ((data.currentPage - 1) * 6) + 1 %> to <%= Math.min(data.currentPage * 6, data.totalEntries) %> of <%= data.totalEntries %> entries
+                            </span>
+                            <div class="pagination-controls" id="paginationControls">
+                                <% if (data.currentPage > 1) { %>
+                                    <a href="/admin/sales-report?filter=<%= data.filter %>&fromDate=<%= data.fromDate %>&toDate=<%= data.toDate %>&page=<%= data.currentPage - 1 %>" class="page-btn">
+                                        <i class="fa-solid fa-chevron-left"></i>
+                                    </a>
+                                <% } else { %>
+                                    <span class="page-btn disabled"><i class="fa-solid fa-chevron-left"></i></span>
+                                <% } %>
+
+                                <% for (let i = 1; i <= data.totalPages; i++) { %>
+                                    <a href="/admin/sales-report?filter=<%= data.filter %>&fromDate=<%= data.fromDate %>&toDate=<%= data.toDate %>&page=<%= i %>" class="page-btn <%= i === data.currentPage ? 'active' : '' %>">
+                                        <%= i %>
+                                    </a>
+                                <% } %>
+
+                                <% if (data.currentPage < data.totalPages) { %>
+                                    <a href="/admin/sales-report?filter=<%= data.filter %>&fromDate=<%= data.fromDate %>&toDate=<%= data.toDate %>&page=<%= data.currentPage + 1 %>" class="page-btn">
+                                        <i class="fa-solid fa-chevron-right"></i>
+                                    </a>
+                                <% } else { %>
+                                    <span class="page-btn disabled"><i class="fa-solid fa-chevron-right"></i></span>
+                                <% } %>
+                            </div>
+                        </div>
+                    <% } %>
+                </div>
+
+            </main>
+        </div>
+    </div>
+
+    <script src="/js/admin/salesreport.js" defer></script>
+</body>
+
+</html>

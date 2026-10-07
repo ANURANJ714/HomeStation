@@ -18,6 +18,7 @@ import mongoSanitizeMiddleware from "./middlewares/mongoSanitizeMiddleware.js";
 import { noCache } from './middlewares/cache.js';
 import { sessionMiddleware } from './middlewares/session.js';
 import { csrfProtection, injectCsrfToken } from './middlewares/csrf.js';
+import { globalLimiter } from './middlewares/rateLimiter.js';
 import { notFoundMiddleware } from './middlewares/notFoundMiddleware.js';
 import { globalErrorHandler } from './middlewares/globalErrorHandler.js';
 
@@ -37,6 +38,7 @@ import enquiryRoutes from './routes/admin/enquiryRoutes.js';
 import adminOrderRoutes from './routes/admin/adminOrderRoutes.js';
 import offerRoutes from './routes/admin/offerRoutes.js';
 import couponRoutes from './routes/admin/couponRoutes.js';
+import salesReportRoutes from './routes/admin/salesReportRoutes.js';
 
 configurePassport(passport);
 connectDB();
@@ -61,6 +63,8 @@ app.use(express.static(path.join(process.cwd(), 'public')));
 app.use(helmetMiddleware);
 app.use(mongoSanitizeMiddleware);
 
+app.use(globalLimiter);
+
 app.use(sessionMiddleware);
 app.use(passport.initialize());
 app.use(passport.session());
@@ -84,6 +88,7 @@ app.use('/admin', enquiryRoutes);
 app.use('/admin', adminOrderRoutes);
 app.use('/admin/offers', offerRoutes);
 app.use('/admin/coupons', couponRoutes);
+app.use('/admin', salesReportRoutes);
 
 app.use('/', pageRoutes);
 

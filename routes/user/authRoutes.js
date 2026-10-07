@@ -3,35 +3,35 @@ import passport from 'passport';
 import { loadLogin, processLogin, loadRegister, processRegister, loadOtpPage, 
          verifyOtp, loadForgotPassword, processForgotPassword, loadResetPassword, processResetPassword,
          resendOtp } from '../../controllers/user/authController.js'; 
+import { authLimiter, otpLimiter } from '../../middlewares/rateLimiter.js';
 
 const router = express.Router();
 
 router.get('/login', loadLogin);
-router.post('/login', processLogin);
+router.post('/login', authLimiter, processLogin);
 
 router.get('/register', loadRegister);
-router.post('/register', processRegister);
+router.post('/register', authLimiter, processRegister);
 
 router.get('/verify-otp', loadOtpPage);
-router.post('/verify-otp', verifyOtp);
-router.post('/resend-otp', resendOtp);
+router.post('/verify-otp', authLimiter, verifyOtp);
+router.post('/resend-otp', otpLimiter, resendOtp);
 
 router.get('/forgot-password', loadForgotPassword);
-router.post('/forgot-password', processForgotPassword);
+router.post('/forgot-password', authLimiter, processForgotPassword);
 
 router.get('/reset-password', loadResetPassword);
-router.patch('/reset-password', processResetPassword);
+router.patch('/reset-password', authLimiter, processResetPassword);
 
 router.get('/auth/google', passport.authenticate('google', { 
     scope: ['profile', 'email'] 
 }));
-
 router.get('/auth/google/callback', 
     passport.authenticate('google', { failureRedirect: '/user/login' }),
     (req, res) => {
-        if(req.user && req.user.isNewRegistration){
+        if (req.user && req.user.isNewRegistration) {
             res.redirect('/user/profile');
-        }else{
+        } else {
             res.redirect('/home');
         }
     }

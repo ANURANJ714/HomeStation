@@ -6,13 +6,12 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>HomeStation - ADMIN</title>
     <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&display=swap" rel="stylesheet">
-    <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,600;0,700;1,600&display=swap"
-        rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,600;0,700;1,600&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <link rel="icon" type="image/x-icon"
-        href="https://res.cloudinary.com/dz7fuqwnr/image/upload/v1778395481/WhatsApp_Image_2026-05-10_at_12.12.36_nra5vk.jpg">
+    <link rel="icon" type="image/x-icon" href="https://res.cloudinary.com/dz7fuqwnr/image/upload/v1778395481/WhatsApp_Image_2026-05-10_at_12.12.36_nra5vk.jpg">
     <link rel="stylesheet" href="/css/admin/dashboard.css">
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
 </head>
 
 <body>
@@ -105,8 +104,10 @@
 
             <main class="content-wrapper">
                 <input type="hidden" id="csrfToken" value="<%= csrfToken %>">
+                <input type="hidden" id="allChartDataPayload" value="<%= encodeURIComponent(JSON.stringify(stats.chartDataCollection)) %>">
 
-                <div class="page-header-row page-header-spacing flex-end-row">
+                <div class="page-header-row page-header-spacing">
+                    <h1 class="page-title">Dashboard Overview</h1>
                     <button class="btn btn-primary" id="openBannerModalBtn" type="button">Banner Details</button>
                 </div>
 
@@ -135,51 +136,104 @@
                     </div>
                 </div>
 
-                <h2 class="stats-heading">Last 30 Days</h2>
-                <div class="stats-grid">
-                    <div class="stat-card">
-                        <div class="stat-icon revenue-icon"><i class="fa-solid fa-indian-rupee-sign"></i></div>
-                        <div class="stat-details">
-                            <p class="stat-label">Revenue</p>
-                            <h3 class="stat-value">₹<%= stats.recent.revenue.toLocaleString('en-IN') %></h3>
+                <div class="chart-card">
+                    <div class="chart-header">
+                        <div class="chart-title-group">
+                            <h2 class="section-title m-0">Revenue Analytics</h2>
+                            <p class="chart-subtitle">Revenue in rupees over the selected time period</p>
+                        </div>
+                        <div class="chart-filter-wrapper">
+                            <label for="revenueChartFilter" class="chart-filter-label">Interval:</label>
+                            <select id="revenueChartFilter" class="chart-filter-select">
+                                <option value="monthly" selected>Monthly (Last 12 Months)</option>
+                                <option value="daily">Daily (Last 30 Days)</option>
+                                <option value="yearly">Yearly (Last 5 years)</option>
+                            </select>
                         </div>
                     </div>
-                    <div class="stat-card">
-                        <div class="stat-icon items-icon"><i class="fa-solid fa-couch"></i></div>
-                        <div class="stat-details">
-                            <p class="stat-label">Items Sold</p>
-                            <h3 class="stat-value"><%= stats.recent.itemsSold.toLocaleString('en-IN') %></h3>
-                        </div>
-                    </div>
-                    <div class="stat-card">
-                        <div class="stat-icon users-icon"><i class="fa-solid fa-user-plus"></i></div>
-                        <div class="stat-details">
-                            <p class="stat-label">New Users</p>
-                            <h3 class="stat-value"><%= stats.recent.newUsers.toLocaleString('en-IN') %></h3>
-                        </div>
+                    <div class="chart-canvas-container">
+                        <canvas id="revenueChartCanvas"></canvas>
                     </div>
                 </div>
 
                 <div class="performance-section">
-    <h2 class="section-title">Category Performance</h2>
-    <div class="category-list">
-        <% if (stats.categoryPerformance && stats.categoryPerformance.length > 0) { %>
-            <% stats.categoryPerformance.forEach(cat => { %>
-                <div class="category-item">
-                    <div class="cat-info">
-                        <span class="cat-name"><%= cat.name %></span>
-                        <span class="cat-sales"><%= cat.percentage %>% of total sales (₹<%= cat.salesAmount.toLocaleString('en-IN') %>)</span>
-                    </div>
-                    <div class="progress-bar-bg">
-                        <div class="progress-bar-fill <%= cat.colorClass %>" data-width="<%= cat.percentage %>"></div>
+                    <h2 class="section-title">Category Performance</h2>
+                    <div class="category-list">
+                        <% if (stats.categoryPerformance && stats.categoryPerformance.length > 0) { %>
+                            <% stats.categoryPerformance.forEach(cat => { %>
+                                <div class="category-item">
+                                    <div class="cat-info">
+                                        <span class="cat-name"><%= cat.name %></span>
+                                        <span class="cat-sales"><%= cat.percentage %>% of total sales (₹<%= cat.salesAmount.toLocaleString('en-IN') %>)</span>
+                                    </div>
+                                    <div class="progress-bar-bg">
+                                        <div class="progress-bar-fill <%= cat.colorClass %>" data-width="<%= cat.percentage %>"></div>
+                                    </div>
+                                </div>
+                            <% }) %>
+                        <% } else { %>
+                            <p class="no-data-text">No active categories found.</p>
+                        <% } %>
                     </div>
                 </div>
-            <% }) %>
-        <% } else { %>
-            <p class="no-data-text">No active categories found.</p>
-        <% } %>
-    </div>
-</div>
+
+                <div class="table-section">
+                    <h2 class="section-title">Most Sold Products (Top 5)</h2>
+                    <div class="table-responsive">
+                        <table class="dashboard-table">
+                            <thead>
+                                <tr>
+                                    <th>Rank</th>
+                                    <th>Product Name</th>
+                                    <th>Product ID</th>
+                                    <th>Category</th>
+                                    <th>Units Sold</th>
+                                    <th>Lifetime Revenue</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <% if (stats.topProducts && stats.topProducts.length > 0) { %>
+                                    <% stats.topProducts.forEach((prod, idx) => { %>
+                                        <tr>
+                                            <td><span class="rank-badge">#<%= idx + 1 %></span></td>
+                                            <td class="font-medium-dark"><%= prod.name %></td>
+                                            <td class="code-font"><%= prod.productId %></td>
+                                            <td><span class="category-pill"><%= prod.categoryName %></span></td>
+                                            <td class="units-bold"><%= prod.totalSold.toLocaleString('en-IN') %></td>
+                                            <td class="revenue-green">₹<%= prod.totalRevenue.toLocaleString('en-IN') %></td>
+                                        </tr>
+                                    <% }) %>
+                                <% } else { %>
+                                    <tr>
+                                        <td colspan="6" class="no-data-cell">No product sales recorded yet.</td>
+                                    </tr>
+                                <% } %>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <div class="performance-section brand-performance-spacing">
+                    <h2 class="section-title">Brand Performance</h2>
+                    <div class="category-list">
+                        <% if (stats.brandPerformance && stats.brandPerformance.length > 0) { %>
+                            <% stats.brandPerformance.forEach(brand => { %>
+                                <div class="category-item">
+                                    <div class="cat-info">
+                                        <span class="cat-name"><%= brand.name %></span>
+                                        <span class="cat-sales"><%= brand.percentage %>% of total sales (₹<%= brand.salesAmount.toLocaleString('en-IN') %>)</span>
+                                    </div>
+                                    <div class="progress-bar-bg">
+                                        <div class="progress-bar-fill <%= brand.colorClass %>" data-width="<%= brand.percentage %>"></div>
+                                    </div>
+                                </div>
+                            <% }) %>
+                        <% } else { %>
+                            <p class="no-data-text">No product brands registered yet.</p>
+                        <% } %>
+                    </div>
+                </div>
+
             </main>
         </div>
     </div>
@@ -188,8 +242,7 @@
         <div class="modal-content banner-modal-content">
             <div class="modal-header">
                 <h2>Banner Details</h2>
-                <button type="button" class="close-modal-btn" data-close="bannerDetailsModal"><i
-                        class="fa-solid fa-xmark"></i></button>
+                <button type="button" class="close-modal-btn" data-close="bannerDetailsModal"><i class="fa-solid fa-xmark"></i></button>
             </div>
             <div class="modal-body">
                 <form id="bannerDetailsForm">
@@ -206,6 +259,7 @@
             </div>
         </div>
     </div>
+
     <script src="/js/admin/dashboard.js" defer></script>
 </body>
 
