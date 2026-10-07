@@ -1,11 +1,12 @@
 import express from 'express';
 import { ensureAuthenticated } from '../../middlewares/auth.js';
-import {noCache} from '../../middlewares/cache.js';
+import { noCache } from '../../middlewares/cache.js';
 import { upload } from '../../config/cloudinary.js';
 import { getProfile, updateProfile, updatePassword, logoutUser,
          loadVerifyEmailPage, verifyEmailChange, resendEmailOtp } from '../../controllers/user/profileController.js';
 import { loadWishlistPage } from '../../controllers/user/wishlistController.js';
 import { loadWalletPage, initiateAddMoney, verifyAddMoneyPayment } from '../../controllers/user/walletController.js';
+import { authLimiter, otpLimiter } from '../../middlewares/rateLimiter.js';
 
 const router = express.Router();
 
@@ -13,10 +14,10 @@ router.use(noCache);
 
 router.get('/profile', ensureAuthenticated, getProfile);
 router.patch('/profile', ensureAuthenticated, upload.single('profileImage'), updateProfile);
-router.patch('/password', ensureAuthenticated, updatePassword);
+router.patch('/password', ensureAuthenticated, authLimiter, updatePassword);
 router.get('/verify-email', ensureAuthenticated, loadVerifyEmailPage);
-router.post('/verify-email-change', ensureAuthenticated, verifyEmailChange);
-router.post('/resend-email-otp', ensureAuthenticated, resendEmailOtp);
+router.post('/verify-email-change', ensureAuthenticated, authLimiter, verifyEmailChange);
+router.post('/resend-email-otp', ensureAuthenticated, otpLimiter, resendEmailOtp);
 
 router.get('/wishlist', ensureAuthenticated, loadWishlistPage);
 

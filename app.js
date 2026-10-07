@@ -18,6 +18,7 @@ import mongoSanitizeMiddleware from "./middlewares/mongoSanitizeMiddleware.js";
 import { noCache } from './middlewares/cache.js';
 import { sessionMiddleware } from './middlewares/session.js';
 import { csrfProtection, injectCsrfToken } from './middlewares/csrf.js';
+import { globalLimiter } from './middlewares/rateLimiter.js';
 import { notFoundMiddleware } from './middlewares/notFoundMiddleware.js';
 import { globalErrorHandler } from './middlewares/globalErrorHandler.js';
 
@@ -61,6 +62,8 @@ app.use(express.static(path.join(process.cwd(), 'public')));
 
 app.use(helmetMiddleware);
 app.use(mongoSanitizeMiddleware);
+
+app.use(globalLimiter);
 
 app.use(sessionMiddleware);
 app.use(passport.initialize());
