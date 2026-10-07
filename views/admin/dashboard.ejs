@@ -106,7 +106,8 @@
                 <input type="hidden" id="csrfToken" value="<%= csrfToken %>">
                 <input type="hidden" id="allChartDataPayload" value="<%= encodeURIComponent(JSON.stringify(stats.chartDataCollection)) %>">
 
-                <div class="page-header-row page-header-spacing flex-end-row">
+                <div class="page-header-row page-header-spacing">
+                    <h1 class="page-title">Dashboard Overview</h1>
                     <button class="btn btn-primary" id="openBannerModalBtn" type="button">Banner Details</button>
                 </div>
 
