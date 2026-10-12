@@ -9,16 +9,19 @@ const userSession = session({
     name: 'user_session',
     secret: process.env.USER_SESSION_SECRET,
     resave: false,
-    saveUninitialized: true,
+    saveUninitialized: false,
+    proxy: isProduction,
     store: MongoStore.create({ 
         mongoUrl: process.env.MONGODB_URI,
-        collectionName: 'user_sessions'
+        collectionName: 'user_sessions',
+        ttl: 7 * 24 * 60 * 60
     }),
     cookie: { 
         maxAge: 1000 * 60 * 60 * 24 * 7,
         httpOnly: true,
         secure: isProduction,
-        sameSite: 'lax'
+        sameSite: 'lax',
+        path: '/'
     }
 });
 
@@ -27,9 +30,11 @@ const adminSession = session({
     secret: process.env.ADMIN_SESSION_SECRET,
     resave: false,
     saveUninitialized: false,
+    proxy: isProduction,
     store: MongoStore.create({ 
         mongoUrl: process.env.MONGODB_URI,
-        collectionName: 'admin_sessions' 
+        collectionName: 'admin_sessions',
+        ttl: 7 * 24 * 60 * 60
     }),
     cookie: { 
         maxAge: 1000 * 60 * 60 * 24 * 7,

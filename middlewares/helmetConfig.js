@@ -10,14 +10,16 @@ const helmetMiddleware = helmet({
                 "https://cdn.jsdelivr.net",
                 "https://cdnjs.cloudflare.com",
                 "https://checkout.razorpay.com",
-                "https://*.razorpay.com"
+                "https://*.razorpay.com",
+                "https://accounts.google.com"
             ],
 
             frameSrc: [
                 "'self'",
                 "https://api.razorpay.com",
                 "https://checkout.razorpay.com",
-                "https://*.razorpay.com"
+                "https://*.razorpay.com",
+                "https://accounts.google.com"
             ],
 
             childSrc: [
@@ -54,7 +56,8 @@ const helmetMiddleware = helmet({
                 "https://www.gravatar.com",
                 "https://placehold.co",
                 "https://upload.wikimedia.org",
-                "https://*.razorpay.com"
+                "https://*.razorpay.com",
+                "https://lh3.googleusercontent.com" 
             ],
 
             connectSrc: [
@@ -62,21 +65,22 @@ const helmetMiddleware = helmet({
                 "https://api.razorpay.com",
                 "https://lumberjack.razorpay.com",
                 "https://lumberjack-cx.razorpay.com",
-                "https://*.razorpay.com"
+                "https://*.razorpay.com",
+                "https://accounts.google.com"
             ],
 
             objectSrc: ["'none'"],
-
             baseUri: ["'self'"],
-
             frameAncestors: ["'none'"],
-
-            formAction: ["'self'", "https://*.razorpay.com", "https://api.razorpay.com"],
-
+            formAction: [
+                "'self'", 
+                "https://*.razorpay.com", 
+                "https://api.razorpay.com", 
+                "https://accounts.google.com"
+            ],
             upgradeInsecureRequests: []
         }
     },
-
     crossOriginEmbedderPolicy: false,
     crossOriginOpenerPolicy: { policy: "same-origin-allow-popups" }
 });
