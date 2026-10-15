@@ -311,7 +311,7 @@ sudo certbot --nginx -d homestation.anuranjsm.co.in
 
 **Anuranj S M**
 * **GitHub:** [@ANURANJ714](https://github.com/ANURANJ714)
-* **LinkedIn:** [Anuranj S M](https://linkedin.com/in/anuranjsm)
+* **LinkedIn:** [Anuranj S M]([https://linkedin.com/in/anuranjsm](https://www.linkedin.com/in/anuranj-s-m-26a630148?utm_source=share_via&utm_content=profile&utm_medium=member_android))
 * **Live Project:** [homestation.anuranjsm.co.in](https://homestation.anuranjsm.co.in)
 
 ---
