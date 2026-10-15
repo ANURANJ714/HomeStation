@@ -14,8 +14,9 @@ export const globalErrorHandler = (err, req, res, next) => {
         (req.headers.accept && req.headers.accept.includes('application/json')) ||
         (req.headers['content-type'] && req.headers['content-type'].includes('application/json'));
 
+    const isCsrfError = err.code === 'EBADCSRFTOKEN' || err.message?.includes('invalid csrf token');
         
-    if (err.code === 'EBADCSRFTOKEN') {
+    if (isCsrfError) {
         if (isApiRequest) {
             return res.status(403).json({
                 success: false,
@@ -23,11 +24,19 @@ export const globalErrorHandler = (err, req, res, next) => {
                 message: 'Your session has expired or the security token is invalid. Please refresh the page.'
             });
         }
-        return res.status(403).render('user/403error', {
-            pageTitle: 'HomeStation - Forbidden',
-            message: 'Invalid or expired session security token. Please refresh and try again.',
+
+        const viewTemplate = isAdminRoute ? 'admin/admin500error' : 'user/500error';
+        return res.status(403).render(viewTemplate, {
+            pageTitle: 'HomeStation - Session Expired',
+            message: 'Your session has expired or the security token is invalid. Please refresh the page.',
             csrfToken: req.csrfToken ? req.csrfToken() : '',
-            user: req.user || null
+            user: (req.isAuthenticated && req.isAuthenticated()) ? req.user : (req.user || null)
+        }, (renderErr, html) => {
+            if (renderErr) {
+                logger.error(`Render Error (${viewTemplate}): ${renderErr.message}`);
+                return res.status(403).send('403 Forbidden: Invalid or expired security token. Please refresh the page.');
+            }
+            res.send(html);
         });
     }
 
