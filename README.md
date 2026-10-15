@@ -125,7 +125,7 @@ HomeStation is a full-featured, multi-tier e-commerce web platform engineered wi
         ┌──────────────────────────┼──────────────────────────┐
         ▼                          ▼                          ▼
 [ MongoDB Atlas ]          [ Cloudinary CDN ]        [ Razorpay / APIs ]
- (Encrypted TLS)           (Optimized Media)         (Payment Webhooks)
+ (Encrypted TLS)           (Optimized Media)         (Payment Geteway)
 ```
 
 ---
