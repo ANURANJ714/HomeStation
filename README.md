@@ -108,22 +108,25 @@ HomeStation is a full-featured, multi-tier e-commerce web platform engineered wi
 ---
 
 ## 🌐 System Architecture
-[ Incoming Client Request ]
-                               │
-                               ▼
-         [ AWS Route 53 / GoDaddy DNS Resolution ]
-                               │
-                    (Port 443 / HTTPS)
-                               ▼
-         [ Nginx Reverse Proxy (SSL Termination) ]
-                               │
-                     (Port 3000 / HTTP)
-                               ▼
-         [ PM2 Process Manager / Express.js Server ]
-    ┌──────────────────────────┼──────────────────────────┐
-    ▼                          ▼                          ▼
+
+```text
+                       [ Incoming Client Request ]
+                                   │
+                                   ▼
+             [ AWS Route 53 / GoDaddy DNS Resolution ]
+                                   │
+                         (Port 443 / HTTPS)
+                                   ▼
+             [ Nginx Reverse Proxy (SSL Termination) ]
+                                   │
+                         (Port 3000 / HTTP)
+                                   ▼
+             [ PM2 Process Manager / Express.js Server ]
+        ┌──────────────────────────┼──────────────────────────┐
+        ▼                          ▼                          ▼
 [ MongoDB Atlas ]          [ Cloudinary CDN ]        [ Razorpay / APIs ]
-(Encrypted TLS)           (Optimized Media)         (Payment Gateway)
+ (Encrypted TLS)           (Optimized Media)         (Payment Webhooks)
+```
 
 ---
 
@@ -170,24 +173,31 @@ homestation/
 ├── ecosystem.config.cjs        # PM2 cluster configuration
 ├── package.json
 └── README.md
-🚀 Getting Started
-Prerequisites
-Node.js >= 18.x
+```
 
-Git
+---
 
-Active MongoDB Atlas cluster
+## 🚀 Getting Started
 
-Accounts for Cloudinary, Razorpay, and Google Cloud Console
+### Prerequisites
+* [Node.js](https://nodejs.org/) `>= 18.x`
+* [Git](https://git-scm.com/)
+* Active [MongoDB Atlas](https://www.mongodb.com/cloud/atlas) cluster
+* Accounts for [Cloudinary](https://cloudinary.com/), [Razorpay](https://razorpay.com/), and [Google Cloud Console](https://console.cloud.google.com/)
 
-Environment Setup
-An active .env file in the root directory:
+---
 
-Bash
+### Environment Setup
+
+An active `.env` file in the root directory:
+
+```bash
 cp .env.example .env
-Populate the following keys in your .env:
+```
 
-Code snippet
+Populate the following keys in your `.env`:
+
+```env
 # Server
 PORT=3000
 NODE_ENV=development
@@ -197,7 +207,7 @@ MONGODB_URI=mongodb+srv://<username>:<password>@cluster.mongodb.net/HomeStation?
 
 # Session Secrets
 USER_SESSION_SECRET=your_user_session_secret
-ADMIN_SESSION_SECRET=your_admin_session_secret
+ADMIN_SESSION_SECRET=your_admin_admin_secret
 
 # Cloudinary
 CLOUDINARY_CLOUD_NAME=your_cloud_name
@@ -219,40 +229,51 @@ EMAIL_PASS=your_app_specific_password
 
 # Google Maps
 GOOGLE_MAPS_API_KEY=your_google_maps_api_key
-Installation & Running Locally
-Clone the repository:
+```
 
-Bash
-git clone [https://github.com/Anuranjsm/homestation.git](https://github.com/Anuranjsm/homestation.git)
-cd homestation
-Install dependencies:
+---
 
-Bash
-npm install
-Start the local server:
+### Installation & Running Locally
 
-Bash
-# Development mode with autoreload
-npm run dev
+1. **Clone the repository:**
+   ```bash
+   git clone https://github.com/Anuranjsm/homestation.git
+   cd homestation
+   ```
 
-# Standard production execution
-npm start
-Access the application at http://localhost:3000.
+2. **Install dependencies:**
+   ```bash
+   npm install
+   ```
 
-☁️ Production Deployment Pipeline
-This application is deployed on an AWS EC2 Ubuntu instance utilizing Nginx as an edge reverse proxy and PM2 as the application process manager.
+3. **Start the local server:**
+   ```bash
+   # Development mode with autoreload
+   npm run dev
 
-1. Reverse Proxy (Nginx)
+   # Standard production execution
+   npm start
+   ```
+
+Access the application locally at `http://localhost:3000`.
+
+---
+
+## ☁️ Production Deployment Pipeline
+
+This application is deployed on an **AWS EC2 Ubuntu** instance utilizing **Nginx** as an edge reverse proxy and **PM2** as the application process manager.
+
+### 1. Reverse Proxy (Nginx)
 Nginx intercepts incoming web traffic on ports 80/443 and securely forwards it to the internal Node process:
 
-Nginx
+```nginx
 server {
     server_name homestation.anuranjsm.co.in;
 
     client_max_body_size 20M;
 
     location / {
-        proxy_pass [http://127.0.0.1:3000](http://127.0.0.1:3000);
+        proxy_pass http://127.0.0.1:3000;
         proxy_http_version 1.1;
         proxy_set_header Upgrade $http_upgrade;
         proxy_set_header Connection 'upgrade';
@@ -263,29 +284,38 @@ server {
         proxy_cache_bypass $http_upgrade;
     }
 }
-2. Process Manager (PM2)
-Maintains zero-downtime reboots, clustered execution, and centralized runtime logs:
+```
 
-Bash
+### 2. Process Manager (PM2)
+Maintains zero-downtime execution, automatic crash recovery, and service persistence across reboots:
+
+```bash
 # Start application
 pm2 start app.js --name "homestation-app" --env production
 
 # Persist across system reboots
 pm2 startup systemd
 pm2 save
-3. SSL Configuration (Certbot)
+```
+
+### 3. SSL Configuration (Certbot)
 Automated Let's Encrypt TLS certificate generation and renewal:
 
-Bash
+```bash
 sudo certbot --nginx -d homestation.anuranjsm.co.in
-👨‍💻 Author
-Anuranj S M
+```
 
-GitHub: @ANURANJ714
+---
 
-LinkedIn: Anuranj S M
+## 👨‍💻 Author
 
-Live Project: homestation.anuranjsm.co.in
+**Anuranj S M**
+* **GitHub:** [@ANURANJ714](https://github.com/ANURANJ714)
+* **LinkedIn:** [Anuranj S M](https://linkedin.com/in/anuranjsm)
+* **Live Project:** [homestation.anuranjsm.co.in](https://homestation.anuranjsm.co.in)
 
-📄 License
-This project is licensed under the MIT License.
+---
+
+## 📄 License
+
+This project is licensed under the [MIT License](LICENSE).
