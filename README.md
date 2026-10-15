@@ -237,7 +237,7 @@ GOOGLE_MAPS_API_KEY=your_google_maps_api_key
 
 1. **Clone the repository:**
    ```bash
-   git clone https://github.com/Anuranjsm/homestation.git
+   git clone https://github.com/ANURANJ714/homestation.git
    cd homestation
    ```
 
@@ -318,4 +318,4 @@ sudo certbot --nginx -d homestation.anuranjsm.co.in
 
 ## 📄 License
 
-This project is licensed under the [MIT License](LICENSE).
+This project is intended for learning and portfolio purposes.
