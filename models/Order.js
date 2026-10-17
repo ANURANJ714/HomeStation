@@ -90,6 +90,12 @@ const orderSchema = new mongoose.Schema({
         enum: ['razorpay', 'wallet', 'cod'],
         required: true
     },
+    status: {
+        type: String,
+        enum: ['success', 'failed'],
+        default: 'success',
+        required: true
+    },
     couponUsed: {
         type: String,
         trim: true,
