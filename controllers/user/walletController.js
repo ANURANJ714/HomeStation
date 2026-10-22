@@ -2,6 +2,8 @@ import logger from '../../utils/logger.js';
 import * as walletService from '../../services/user/walletService.js';
 import { getActivePromoBanner } from '../../services/user/bannerService.js';
 import { getUserHeaderCounts } from '../../services/user/badgeService.js';
+import { STATUS_CODES } from '../../src/constants/httpStatusCodes.js';
+import { COMMON_MESSAGES } from '../../src/constants/commonMessages.js';
 
 export const loadWalletPage = async (req, res) => {
     try {
@@ -36,9 +38,9 @@ export const loadWalletPage = async (req, res) => {
 
     } catch (error) {
         logger.error(`Error loading Wallet Page for (${req.user?.email || 'Unknown'}): ${error.message}\nStack: ${error.stack}`);
-        return res.status(500).json({
+        return res.status(STATUS_CODES.INTERNAL_SERVER_ERROR).json({
             success: false,
-            message: "An internal server error occurred while retrieving your wallet details."
+            message: error.message || COMMON_MESSAGES.SERVER_ERROR
         });
     }
 };
@@ -53,7 +55,7 @@ export const initiateAddMoney = async (req, res) => {
         const numAmount = Number(amount);
         if (!numAmount || numAmount <= 0) {
             logger.warn(`Invalid add money amount (${amount}) by ${userEmail} | IP: ${clientIp}`);
-            return res.status(400).json({
+            return res.status(STATUS_CODES.BAD_REQUEST).json({
                 success: false,
                 message: "Please enter a valid recharge amount greater than 0."
             });
@@ -61,7 +63,7 @@ export const initiateAddMoney = async (req, res) => {
 
         if (numAmount > 50000) {
             logger.warn(`Excessive add money request (${numAmount}) by ${userEmail} | IP: ${clientIp}`);
-            return res.status(400).json({
+            return res.status(STATUS_CODES.BAD_REQUEST).json({
                 success: false,
                 message: "Maximum deposit limit per transaction is ₹50,000."
             });
@@ -71,7 +73,7 @@ export const initiateAddMoney = async (req, res) => {
 
         logger.info(`User (${userEmail}) created Razorpay order [${razorpayOrder.orderId}] for ₹${numAmount} | IP: ${clientIp}`);
 
-        return res.status(200).json({
+        return res.status(STATUS_CODES.OK).json({
             success: true,
             order: razorpayOrder,
             user: {
@@ -82,9 +84,9 @@ export const initiateAddMoney = async (req, res) => {
         });
     } catch (error) {
         logger.error(`Error initiating add money for (${req.user?.email || 'Unknown'}): ${error.message}\nStack: ${error.stack}`);
-        return res.status(500).json({
+        return res.status(STATUS_CODES.INTERNAL_SERVER_ERROR).json({
             success: false,
-            message: "Unable to initialize payment gateway. Please try again later."
+            message: error.message || COMMON_MESSAGES.SERVER_ERROR
         });
     }
 };
@@ -105,16 +107,16 @@ export const verifyAddMoneyPayment = async (req, res) => {
 
         logger.info(`User (${userEmail}) successfully added ₹${amount} to wallet. Payment ID: ${razorpay_payment_id} | IP: ${clientIp}`);
 
-        return res.status(200).json({
+        return res.status(STATUS_CODES.OK).json({
             success: true,
             message: result.message,
             newBalance: result.newBalance
         });
     } catch (error) {
         logger.error(`Payment verification failed for user (${req.user?.email || 'Unknown'}): ${error.message}\nStack: ${error.stack}`);
-        return res.status(400).json({
+        return res.status(STATUS_CODES.BAD_REQUEST).json({
             success: false,
-            message: error.message || "Payment verification failed."
+            message: error.message || COMMON_MESSAGES.BAD_REQUEST
         });
     }
 };

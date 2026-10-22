@@ -1,9 +1,10 @@
 import User from '../../models/User.js';
+import { COMMON_MESSAGES } from '../../src/constants/commonMessages.js';
 
 export const recordAdminErrorLog = async (adminId, requestPath, clientIp) => {
     try {
         return { success: true, path: requestPath };
     } catch (error) {
-        throw new Error(`Service Layer DB error while logging admin 404 access: ${error.message}`);
+        throw new Error(`Service Layer DB error while logging admin 404 access: ${error.message || COMMON_MESSAGES.SERVER_ERROR}`);
     }
 };

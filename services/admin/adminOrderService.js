@@ -1,24 +1,32 @@
 import Order from '../../models/Order.js';
 import ProductVariant from '../../models/ProductVariant.js';
 import { calculateItemRefundAmount } from '../../services/user/orderService.js';
-import * as walletService from '../../services/user/walletService.js'
+import * as walletService from '../../services/user/walletService.js';
+import { ORDER_STATUS } from '../../src/constants/orderStatus.js';
+import { STATUS_CODES } from '../../src/constants/httpStatusCodes.js';
 
 export const getAdminOrdersPageData = async (page = 1, limit = 5, searchQuery = '', statusFilter = '') => {
     try {
         const query = {};
 
         if (searchQuery && searchQuery.trim() !== '') {
-            query.orderId = { $regex: searchQuery.trim(), $options: 'i' };
+            query.orderId = { $regex: searchQuery.trim(),$options: 'i' };
         }
 
         if (statusFilter && statusFilter.trim() !== '') {
-            if (statusFilter.toLowerCase() === 'return') {
+            const filterValue = statusFilter.trim().toLowerCase();
+
+            if (filterValue === 'failed') {
+                query.status = ORDER_STATUS.FAILED;
+            } else if (filterValue === 'return') {
+                query.status = ORDER_STATUS.SUCCESS;
                 query.orderItems = {
                     $elemMatch: {
                         returnStatus: { $ne: 'none' }
                     }
                 };
             } else {
+                query.status = ORDER_STATUS.SUCCESS;
                 query.orderItems = {
                     $elemMatch: {
                         itemStatus: statusFilter,
@@ -49,8 +57,12 @@ export const getAdminOrdersPageData = async (page = 1, limit = 5, searchQuery = 
         ]);
 
         if (statusFilter && statusFilter.trim() !== '') {
+            const filterValue = statusFilter.trim().toLowerCase();
+
             orders.forEach(order => {
-                if (statusFilter.toLowerCase() === 'return') {
+                if (filterValue === 'failed') {
+                    return;
+                } else if (filterValue === 'return') {
                     order.orderItems = order.orderItems.filter(item => item.returnStatus && item.returnStatus !== 'none');
                 } else {
                     order.orderItems = order.orderItems.filter(item => item.itemStatus === statusFilter && item.returnStatus === 'none');
@@ -58,90 +70,97 @@ export const getAdminOrdersPageData = async (page = 1, limit = 5, searchQuery = 
             });
         }
 
-        const itemStatsAggregation = await Order.aggregate([
-            { $unwind: '$orderItems' },
+        const metricsAggregation = await Order.aggregate([
             {
-                $group: {
-                    _id: null,
-                    processingCount: {
-                        $sum: {
-                            $cond: [
-                                { $and: [{ $eq: ['$orderItems.itemStatus', 'processing'] }, { $eq: ['$orderItems.returnStatus', 'none'] }] },
-                                1, 0
-                            ]
+                $facet: {
+                    failedOrders: [
+                        { $match: { status: ORDER_STATUS.FAILED } },
+                        { $count: 'count' }
+                    ],
+                    successfulOrderItems: [
+                        { $match: { status: ORDER_STATUS.SUCCESS } },
+                        { $unwind: '$orderItems' },
+                        {
+                            $group: {
+                                _id: null,
+                                processingCount: {
+                                    $sum: {$cond: [
+                                            { $and: [{ $eq: ['$orderItems.itemStatus', 'processing'] }, { $eq: ['$orderItems.returnStatus', 'none'] }] },
+                                            1, 0
+                                        ]
+                                    }
+                                },
+                                packedCount: {
+                                    $sum: {$cond: [
+                                            { $and: [{ $eq: ['$orderItems.itemStatus', 'packed'] }, { $eq: ['$orderItems.returnStatus', 'none'] }] },
+                                            1, 0
+                                        ]
+                                    }
+                                },
+                                shippedCount: {
+                                    $sum: {$cond: [
+                                            { $and: [{ $eq: ['$orderItems.itemStatus', 'shipped'] }, { $eq: ['$orderItems.returnStatus', 'none'] }] },
+                                            1, 0
+                                        ]
+                                    }
+                                },
+                                onTheWayCount: {
+                                    $sum: {$cond: [
+                                            { $and: [{ $eq: ['$orderItems.itemStatus', 'on the way'] }, { $eq: ['$orderItems.returnStatus', 'none'] }] },
+                                            1, 0
+                                        ]
+                                    }
+                                },
+                                outForDeliveryCount: {
+                                    $sum: {$cond: [
+                                            { $and: [{ $eq: ['$orderItems.itemStatus', 'out for delivery'] }, { $eq: ['$orderItems.returnStatus', 'none'] }] },
+                                            1, 0
+                                        ]
+                                    }
+                                },
+                                deliveredCount: {
+                                    $sum: {$cond: [
+                                            { $and: [{ $eq: ['$orderItems.itemStatus', 'delivered'] }, { $eq: ['$orderItems.returnStatus', 'none'] }] },
+                                            1, 0
+                                        ]
+                                    }
+                                },
+                                cancelledCount: {
+                                    $sum: {$cond: [
+                                            { $and: [{ $eq: ['$orderItems.itemStatus', 'cancelled'] }, { $eq: ['$orderItems.returnStatus', 'none'] }] },
+                                            1, 0
+                                        ]
+                                    }
+                                },
+                                returnCount: {
+                                    $sum: {$cond: [
+                                            { $ne: ['$orderItems.returnStatus', 'none'] },
+                                            1, 0
+                                        ]
+                                    }
+                                }
+                            }
                         }
-                    },
-                    packedCount: {
-                        $sum: {
-                            $cond: [
-                                { $and: [{ $eq: ['$orderItems.itemStatus', 'packed'] }, { $eq: ['$orderItems.returnStatus', 'none'] }] },
-                                1, 0
-                            ]
-                        }
-                    },
-                    shippedCount: {
-                        $sum: {
-                            $cond: [
-                                { $and: [{ $eq: ['$orderItems.itemStatus', 'shipped'] }, { $eq: ['$orderItems.returnStatus', 'none'] }] },
-                                1, 0
-                            ]
-                        }
-                    },
-                    onTheWayCount: {
-                        $sum: {
-                            $cond: [
-                                { $and: [{ $eq: ['$orderItems.itemStatus', 'on the way'] }, { $eq: ['$orderItems.returnStatus', 'none'] }] },
-                                1, 0
-                            ]
-                        }
-                    },
-                    outForDeliveryCount: {
-                        $sum: {
-                            $cond: [
-                                { $and: [{ $eq: ['$orderItems.itemStatus', 'out for delivery'] }, { $eq: ['$orderItems.returnStatus', 'none'] }] },
-                                1, 0
-                            ]
-                        }
-                    },
-                    deliveredCount: {
-                        $sum: {
-                            $cond: [
-                                { $and: [{ $eq: ['$orderItems.itemStatus', 'delivered'] }, { $eq: ['$orderItems.returnStatus', 'none'] }] },
-                                1, 0
-                            ]
-                        }
-                    },
-                    cancelledCount: {
-                        $sum: {
-                            $cond: [
-                                { $and: [{ $eq: ['$orderItems.itemStatus', 'cancelled'] }, { $eq: ['$orderItems.returnStatus', 'none'] }] },
-                                1, 0
-                            ]
-                        }
-                    },
-                    returnCount: {
-                        $sum: {
-                            $cond: [
-                                { $ne: ['$orderItems.returnStatus', 'none'] },
-                                1, 0
-                            ]
-                        }
-                    }
+                    ]
                 }
             }
         ]);
 
-        const metrics = itemStatsAggregation[0] || {
-            processingCount: 0,
-            packedCount: 0,
-            shippedCount: 0,
-            onTheWayCount: 0,
-            outForDeliveryCount: 0,
-            deliveredCount: 0,
-            cancelledCount: 0,
-            returnCount: 0
+        const rawItemStats = metricsAggregation[0]?.successfulOrderItems[0] || {};
+        const failedCount = metricsAggregation[0]?.failedOrders[0]?.count || 0;
+
+        const metrics = {
+            totalOrdersCount,
+            processingCount: rawItemStats.processingCount || 0,
+            packedCount: rawItemStats.packedCount || 0,
+            shippedCount: rawItemStats.shippedCount || 0,
+            onTheWayCount: rawItemStats.onTheWayCount || 0,
+            outForDeliveryCount: rawItemStats.outForDeliveryCount || 0,
+            deliveredCount: rawItemStats.deliveredCount || 0,
+            cancelledCount: rawItemStats.cancelledCount || 0,
+            returnCount: rawItemStats.returnCount || 0,
+            failedCount: failedCount
         };
-        metrics.totalOrdersCount = totalOrdersCount;
 
         const totalPages = Math.ceil(totalFilteredOrders / limit) || 1;
         const safePage = Math.min(page, totalPages);
@@ -154,10 +173,9 @@ export const getAdminOrdersPageData = async (page = 1, limit = 5, searchQuery = 
             metrics
         };
     } catch (error) {
-        throw new Error(`Admin Order Service Failure while fetching page data: ${error.message}`);
+        throw new Error(`Admin Order Service Failure while fetching page data: ${error.message || 'Failed to retrieve orders data.'}`);
     }
 };
-
 
 export const getOrderDetailsByOrderIdAndItemId = async (orderId, orderItemId = null) => {
     try {
@@ -182,11 +200,20 @@ export const getOrderDetailsByOrderIdAndItemId = async (orderId, orderItemId = n
             return null;
         }
 
-        let targetItem = null;
+        const isOrderFailed = order.status === ORDER_STATUS.FAILED;
 
+        if (isOrderFailed) {
+            return {
+                order,
+                items: order.orderItems,
+                item: null, 
+                isOrderFailed: true
+            };
+        }
+
+        let targetItem = null;
         if (orderItemId) {
             targetItem = order.orderItems.find(i => i._id && i._id.toString() === orderItemId.toString()) || null;
-            
             if (!targetItem) {
                 return null;
             }
@@ -194,37 +221,28 @@ export const getOrderDetailsByOrderIdAndItemId = async (orderId, orderItemId = n
             targetItem = order.orderItems[0];
         }
 
-        return { order, item: targetItem };
+        return { 
+            order, 
+            items: [targetItem], 
+            item: targetItem, 
+            isOrderFailed: false 
+        };
     } catch (error) {
-        throw new Error(`Admin Order Service Failure while retrieving order details: ${error.message}`);
+        throw new Error(`Admin Order Service Failure while retrieving order details: ${error.message || 'Failed to fetch order details.'}`);
     }
 };
 
 export const updateOrderItemStatus = async (orderId, orderItemId, newStatus) => {
     try {
-        const deliveryStages = [
-            'processing', 
-            'packed', 
-            'shipped', 
-            'on the way', 
-            'out for delivery', 
-            'delivered'
-        ];
-        
-        const returnStages = [
-            'return initiated', 
-            'pickup assigned', 
-            'item picked up', 
-            'in transit', 
-            'item reached'
-        ];
+        const deliveryStages = ['processing', 'packed', 'shipped', 'on the way', 'out for delivery', 'delivered'];
+        const returnStages = ['return initiated', 'pickup assigned', 'item picked up', 'in transit', 'item reached'];
 
         const cleanStatus = newStatus.startsWith('return:') ? newStatus.replace('return:', '').trim() : newStatus.trim();
         const isReturnUpdate = returnStages.includes(cleanStatus);
 
         if (!isReturnUpdate && !deliveryStages.includes(cleanStatus)) {
-            const err = new Error('Invalid status update value provided.');
-            err.statusCode = 400;
+            const err = new Error('Invalid status update parameter provided.');
+            err.statusCode = STATUS_CODES.BAD_REQUEST;
             throw err;
         }
 
@@ -236,21 +254,21 @@ export const updateOrderItemStatus = async (orderId, orderItemId, newStatus) => 
 
         if (!order) {
             const err = new Error('Order not found.');
-            err.statusCode = 404;
+            err.statusCode = STATUS_CODES.NOT_FOUND;
             throw err;
         }
 
         const item = order.orderItems.id(orderItemId);
         if (!item) {
             const err = new Error('Order item variant not found.');
-            err.statusCode = 404;
+            err.statusCode = STATUS_CODES.NOT_FOUND;
             throw err;
         }
 
         if (isReturnUpdate) {
             if (item.returnStatus === 'none') {
                 const err = new Error('Cannot update return stage because return was not initiated by user.');
-                err.statusCode = 400;
+                err.statusCode = STATUS_CODES.BAD_REQUEST;
                 throw err;
             }
 
@@ -263,7 +281,7 @@ export const updateOrderItemStatus = async (orderId, orderItemId, newStatus) => 
 
             if (newReturnIndex < currentReturnIndex) {
                 const err = new Error('Cannot revert return stage to a previous status.');
-                err.statusCode = 400;
+                err.statusCode = STATUS_CODES.BAD_REQUEST;
                 throw err;
             }
 
@@ -274,7 +292,7 @@ export const updateOrderItemStatus = async (orderId, orderItemId, newStatus) => 
             if (cleanStatus === 'item reached' && previousReturnStatus !== 'item reached') {
                 if (item.returnRequestStatus !== 'accepted') {
                     const err = new Error('Cannot complete return refund because return request is not in accepted status.');
-                    err.statusCode = 400;
+                    err.statusCode = STATUS_CODES.BAD_REQUEST;
                     throw err;
                 }
 
@@ -294,18 +312,16 @@ export const updateOrderItemStatus = async (orderId, orderItemId, newStatus) => 
                     );
                 }
             }
-        } 
-
-        else {
+        } else {
             if (item.itemStatus === 'cancelled') {
                 const err = new Error('Cancelled items cannot be updated.');
-                err.statusCode = 400;
+                err.statusCode = STATUS_CODES.BAD_REQUEST;
                 throw err;
             }
 
             if (item.itemStatus === 'delivered' && item.returnStatus === 'none') {
                 const err = new Error('Delivered items cannot be modified unless a return is active.');
-                err.statusCode = 400;
+                err.statusCode = STATUS_CODES.BAD_REQUEST;
                 throw err;
             }
 
@@ -318,7 +334,7 @@ export const updateOrderItemStatus = async (orderId, orderItemId, newStatus) => 
 
             if (newDeliveryIndex < currentDeliveryIndex) {
                 const err = new Error('Cannot revert delivery stage to a previous status.');
-                err.statusCode = 400;
+                err.statusCode = STATUS_CODES.BAD_REQUEST;
                 throw err;
             }
 
@@ -337,7 +353,7 @@ export const handleReturnRequestDecision = async (orderId, orderItemId, decision
     try {
         if (!['accepted', 'rejected'].includes(decision)) {
             const err = new Error('Decision must be either accepted or rejected.');
-            err.statusCode = 400;
+            err.statusCode = STATUS_CODES.BAD_REQUEST;
             throw err;
         }
 
@@ -349,20 +365,20 @@ export const handleReturnRequestDecision = async (orderId, orderItemId, decision
 
         if (!order) {
             const err = new Error('Order not found.');
-            err.statusCode = 404;
+            err.statusCode = STATUS_CODES.NOT_FOUND;
             throw err;
         }
 
         const item = order.orderItems.id(orderItemId);
         if (!item) {
             const err = new Error('Item not found in order.');
-            err.statusCode = 404;
+            err.statusCode = STATUS_CODES.NOT_FOUND;
             throw err;
         }
 
         if (item.itemStatus !== 'delivered' || item.returnRequestStatus !== 'requested') {
             const err = new Error('There is no pending return request for this item.');
-            err.statusCode = 400;
+            err.statusCode = STATUS_CODES.BAD_REQUEST;
             throw err;
         }
 

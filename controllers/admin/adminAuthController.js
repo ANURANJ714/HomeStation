@@ -1,10 +1,12 @@
 import passport from 'passport';
 import crypto from 'crypto';
+import bcrypt from 'bcryptjs';
 import User from '../../models/User.js';
 import { sendOtpEmail } from '../../services/user/emailService.js';
-import bcrypt from 'bcryptjs';
 import * as authService from '../../services/admin/adminAuthService.js';
 import logger from '../../utils/logger.js';
+import { STATUS_CODES } from '../../src/constants/httpStatusCodes.js';
+import { COMMON_MESSAGES } from '../../src/constants/commonMessages.js';
 
 export const getAdminLogin = (req, res) => {
     try {
@@ -15,15 +17,15 @@ export const getAdminLogin = (req, res) => {
 
         logger.info(`Admin login page accessed from IP: ${req.ip}`);
         
-        res.render('admin/adminLogin', { errorMessage: null });
+        return res.render('admin/adminLogin', { errorMessage: null });
 
     } catch (error) {
         logger.error(`Error loading admin login page: ${error.message}\nStack: ${error.stack}`);
         
-        res.status(500).json({
+        return res.status(STATUS_CODES.INTERNAL_SERVER_ERROR).json({
             success: false,
             title: "Server Error",
-            message: "An internal server error occurred while loading the login page."
+            message: error.message || COMMON_MESSAGES.SERVER_ERROR
         });
     }
 };
@@ -35,13 +37,19 @@ export const postAdminLogin = async (req, res, next) => {
         const validation = await authService.validateLoginInput(email, password);
         if (!validation.isValid) {
             logger.warn(`Failed admin login attempt (Validation): ${email} - ${validation.message}`);
-            return res.status(400).json({ success: false, message: validation.message });
+            return res.status(STATUS_CODES.BAD_REQUEST).json({ 
+                success: false, 
+                message: validation.message || COMMON_MESSAGES.BAD_REQUEST 
+            });
         }
 
         const authResult = await authService.verifyAdminCredentials(email, password);
         if (!authResult.isAuthenticated) {
             logger.warn(`Failed admin login attempt (Credentials): ${email}`);
-            return res.status(401).json({ success: false, message: authResult.message });
+            return res.status(STATUS_CODES.UNAUTHORIZED).json({ 
+                success: false, 
+                message: authResult.message || COMMON_MESSAGES.UNAUTHORIZED 
+            });
         }
 
         const user = authResult.user;
@@ -49,18 +57,24 @@ export const postAdminLogin = async (req, res, next) => {
         req.logIn(user, (loginErr) => {
             if (loginErr) {
                 logger.error(`Login Session Error for Admin ${email}: ${loginErr.message}`);
-                return res.status(500).json({ success: false, message: "Session error occurred." });
+                return res.status(STATUS_CODES.INTERNAL_SERVER_ERROR).json({ 
+                    success: false, 
+                    message: loginErr.message || COMMON_MESSAGES.SERVER_ERROR 
+                });
             }
 
             req.session.save((saveErr) => {
                 if (saveErr) {
                     logger.error(`Session Save Error for Admin ${email}: ${saveErr.message}`);
-                    return res.status(500).json({ success: false, message: "Session error during login." });
+                    return res.status(STATUS_CODES.INTERNAL_SERVER_ERROR).json({ 
+                        success: false, 
+                        message: saveErr.message || COMMON_MESSAGES.SERVER_ERROR 
+                    });
                 }
 
                 logger.info(`Admin logged in successfully: ${email}`);
 
-                return res.status(200).json({
+                return res.status(STATUS_CODES.OK).json({
                     success: true,
                     message: "Login successful! Redirecting...",
                     redirectUrl: "/admin/dashboard",
@@ -69,11 +83,11 @@ export const postAdminLogin = async (req, res, next) => {
         });
 
     } catch (error) {
-        logger.error(`Admin Login Controller Error for ${req.body.email}: ${error.message}\nStack: ${error.stack}`);
-        return res.status(500).json({
+        logger.error(`Admin Login Controller Error for ${req.body?.email}: ${error.message}\nStack: ${error.stack}`);
+        return res.status(STATUS_CODES.INTERNAL_SERVER_ERROR).json({
             success: false,
             title: "Server Error",
-            message: "Internal server error."
+            message: error.message || COMMON_MESSAGES.SERVER_ERROR
         });
     }
 };
@@ -87,15 +101,15 @@ export const getForgotPassword = (req, res) => {
 
         logger.info(`Admin forgot password page accessed from IP: ${req.ip}`);
         
-        res.render('admin/forgotadminpassword');
+        return res.render('admin/forgotadminpassword');
 
     } catch (error) {
         logger.error(`Error loading admin forgot password page: ${error.message}\nStack: ${error.stack}`);
         
-        res.status(500).json({
+        return res.status(STATUS_CODES.INTERNAL_SERVER_ERROR).json({
             success: false,
             title: "Server Error",
-            message: "An internal server error occurred while loading the page."
+            message: error.message || COMMON_MESSAGES.SERVER_ERROR
         });
     }
 };
@@ -110,9 +124,9 @@ export const postForgotPassword = async (req, res) => {
         if (!result.isValid) {
             logger.warn(`Admin password reset blocked: Invalid email or non-admin account (${email}). IP: ${clientIp}`);
             
-            return res.status(404).json({ 
+            return res.status(STATUS_CODES.NOT_FOUND).json({ 
                 success: false, 
-                message: "No admin account found with this email address." 
+                message: "No admin account found with this email address." || COMMON_MESSAGES.NOT_FOUND 
             });
         }
 
@@ -127,12 +141,15 @@ export const postForgotPassword = async (req, res) => {
         req.session.save((err) => {
             if (err) {
                 logger.error(`Session Save Error during admin password reset for ${email}: ${err.message}`);
-                return res.status(500).json({ success: false, message: "Session error occurred." });
+                return res.status(STATUS_CODES.INTERNAL_SERVER_ERROR).json({ 
+                    success: false, 
+                    message: err.message || COMMON_MESSAGES.SERVER_ERROR 
+                });
             }
             
             logger.info(`Admin password reset initiated. OTP sent to ${email}. IP: ${clientIp}`);
             
-            return res.status(200).json({ 
+            return res.status(STATUS_CODES.OK).json({ 
                 success: true, 
                 message: "OTP sent to your registered admin email.",
                 redirectUrl: "/admin/verify-otp"
@@ -140,12 +157,12 @@ export const postForgotPassword = async (req, res) => {
         });
 
     } catch (error) {
-        logger.error(`Admin Forgot Password Error (${req.body.email}): ${error.message}\nStack: ${error.stack}`);
+        logger.error(`Admin Forgot Password Error (${req.body?.email}): ${error.message}\nStack: ${error.stack}`);
         
-        return res.status(500).json({ 
+        return res.status(STATUS_CODES.INTERNAL_SERVER_ERROR).json({ 
             success: false, 
-            title: "Server Error",
-            message: "Server error occurred." 
+            title: "Server Error", 
+            message: error.message || COMMON_MESSAGES.SERVER_ERROR 
         });
     }
 };
@@ -158,15 +175,15 @@ export const getVerifyOtp = (req, res) => {
         }
 
         logger.info(`Admin OTP verification page accessed for email: ${req.session.adminResetEmail}. IP: ${req.ip}`);
-        res.render('admin/verifyadmin-otp');
+        return res.render('admin/verifyadmin-otp');
 
     } catch (error) {
         logger.error(`Error loading admin OTP verification page: ${error.message}\nStack: ${error.stack}`);
         
-        return res.status(500).json({
+        return res.status(STATUS_CODES.INTERNAL_SERVER_ERROR).json({
             success: false,
             title: "Server Error",
-            message: "An internal server error occurred while loading the page."
+            message: error.message || COMMON_MESSAGES.SERVER_ERROR
         });
     }
 };
@@ -179,25 +196,25 @@ export const postVerifyOtp = async (req, res) => {
 
         if (!email || !req.session.adminOtp) {
             logger.warn(`Admin OTP verify blocked: Session expired or missing. IP: ${clientIp}`);
-            return res.status(400).json({ 
+            return res.status(STATUS_CODES.BAD_REQUEST).json({ 
                 success: false, 
-                message: "Session expired. Please start over." 
+                message: COMMON_MESSAGES.SESSION_EXPIRED 
             });
         }
 
         if (Date.now() > req.session.adminOtpExpires) {
             logger.warn(`Admin OTP verify failed: OTP expired for ${email}. IP: ${clientIp}`);
-            return res.status(400).json({ 
+            return res.status(STATUS_CODES.BAD_REQUEST).json({ 
                 success: false, 
-                message: "OTP has expired. Please request a new one." 
+                message: "OTP has expired. Please request a new one." || COMMON_MESSAGES.SESSION_EXPIRED 
             });
         }
 
         if (otp !== req.session.adminOtp) {
             logger.warn(`Admin OTP verify failed: Invalid OTP entered for ${email}. IP: ${clientIp}`);
-            return res.status(400).json({ 
+            return res.status(STATUS_CODES.BAD_REQUEST).json({ 
                 success: false, 
-                message: "Invalid OTP. Please try again." 
+                message: "Invalid OTP. Please try again." || COMMON_MESSAGES.BAD_REQUEST 
             });
         }
 
@@ -208,12 +225,15 @@ export const postVerifyOtp = async (req, res) => {
         req.session.save((err) => {
             if (err) {
                 logger.error(`Session Save Error during admin OTP verification for ${email}: ${err.message}`);
-                return res.status(500).json({ success: false, message: "Session error occurred." });
+                return res.status(STATUS_CODES.INTERNAL_SERVER_ERROR).json({ 
+                    success: false, 
+                    message: err.message || COMMON_MESSAGES.SERVER_ERROR 
+                });
             }
 
             logger.info(`Admin OTP successfully verified for ${email}. Proceeding to password reset. IP: ${clientIp}`);
 
-            return res.status(200).json({
+            return res.status(STATUS_CODES.OK).json({
                 success: true,
                 message: "OTP verified successfully!",
                 redirectUrl: "/admin/reset-password"
@@ -223,10 +243,10 @@ export const postVerifyOtp = async (req, res) => {
     } catch (error) {
         logger.error(`Admin OTP Verify Error (IP: ${req.ip}): ${error.message}\nStack: ${error.stack}`);
         
-        return res.status(500).json({ 
+        return res.status(STATUS_CODES.INTERNAL_SERVER_ERROR).json({ 
             success: false, 
-            title: "Server Error",
-            message: "Server error occurred." 
+            title: "Server Error", 
+            message: error.message || COMMON_MESSAGES.SERVER_ERROR 
         });
     }
 };
@@ -238,9 +258,9 @@ export const resendAdminOtp = async (req, res) => {
 
         if (!email) {
             logger.warn(`Admin OTP resend blocked: Session expired or missing. IP: ${clientIp}`);
-            return res.status(400).json({ 
+            return res.status(STATUS_CODES.BAD_REQUEST).json({ 
                 success: false, 
-                message: "Session expired. Please start over." 
+                message: COMMON_MESSAGES.SESSION_EXPIRED 
             });
         }
 
@@ -251,7 +271,7 @@ export const resendAdminOtp = async (req, res) => {
             
             logger.warn(`Admin OTP resend blocked: Requested too soon for ${email}. Wait ${remainingSeconds}s. IP: ${clientIp}`);
             
-            return res.status(429).json({
+            return res.status(STATUS_CODES.TOO_MANY_REQUESTS).json({
                 success: false,
                 message: `OTP is still valid. Please wait ${remainingSeconds} seconds before requesting a new one.`
             });
@@ -266,12 +286,15 @@ export const resendAdminOtp = async (req, res) => {
         req.session.save((err) => {
             if (err) {
                 logger.error(`Session Save Error during admin OTP resend for ${email}: ${err.message}`);
-                return res.status(500).json({ success: false, message: "Session error occurred." });
+                return res.status(STATUS_CODES.INTERNAL_SERVER_ERROR).json({ 
+                    success: false, 
+                    message: err.message || COMMON_MESSAGES.SERVER_ERROR 
+                });
             }
 
             logger.info(`A new admin OTP was successfully sent to ${email}. IP: ${clientIp}`);
             
-            return res.status(200).json({ 
+            return res.status(STATUS_CODES.OK).json({ 
                 success: true, 
                 message: "A new OTP has been sent to your email." 
             });
@@ -280,10 +303,10 @@ export const resendAdminOtp = async (req, res) => {
     } catch (error) {
         logger.error(`Admin Resend OTP Error (IP: ${req.ip}): ${error.message}\nStack: ${error.stack}`);
         
-        return res.status(500).json({ 
+        return res.status(STATUS_CODES.INTERNAL_SERVER_ERROR).json({ 
             success: false, 
-            title: "Server Error",
-            message: "Error resending OTP." 
+            title: "Server Error", 
+            message: error.message || COMMON_MESSAGES.SERVER_ERROR 
         });
     }
 };
@@ -300,15 +323,15 @@ export const getResetPassword = (req, res) => {
 
         logger.info(`Admin password reset page accessed for email: ${email}. IP: ${clientIp}`);
 
-        res.render('admin/resetadminpassword');
+        return res.render('admin/resetadminpassword');
 
     } catch (error) {
         logger.error(`Error loading admin reset password page (IP: ${req.ip}): ${error.message}\nStack: ${error.stack}`);
         
-        return res.status(500).json({
+        return res.status(STATUS_CODES.INTERNAL_SERVER_ERROR).json({
             success: false,
             title: "Server Error",
-            message: "An internal server error occurred while loading the page."
+            message: error.message || COMMON_MESSAGES.SERVER_ERROR
         });
     }
 };
@@ -321,26 +344,26 @@ export const patchResetPassword = async (req, res, next) => {
 
         if (!email || !req.session.canAdminResetPassword) {
             logger.warn(`Admin password reset blocked: Session expired or invalid state. IP: ${clientIp}`);
-            return res.status(403).json({ 
+            return res.status(STATUS_CODES.FORBIDDEN).json({ 
                 success: false, 
-                message: "Session expired. Please start over." 
+                message: COMMON_MESSAGES.SESSION_EXPIRED 
             });
         }
 
         if (password !== confirmPassword) {
             logger.warn(`Admin password reset blocked: Passwords do not match for ${email}. IP: ${clientIp}`);
-            return res.status(400).json({ 
+            return res.status(STATUS_CODES.BAD_REQUEST).json({ 
                 success: false, 
-                message: "Passwords do not match." 
+                message: "Passwords do not match." || COMMON_MESSAGES.BAD_REQUEST 
             });
         }
 
         const passwordRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[!@#$]).{12,}$/;
         if (!passwordRegex.test(password)) {
             logger.warn(`Admin password reset blocked: Complexity requirements failed for ${email}. IP: ${clientIp}`);
-            return res.status(400).json({ 
+            return res.status(STATUS_CODES.BAD_REQUEST).json({ 
                 success: false, 
-                message: "Password does not meet security requirements." 
+                message: "Password does not meet security requirements." || COMMON_MESSAGES.BAD_REQUEST 
             });
         }
 
@@ -348,7 +371,10 @@ export const patchResetPassword = async (req, res, next) => {
 
         if (!result.isUpdated) {
             logger.warn(`Admin password reset failed: Account not found or not Admin (${email}). IP: ${clientIp}`);
-            return res.status(404).json({ success: false, message: "Admin account not found." });
+            return res.status(STATUS_CODES.NOT_FOUND).json({ 
+                success: false, 
+                message: "Admin account not found." || COMMON_MESSAGES.NOT_FOUND 
+            });
         }
 
         req.session.canAdminResetPassword = false;
@@ -358,7 +384,7 @@ export const patchResetPassword = async (req, res, next) => {
             if (err) {
                 logger.error(`Admin auto-login failed after password reset for ${email}: ${err.message}`);
                 
-                return res.status(200).json({ 
+                return res.status(STATUS_CODES.OK).json({ 
                     success: true, 
                     message: "Password updated successfully! Please log in.",
                     redirectUrl: '/admin/login' 
@@ -367,7 +393,7 @@ export const patchResetPassword = async (req, res, next) => {
             
             logger.info(`Admin password successfully reset and auto-logged in for ${email}. IP: ${clientIp}`);
             
-            return res.status(200).json({ 
+            return res.status(STATUS_CODES.OK).json({ 
                 success: true, 
                 message: "Password updated successfully!",
                 redirectUrl: '/admin/dashboard'
@@ -377,10 +403,10 @@ export const patchResetPassword = async (req, res, next) => {
     } catch (error) {
         logger.error(`Admin Reset Password Error (IP: ${req.ip}): ${error.message}\nStack: ${error.stack}`);
         
-        return res.status(500).json({ 
+        return res.status(STATUS_CODES.INTERNAL_SERVER_ERROR).json({ 
             success: false, 
             title: "Server Error", 
-            message: "Server error occurred." 
+            message: error.message || COMMON_MESSAGES.SERVER_ERROR 
         });
     }
 };
@@ -393,18 +419,18 @@ export const postAdminLogout = (req, res, next) => {
         req.logout((err) => {
             if (err) {
                 logger.error(`Admin logout error for ${adminEmail} (IP: ${clientIp}): ${err.message}`);
-                return res.status(500).json({ 
+                return res.status(STATUS_CODES.INTERNAL_SERVER_ERROR).json({ 
                     success: false, 
-                    message: "An error occurred during the logout process." 
+                    message: err.message || COMMON_MESSAGES.SERVER_ERROR 
                 });
             }
             
             req.session.destroy((destroyErr) => {
                 if (destroyErr) {
                     logger.error(`Session destruction error during logout for ${adminEmail}: ${destroyErr.message}`);
-                    return res.status(500).json({ 
+                    return res.status(STATUS_CODES.INTERNAL_SERVER_ERROR).json({ 
                         success: false, 
-                        message: "Failed to completely destroy session." 
+                        message: destroyErr.message || COMMON_MESSAGES.SERVER_ERROR 
                     });
                 }
                 
@@ -412,7 +438,7 @@ export const postAdminLogout = (req, res, next) => {
                 
                 logger.info(`Admin (${adminEmail}) successfully logged out. IP: ${clientIp}`);
                 
-                return res.status(200).json({
+                return res.status(STATUS_CODES.OK).json({
                     success: true,
                     message: "Logged out successfully.",
                     redirectUrl: '/admin/login'
@@ -423,9 +449,9 @@ export const postAdminLogout = (req, res, next) => {
     } catch (error) {
         logger.error(`Unexpected error during admin logout (IP: ${req.ip}): ${error.message}\nStack: ${error.stack}`);
         
-        return res.status(500).json({ 
+        return res.status(STATUS_CODES.INTERNAL_SERVER_ERROR).json({ 
             success: false, 
-            message: "An internal server error occurred." 
+            message: error.message || COMMON_MESSAGES.SERVER_ERROR 
         });
     }
 };

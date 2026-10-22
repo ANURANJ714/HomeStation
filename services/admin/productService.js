@@ -2,6 +2,7 @@ import Product from '../../models/Products.js';
 import ProductVariant from '../../models/ProductVariant.js';
 import Category from "../../models/Category.js";
 import mongoose from 'mongoose';
+import { STATUS_CODES } from '../../src/constants/httpStatusCodes.js';
 
 export const calculateProductStats = (variants) => {
     try {
@@ -308,7 +309,7 @@ export const validateProductInput = async (productData, variantData, imageUrls) 
 
         if (errorMessages.length > 0) {
             const err = new Error(errorMessages.join(' '));
-            err.statusCode = 400;
+            err.statusCode = STATUS_CODES.BAD_REQUEST;
             err.errorList = errorMessages;
             throw err;
         }
@@ -609,7 +610,7 @@ export const validateEditProductInput = async (productData, variantData, finalIm
 
         if (errorMessages.length > 0) {
             const err = new Error(errorMessages.join(' '));
-            err.statusCode = 400;
+            err.statusCode = STATUS_CODES.BAD_REQUEST ;
             err.errorList = errorMessages;
             throw err;
         }

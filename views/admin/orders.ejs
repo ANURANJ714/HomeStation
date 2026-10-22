@@ -128,6 +128,7 @@
                                     <% } else if (statusFilter === 'delivered') { %>Delivered
                                     <% } else if (statusFilter === 'cancelled') { %>Cancelled
                                     <% } else if (statusFilter === 'Return' || statusFilter === 'return') { %>Return
+                                    <% } else if (statusFilter === 'failed') { %>Order Failed
                                     <% } else { %>All Status<% } %>
                                 </span>
                                 <i class="fa-solid fa-chevron-down custom-icon"></i>
@@ -142,13 +143,14 @@
                                 <li class="custom-select-option <%= statusFilter === 'delivered' ? 'selected' : '' %>" data-value="delivered">Delivered</li>
                                 <li class="custom-select-option <%= statusFilter === 'cancelled' ? 'selected' : '' %>" data-value="cancelled">Cancelled</li>
                                 <li class="custom-select-option <%= (statusFilter === 'Return' || statusFilter === 'return') ? 'selected' : '' %>" data-value="Return">Return</li>
+                                <li class="custom-select-option <%= statusFilter === 'failed' ? 'selected' : '' %>" data-value="failed">Order Failed</li>
                             </ul>
                             <input type="hidden" name="filterStatus" id="filterStatusInput" value="<%= statusFilter %>">
                         </div>
                     </div>
                 </div>
 
-                <div class="stats-grid stats-grid-4">
+                <div class="stats-grid stats-grid-5">
                     <div class="stat-card">
                         <div class="stat-icon total-orders-icon"><i class="fa-solid fa-cubes"></i></div>
                         <div class="stat-details">
@@ -178,6 +180,14 @@
                         <div class="stat-details">
                             <p class="stat-label">Shipped</p>
                             <h3 class="stat-value stat-val-shipped"><%= metrics.shippedCount.toLocaleString('en-IN') %></h3>
+                        </div>
+                    </div>
+
+                    <div class="stat-card stat-card-failed">
+                        <div class="stat-icon stat-icon-failed"><i class="fa-solid fa-circle-exclamation"></i></div>
+                        <div class="stat-details">
+                            <p class="stat-label">Order Failed</p>
+                            <h3 class="stat-value stat-val-failed"><%= metrics.failedCount.toLocaleString('en-IN') %></h3>
                         </div>
                     </div>
                 </div>
@@ -241,13 +251,18 @@
                         <tbody>
                             <% if (orders && orders.length > 0) { %>
                                 <% orders.forEach(order => { %>
+                                    <% 
+                                        const isOrderFailed = order.status === 'failed';
+                                    %>
                                     <% order.orderItems.forEach(item => { 
                                         const isReturn = item.returnStatus && item.returnStatus !== 'none';
                                         
-                                        // Filter logic: if return, only show returnStatus !== 'none'; if delivery status, ensure match AND returnStatus === 'none'
+                                        // Strict status filtering logic
                                         if (statusFilter && statusFilter.trim() !== '') {
-                                            if (statusFilter.toLowerCase() === 'return' && !isReturn) return;
-                                            if (statusFilter.toLowerCase() !== 'return' && (item.itemStatus !== statusFilter || isReturn)) return;
+                                            const f = statusFilter.toLowerCase();
+                                            if (f === 'failed' && !isOrderFailed) return;
+                                            if (f === 'return' && (!isReturn || isOrderFailed)) return;
+                                            if (f !== 'failed' && f !== 'return' && (item.itemStatus !== statusFilter || isReturn || isOrderFailed)) return;
                                         }
 
                                         const variant = item.productVariantId;
@@ -258,9 +273,9 @@
                                         const rawOrderId = order.orderId ? order.orderId.replace(/^#/, '') : '';
                                         const statusLabel = isReturn 
                                             ? (item.returnStatus.charAt(0).toUpperCase() + item.returnStatus.slice(1)) 
-                                            : (item.itemStatus.charAt(0).toUpperCase() + item.itemStatus.slice(1));
+                                            : ((item.itemStatus || 'Processing').charAt(0).toUpperCase() + (item.itemStatus || 'Processing').slice(1));
                                     %>
-                                        <tr>
+                                        <tr class="<%= isOrderFailed ? 'row-order-failed' : '' %>">
                                             <td class="fw-500"><%= order.orderId %></td>
                                             <td>
                                                 <div class="product-inline-cell">
@@ -273,7 +288,11 @@
                                             <td class="fw-500">₹<%= itemTotal.toLocaleString('en-IN') %></td>
                                             <td><%= formattedDate %></td>
                                             <td>
-                                                <% if (isReturn) { %>
+                                                <% if (isOrderFailed) { %>
+                                                    <span class="badge badge-order-failed">
+                                                        <i class="fa-solid fa-circle-exclamation"></i> Order Failed
+                                                    </span>
+                                                <% } else if (isReturn) { %>
                                                     <span class="badge badge-return"><i class="fa-solid fa-rotate-left"></i> <%= statusLabel %></span>
                                                 <% } else if (item.itemStatus === 'delivered' && item.returnStatus === 'none') { %>
                                                     <span class="badge badge-delivered">Delivered</span>
@@ -290,7 +309,7 @@
                                                 <% } else if (item.itemStatus === 'processing' && item.returnStatus === 'none') { %>
                                                     <span class="badge badge-processing">Processing</span>
                                                 <% } else { %>
-                                                    <span class="badge badge-info"><%= item.itemStatus.charAt(0).toUpperCase() + item.itemStatus.slice(1) %></span>
+                                                    <span class="badge badge-info"><%= (item.itemStatus || 'Processing').charAt(0).toUpperCase() + (item.itemStatus || 'Processing').slice(1) %></span>
                                                 <% } %>
                                             </td>
                                             <td class="actions-td">

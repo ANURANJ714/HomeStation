@@ -2,6 +2,7 @@ import User from '../../models/User.js';
 import Order from '../../models/Order.js';
 import Category from '../../models/Category.js';
 import Product from '../../models/Products.js';
+import { ORDER_STATUS } from '../../src/constants/orderStatus.js';
 
 const calculateRevenueChartData = async (filter = 'monthly') => {
     try {
@@ -55,10 +56,15 @@ const calculateRevenueChartData = async (filter = 'monthly') => {
         }
 
         const revenueAgg = await Order.aggregate([
+            {
+                $match: {
+                    status: ORDER_STATUS.SUCCESS,
+                    createdAt: { $gte: startDate }
+                }
+            },
             { $unwind: '$orderItems' },
             {
                 $match: {
-                    createdAt: { $gte: startDate },
                     'orderItems.itemStatus': { $ne: 'cancelled' },
                     'orderItems.returnStatus': { $ne: 'item reached' }
                 }
@@ -99,6 +105,7 @@ export const getDashboardAnalytics = async () => {
         const lifetimeUsers = await User.countDocuments({ role: { $ne: 'Admin' } });
 
         const lifetimeAggregation = await Order.aggregate([
+            { $match: { status: ORDER_STATUS.SUCCESS } },
             { $unwind: '$orderItems' },
             {
                 $match: {
@@ -122,6 +129,7 @@ export const getDashboardAnalytics = async () => {
         const [allCategories, categorySalesAgg] = await Promise.all([
             Category.find({ isDeleted: false }).select('_id name').lean(),
             Order.aggregate([
+                { $match: { status: ORDER_STATUS.SUCCESS } },
                 { $unwind: '$orderItems' },
                 {
                     $match: {
@@ -188,6 +196,7 @@ export const getDashboardAnalytics = async () => {
         categoryPerformance.sort((a, b) => b.salesAmount - a.salesAmount);
 
         const topProductsAgg = await Order.aggregate([
+            { $match: { status: ORDER_STATUS.SUCCESS } },
             { $unwind: '$orderItems' },
             {
                 $match: {
@@ -257,6 +266,7 @@ export const getDashboardAnalytics = async () => {
         const validBrands = distinctBrands.filter((b) => b && b.trim() !== '');
 
         const brandSalesAgg = await Order.aggregate([
+            { $match: { status: ORDER_STATUS.SUCCESS } },
             { $unwind: '$orderItems' },
             {
                 $match: {
@@ -286,7 +296,7 @@ export const getDashboardAnalytics = async () => {
                 $group: {
                     _id: '$product.brand',
                     totalSalesAmount: {
-                        $sum: {$multiply: ['$orderItems.currentPrice', '$orderItems.quantity'] }
+                        $sum: { $multiply: ['$orderItems.currentPrice', '$orderItems.quantity'] }
                     }
                 }
             }

@@ -4,6 +4,9 @@ import Product from '../../models/Products.js';
 import Cart from '../../models/Cart.js';
 import Coupon from '../../models/Coupon.js';
 import * as walletService from '../../services/user/walletService.js';
+import * as razorpayService from '../../services/user/razorpayService.js';
+import { ORDER_STATUS } from '../../src/constants/orderStatus.js';
+import { STATUS_CODES } from '../../src/constants/httpStatusCodes.js';
 
 const generateNextOrderId = async () => {
     try {
@@ -24,14 +27,22 @@ const generateNextOrderId = async () => {
     }
 };
 
-export const createNewOrder = async (userId, validatedCheckoutData, shippingAddr, billingAddr, paymentMode, couponData = {}) => {
+export const createNewOrder = async (
+    userId,
+    validatedCheckoutData,
+    shippingAddr,
+    billingAddr,
+    paymentMode,
+    couponData = {},
+    orderStatus = ORDER_STATUS.SUCCESS
+) => {
     try {
         const { validItems, subtotal, deliveryCharges, totalPayable } = validatedCheckoutData;
-        const { 
-            couponUsed = null, 
-            couponType = null, 
+        const {
+            couponUsed = null,
+            couponType = null,
             couponDiscountValue = null,
-            couponDiscount = 0 
+            couponDiscount = 0
         } = couponData;
 
         if (!validItems || validItems.length === 0) {
@@ -40,42 +51,48 @@ export const createNewOrder = async (userId, validatedCheckoutData, shippingAddr
 
         const formattedOrderItems = [];
 
-        for (const item of validItems) {
+        for (let i = 0; i < validItems.length; i++) {
+            const item = validItems[i];
             const variantId = item.productVariantId?._id || item.productVariantId;
             const quantity = parseInt(item.quantity, 10) || 1;
 
-            const updatedVariant = await ProductVariant.findOneAndUpdate(
-                { _id: variantId, stock: { $gte: quantity } },
-                { $inc: { stock: -quantity } },
-                { new: true }
-            );
+            if (orderStatus === ORDER_STATUS.SUCCESS) {
+                const updatedVariant = await ProductVariant.findOneAndUpdate(
+                    { _id: variantId, stock: { $gte: quantity } },
+                    { $inc: { stock: -quantity } },
+                    { returnDocument: 'after' }
+                );
 
-            if (!updatedVariant) {
-                const variantName = item.productVariantId?.variantName || 'Selected Item';
-                throw new Error(`Stock mismatch for variant: ${variantName}. Please re-check your order.`);
+                if (!updatedVariant) {
+                    const variantName = item.productVariantId?.variantName || 'Selected Item';
+                    throw new Error(`Stock mismatch for variant: ${variantName}. Please re-check your order.`);
+                }
+
+                formattedOrderItems.push({
+                    productVariantId: updatedVariant._id,
+                    quantity: quantity,
+                    currentPrice: item.currentPrice,
+                    originalPrice: item.originalPrice,
+                    discount: item.discount || 0,
+                    itemStatus: 'processing'
+                });
+            } else {
+                formattedOrderItems.push({
+                    productVariantId: variantId,
+                    quantity: quantity,
+                    currentPrice: item.currentPrice,
+                    originalPrice: item.originalPrice,
+                    discount: item.discount || 0,
+                    itemStatus: null
+                });
             }
-
-            formattedOrderItems.push({
-                productVariantId: updatedVariant._id,
-                quantity,
-                currentPrice: item.currentPrice,
-                originalPrice: item.originalPrice,
-                discount: item.discount || 0,
-                itemStatus: 'processing',
-                returnStatus: 'none',
-                returnRequestStatus: null,
-                cancellationReason: null,
-                returnReason: null,
-                cancelledAt: null,
-                returnedAt: null
-            });
         }
 
         const customOrderId = await generateNextOrderId();
 
         const newOrder = await Order.create({
             orderId: customOrderId,
-            userId,
+            userId: userId,
             orderItems: formattedOrderItems,
             shippingAddress: {
                 name: shippingAddr.name || shippingAddr.fullName,
@@ -95,7 +112,8 @@ export const createNewOrder = async (userId, validatedCheckoutData, shippingAddr
                 fullAddress: billingAddr.fullAddress || billingAddr.addressLine,
                 addressType: billingAddr.addressType || 'Home'
             },
-            paymentMode,
+            paymentMode: paymentMode,
+            status: orderStatus,
             couponUsed: couponUsed ? couponUsed.trim().toUpperCase() : null,
             couponType: couponType ? couponType.toLowerCase() : null,
             couponDiscountValue: (couponDiscountValue !== null && !isNaN(Number(couponDiscountValue))) ? Number(couponDiscountValue) : null,
@@ -109,11 +127,11 @@ export const createNewOrder = async (userId, validatedCheckoutData, shippingAddr
             );
         }
 
-        if (paymentMode === 'wallet') {
+        if (paymentMode === 'wallet' && orderStatus === ORDER_STATUS.SUCCESS) {
             await walletService.deductWalletBalance(userId, totalPayable, newOrder.orderId);
         }
 
-        await Cart.deleteMany({ userId });
+        await Cart.deleteMany({ userId: userId });
 
         return {
             order: newOrder,
@@ -159,7 +177,7 @@ export const getUserOrdersPageData = async (userId, page = 1, limit = 4, searchQ
 
         if (searchQuery && searchQuery.trim() !== '') {
             const matchingProducts = await Product.find({
-                name: { $regex: searchQuery.trim(), $options: 'i' }
+                name: { $regex: searchQuery.trim(),$options: 'i' }
             }).select('_id').lean();
 
             const productIds = matchingProducts.map(p => p._id);
@@ -177,17 +195,21 @@ export const getUserOrdersPageData = async (userId, page = 1, limit = 4, searchQ
             const statusQueries = [];
 
             statusFilters.forEach(stat => {
-                if (stat === 'on-the-way') {
+                if (stat === 'failed') {
+                    statusQueries.push({ status: ORDER_STATUS.FAILED });
+                } else if (stat === 'on-the-way') {
                     statusQueries.push({
+                        status: ORDER_STATUS.SUCCESS,
                         orderItems: {
                             $elemMatch: {
-                                itemStatus: { $nin: ['cancelled', 'delivered'] },
+                                itemStatus: { $nin: ['cancelled', 'delivered', null] },
                                 returnStatus: 'none'
                             }
                         }
                     });
                 } else if (stat === 'delivered') {
                     statusQueries.push({
+                        status: ORDER_STATUS.SUCCESS,
                         orderItems: {
                             $elemMatch: {
                                 itemStatus: 'delivered',
@@ -197,6 +219,7 @@ export const getUserOrdersPageData = async (userId, page = 1, limit = 4, searchQ
                     });
                 } else if (stat === 'cancelled') {
                     statusQueries.push({
+                        status: ORDER_STATUS.SUCCESS,
                         orderItems: {
                             $elemMatch: {
                                 itemStatus: 'cancelled',
@@ -206,6 +229,7 @@ export const getUserOrdersPageData = async (userId, page = 1, limit = 4, searchQ
                     });
                 } else if (stat === 'returned') {
                     statusQueries.push({
+                        status: ORDER_STATUS.SUCCESS,
                         orderItems: {
                             $elemMatch: {
                                 returnStatus: { $ne: 'none' }
@@ -258,11 +282,21 @@ export const getUserOrdersPageData = async (userId, page = 1, limit = 4, searchQ
 
         orders.forEach(order => {
             order.orderItems = order.orderItems.filter(item => {
+                if (order.status === ORDER_STATUS.FAILED) {
+                    let matchesSearch = true;
+                    if (searchQuery && searchQuery.trim() !== '') {
+                        const prodName = item.productVariantId?.productId?.name || '';
+                        matchesSearch = prodName.toLowerCase().includes(searchQuery.trim().toLowerCase());
+                    }
+                    return matchesSearch;
+                }
+
                 let matchesStatus = true;
                 if (statusFilters && statusFilters.length > 0) {
                     matchesStatus = statusFilters.some(stat => {
+                        if (stat === 'failed') return false;
                         if (stat === 'on-the-way') {
-                            return item.itemStatus !== 'cancelled' && item.itemStatus !== 'delivered' && item.returnStatus === 'none';
+                            return item.itemStatus !== 'cancelled' && item.itemStatus !== 'delivered' && item.itemStatus !== null && item.returnStatus === 'none';
                         }
                         if (stat === 'delivered') {
                             return item.itemStatus === 'delivered' && item.returnStatus === 'none';
@@ -288,7 +322,6 @@ export const getUserOrdersPageData = async (userId, page = 1, limit = 4, searchQ
         });
 
         const filteredOrders = orders.filter(order => order.orderItems.length > 0);
-
         const totalPages = Math.ceil(totalFilteredOrders / limit) || 1;
         const safePage = Math.min(page, totalPages);
 
@@ -319,10 +352,7 @@ export const getUserOrderFullDetails = async (userId, orderId, orderItemId = nul
                 populate: {
                     path: 'productId',
                     select: 'name images categoryId',
-                    populate: {
-                        path: 'categoryId',
-                        select: 'name'
-                    }
+                    populate: { path: 'categoryId', select: 'name' }
                 }
             })
             .lean();
@@ -331,7 +361,7 @@ export const getUserOrderFullDetails = async (userId, orderId, orderItemId = nul
             return null;
         }
 
-        if (orderItemId) {
+        if (order.status !== ORDER_STATUS.FAILED && orderItemId) {
             const targetItem = order.orderItems.find(
                 i => i._id && i._id.toString() === orderItemId.toString()
             );
@@ -349,11 +379,105 @@ export const getUserOrderFullDetails = async (userId, orderId, orderItemId = nul
     }
 };
 
+export const initiateRetryPayment = async (userId, orderId) => {
+    try {
+        const formattedOrderId = orderId.startsWith('#') ? orderId : `#${orderId}`;
+
+        const order = await Order.findOne({
+            userId,
+            status: ORDER_STATUS.FAILED,
+            $or: [{ orderId: formattedOrderId }, { orderId }]
+        }).populate('orderItems.productVariantId');
+
+        if (!order) {
+            throw new Error('Failed order not found or already paid.');
+        }
+
+        for (const item of order.orderItems) {
+            const variant = item.productVariantId;
+            if (!variant || variant.stock < item.quantity) {
+                const varName = variant?.variantName || 'Selected variant';
+                throw new Error(`Insufficient stock for ${varName}. Please place a new order.`);
+            }
+        }
+
+        const itemsTotal = order.orderItems.reduce((sum, item) => sum + (item.currentPrice * item.quantity), 0);
+        const deliveryCharges = (itemsTotal > 0 && itemsTotal <= 500) ? 100 : 0;
+        const couponDiscount = Number(order.couponDiscount) || 0;
+        const totalPayable = Math.max(0, itemsTotal + deliveryCharges - couponDiscount);
+
+        const receiptId = `retry_${Date.now().toString().slice(-10)}`;
+        const razorpayOrder = await razorpayService.createRazorpayOrder(totalPayable, receiptId);
+
+        return {
+            order,
+            razorpayOrder,
+            totalPayable
+        };
+    } catch (error) {
+        throw new Error(`Retry payment initiation failed: ${error.message}`);
+    }
+};
+
+export const confirmRetryPayment = async (userId, orderId, paymentData) => {
+    try {
+        const { razorpay_order_id, razorpay_payment_id, razorpay_signature } = paymentData;
+
+        const isSignatureValid = razorpayService.verifyRazorpayPaymentSignature(
+            razorpay_order_id,
+            razorpay_payment_id,
+            razorpay_signature
+        );
+
+        if (!isSignatureValid) {
+            throw new Error('Payment signature verification failed.');
+        }
+
+        const formattedOrderId = orderId.startsWith('#') ? orderId : `#${orderId}`;
+        const order = await Order.findOne({
+            userId,
+            status: ORDER_STATUS.FAILED,
+            $or: [{ orderId: formattedOrderId }, { orderId }]
+        });
+
+        if (!order) {
+            throw new Error('Failed order record not found.');
+        }
+
+        for (const item of order.orderItems) {
+            const variantId = item.productVariantId;
+            const quantity = item.quantity;
+
+            const updatedVariant = await ProductVariant.findOneAndUpdate(
+                { _id: variantId, stock: { $gte: quantity } },
+                { $inc: { stock: -quantity } },
+                { returnDocument: 'after' }
+            );
+
+            if (!updatedVariant) {
+                throw new Error('Stock became unavailable during payment confirmation.');
+            }
+        }
+
+        order.status = ORDER_STATUS.SUCCESS;
+        order.orderItems.forEach(item => {
+            item.itemStatus = 'processing';
+            item.returnStatus = 'none';
+        });
+
+        await order.save();
+
+        return order;
+    } catch (error) {
+        throw new Error(`Retry payment confirmation failed: ${error.message}`);
+    }
+};
+
 export const cancelOrderOrItem = async (userId, orderId, orderItemId, reason) => {
     try {
         if (!orderId || !reason || reason.trim() === '') {
             const err = new Error('Order ID and a valid cancellation reason are required.');
-            err.statusCode = 400;
+            err.statusCode = STATUS_CODES.BAD_REQUEST;
             throw err;
         }
 
@@ -366,7 +490,7 @@ export const cancelOrderOrItem = async (userId, orderId, orderItemId, reason) =>
 
         if (!order) {
             const err = new Error('Order not found.');
-            err.statusCode = 404;
+            err.statusCode = STATUS_CODES.NOT_FOUND;
             throw err;
         }
 
@@ -379,13 +503,13 @@ export const cancelOrderOrItem = async (userId, orderId, orderItemId, reason) =>
             const item = order.orderItems.id(orderItemId);
             if (!item) {
                 const err = new Error('Item not found in this order.');
-                err.statusCode = 404;
+                err.statusCode = STATUS_CODES.NOT_FOUND;
                 throw err;
             }
 
             if (!allowedCancelStages.includes(item.itemStatus)) {
                 const err = new Error(`Item cannot be cancelled once it is ${item.itemStatus}.`);
-                err.statusCode = 400;
+                err.statusCode = STATUS_CODES.BAD_REQUEST;
                 throw err;
             }
 
@@ -419,7 +543,7 @@ export const cancelOrderOrItem = async (userId, orderId, orderItemId, reason) =>
         const cancellableItems = order.orderItems.filter(i => allowedCancelStages.includes(i.itemStatus));
         if (cancellableItems.length === 0) {
             const err = new Error('None of the items in this order are eligible for cancellation.');
-            err.statusCode = 400;
+            err.statusCode = STATUS_CODES.BAD_REQUEST;
             throw err;
         }
 
@@ -499,7 +623,7 @@ export const returnOrderOrItem = async (userId, orderId, orderItemId, reason) =>
     try {
         if (!orderId || !reason || reason.trim() === '') {
             const err = new Error('Order ID and a valid return reason are required.');
-            err.statusCode = 400;
+            err.statusCode = STATUS_CODES.BAD_REQUEST;
             throw err;
         }
 
@@ -512,7 +636,7 @@ export const returnOrderOrItem = async (userId, orderId, orderItemId, reason) =>
 
         if (!order) {
             const err = new Error('Order not found.');
-            err.statusCode = 404;
+            err.statusCode = STATUS_CODES.NOT_FOUND;
             throw err;
         }
 
@@ -521,7 +645,7 @@ export const returnOrderOrItem = async (userId, orderId, orderItemId, reason) =>
 
         if (differenceInDays > 15) {
             const err = new Error('Return window expired. Items can only be returned within 15 days of delivery.');
-            err.statusCode = 400;
+            err.statusCode = STATUS_CODES.BAD_REQUEST;
             throw err;
         }
 
@@ -532,19 +656,19 @@ export const returnOrderOrItem = async (userId, orderId, orderItemId, reason) =>
             const item = order.orderItems.id(orderItemId);
             if (!item) {
                 const err = new Error('Item not found in this order.');
-                err.statusCode = 404;
+                err.statusCode = STATUS_CODES.NOT_FOUND;
                 throw err;
             }
 
             if (item.itemStatus !== 'delivered') {
                 const err = new Error('Only delivered items are eligible for return.');
-                err.statusCode = 400;
+                err.statusCode = STATUS_CODES.BAD_REQUEST;
                 throw err;
             }
 
             if (item.returnRequestStatus && item.returnRequestStatus !== null) {
                 const err = new Error('A return request has already been submitted for this item.');
-                err.statusCode = 400;
+                err.statusCode = STATUS_CODES.BAD_REQUEST;
                 throw err;
             }
 

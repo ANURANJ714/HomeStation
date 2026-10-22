@@ -2,6 +2,8 @@ import logger from '../../utils/logger.js';
 import * as errorService from '../../services/user/errorService.js';
 import * as bannerService from '../../services/user/bannerService.js';
 import { getUserHeaderCounts } from '../../services/user/badgeService.js';
+import { STATUS_CODES } from '../../src/constants/httpStatusCodes.js';
+import { COMMON_MESSAGES } from '../../src/constants/commonMessages.js';
 
 export const handleNotFound = async (req, res) => {
     try {
@@ -18,15 +20,15 @@ export const handleNotFound = async (req, res) => {
         });
 
         if (isApiRequest) {
-            return res.status(404).json({
+            return res.status(STATUS_CODES.NOT_FOUND).json({
                 success: false,
-                statusCode: 404,
-                message: "Requested resource or route was not found on the server."
+                statusCode: STATUS_CODES.NOT_FOUND,
+                message: COMMON_MESSAGES.NOT_FOUND
             });
         }
 
         if (isAdmin) {
-            return res.status(404).render('admin/admin404error', {
+            return res.status(STATUS_CODES.NOT_FOUND).render('admin/admin404error', {
                 pageTitle: 'Admin - Page Not Found',
                 path: req.originalUrl,
                 csrfToken: req.csrfToken ? req.csrfToken() : ''
@@ -41,7 +43,7 @@ export const handleNotFound = async (req, res) => {
             getUserHeaderCounts(userId)
         ]);
 
-        return res.status(404).render('user/404error', {
+        return res.status(STATUS_CODES.NOT_FOUND).render('user/404error', {
             pageTitle: 'HomeStation - Page Not Found',
             bannerText: promoBannerText, 
             user,
@@ -54,12 +56,14 @@ export const handleNotFound = async (req, res) => {
         logger.error(`Error inside handleNotFound controller: ${error.message}`, { stack: error.stack });
 
         if (req.xhr || req.headers.accept?.includes('application/json')) {
-            return res.status(500).json({
+            return res.status(STATUS_CODES.INTERNAL_SERVER_ERROR).json({
                 success: false,
-                message: "An internal server error occurred while loading the page."
+                message: error.message || COMMON_MESSAGES.SERVER_ERROR
             });
         }
 
-        return res.status(500).render('user/500error', { message: 'Internal Server Error' });
+        return res.status(STATUS_CODES.INTERNAL_SERVER_ERROR).render('user/500error', { 
+            message: error.message || COMMON_MESSAGES.SERVER_ERROR 
+        });
     }
 };

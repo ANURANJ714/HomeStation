@@ -1,6 +1,7 @@
 import Order from '../../models/Order.js';
 import PDFDocument from 'pdfkit';
 import ExcelJS from 'exceljs';
+import { ORDER_STATUS } from '../../src/constants/orderStatus.js';
 
 export const getDateRange = (filter, fromDate, toDate) => {
     const now = new Date();
@@ -33,22 +34,17 @@ export const getDateRange = (filter, fromDate, toDate) => {
     return { start, end };
 };
 
-export const getValidOrderMatch = (start, end) => {
-    const matchCondition = {
-        createdAt: { $gte: start,$lte: end },
-        'orderItems.itemStatus': { $ne: 'cancelled' },
-        'orderItems.returnStatus': 'none'
-    };
-    return matchCondition;
-};
-
 export const getSalesReportData = async ({ filter = 'last30', fromDate, toDate, page = 1, limit = 6 }) => {
     try {
         const { start, end } = getDateRange(filter, fromDate, toDate);
-        const matchCondition = getValidOrderMatch(start, end);
 
         const summaryAgg = await Order.aggregate([
-            { $match: { createdAt: { $gte: start,$lte: end } } },
+            { 
+                $match: { 
+                    status: ORDER_STATUS.SUCCESS,
+                    createdAt: { $gte: start, $lte: end } 
+                } 
+            },
             { $unwind: '$orderItems' },
             {
                 $match: {
@@ -61,10 +57,11 @@ export const getSalesReportData = async ({ filter = 'last30', fromDate, toDate, 
                     _id: null,
                     totalSalesCount: { $sum: '$orderItems.quantity' },
                     totalItemRevenue: {
-                        $sum: {$multiply: ['$orderItems.currentPrice', '$orderItems.quantity'] }
+                        $sum: { $multiply: ['$orderItems.currentPrice', '$orderItems.quantity'] }
                     },
                     totalProductDiscount: {
-                        $sum: {$multiply: [
+                        $sum: {
+                            $multiply: [
                                 { $subtract: ['$orderItems.originalPrice', '$orderItems.currentPrice'] },
                                 '$orderItems.quantity'
                             ]
@@ -77,7 +74,8 @@ export const getSalesReportData = async ({ filter = 'last30', fromDate, toDate, 
         const couponAgg = await Order.aggregate([
             {
                 $match: {
-                    createdAt: { $gte: start,$lte: end },
+                    status: ORDER_STATUS.SUCCESS,
+                    createdAt: { $gte: start, $lte: end },
                     orderItems: {
                         $elemMatch: {
                             itemStatus: { $ne: 'cancelled' },
@@ -102,7 +100,12 @@ export const getSalesReportData = async ({ filter = 'last30', fromDate, toDate, 
         };
 
         const dailyAgg = await Order.aggregate([
-            { $match: { createdAt: { $gte: start,$lte: end } } },
+            { 
+                $match: { 
+                    status: ORDER_STATUS.SUCCESS,
+                    createdAt: { $gte: start, $lte: end } 
+                } 
+            },
             { $unwind: '$orderItems' },
             {
                 $match: {
@@ -114,19 +117,20 @@ export const getSalesReportData = async ({ filter = 'last30', fromDate, toDate, 
                 $group: {
                     _id: {
                         orderId: '$_id',
-                        date: { $dateToString: { format: '\%Y-\%m-\%d', date: '$createdAt' } },
+                        date: { $dateToString: { format: '%Y-%m-%d', date: '$createdAt' } },
                         couponDiscount: '$couponDiscount'
                     },
                     dailyItemsSold: { $sum: '$orderItems.quantity' },
                     dailyItemDiscount: {
-                        $sum: {$multiply: [
+                        $sum: {
+                            $multiply: [
                                 { $subtract: ['$orderItems.originalPrice', '$orderItems.currentPrice'] },
                                 '$orderItems.quantity'
                             ]
                         }
                     },
                     dailyRevenue: {
-                        $sum: {$multiply: ['$orderItems.currentPrice', '$orderItems.quantity'] }
+                        $sum: { $multiply: ['$orderItems.currentPrice', '$orderItems.quantity'] }
                     }
                 }
             },
@@ -177,7 +181,12 @@ export const getAllFilteredRecords = async ({ filter, fromDate, toDate }) => {
         const { start, end } = getDateRange(filter, fromDate, toDate);
 
         const dailyAgg = await Order.aggregate([
-            { $match: { createdAt: { $gte: start,$lte: end } } },
+            { 
+                $match: { 
+                    status: ORDER_STATUS.SUCCESS,
+                    createdAt: { $gte: start, $lte: end } 
+                } 
+            },
             { $unwind: '$orderItems' },
             {
                 $match: {
@@ -189,19 +198,20 @@ export const getAllFilteredRecords = async ({ filter, fromDate, toDate }) => {
                 $group: {
                     _id: {
                         orderId: '$_id',
-                        date: { $dateToString: { format: '\%Y-\%m-\%d', date: '$createdAt' } },
+                        date: { $dateToString: { format: '%Y-%m-%d', date: '$createdAt' } },
                         couponDiscount: '$couponDiscount'
                     },
                     itemsCount: { $sum: '$orderItems.quantity' },
                     discountAmount: {
-                        $sum: {$multiply: [
+                        $sum: {
+                            $multiply: [
                                 { $subtract: ['$orderItems.originalPrice', '$orderItems.currentPrice'] },
                                 '$orderItems.quantity'
                             ]
                         }
                     },
                     revenueAmount: {
-                        $sum: {$multiply: ['$orderItems.currentPrice', '$orderItems.quantity'] }
+                        $sum: { $multiply: ['$orderItems.currentPrice', '$orderItems.quantity'] }
                     }
                 }
             },

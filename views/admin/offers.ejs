@@ -401,10 +401,30 @@
                         </div>
                     </div>
 
-                    <div class="form-group">
-                        <label for="addOfferTarget" id="addOfferTargetLabel">Target Product ID (e.g. PRD-0001)</label>
-                        <input type="text" id="addOfferTarget" class="form-control" placeholder="e.g. PRD-0001">
-                        <span class="field-error-text" id="addOfferTargetError"></span>
+                    <div class="form-group" id="addProductTargetGroup">
+                        <label for="addProductTargetSelect">Target Product ID</label>
+                        <select id="addProductTargetSelect" class="form-control scrollable-select">
+                            <option value="">Select a Product ID</option>
+                            <% if (typeof products !== 'undefined' && products.length > 0) { %>
+                                <% products.forEach(prod => { %>
+                                    <option value="<%= prod.productId %>"><%= prod.productId %> - <%= prod.name %></option>
+                                <% }) %>
+                            <% } %>
+                        </select>
+                        <span class="field-error-text" id="addProductTargetError"></span>
+                    </div>
+
+                    <div class="form-group target-hidden" id="addCategoryTargetGroup">
+                        <label for="addCategoryTargetSelect">Target Category Name</label>
+                        <select id="addCategoryTargetSelect" class="form-control scrollable-select">
+                            <option value="">Select a Category</option>
+                            <% if (typeof categories !== 'undefined' && categories.length > 0) { %>
+                                <% categories.forEach(cat => { %>
+                                    <option value="<%= cat.name %>"><%= cat.name %></option>
+                                <% }) %>
+                            <% } %>
+                        </select>
+                        <span class="field-error-text" id="addCategoryTargetError"></span>
                     </div>
 
                     <div class="form-row">
@@ -472,10 +492,30 @@
                         </div>
                     </div>
 
-                    <div class="form-group">
-                        <label for="editOfferTarget" id="editOfferTargetLabel">Target Product ID (e.g. PRD-0001)</label>
-                        <input type="text" id="editOfferTarget" class="form-control">
-                        <span class="field-error-text" id="editOfferTargetError"></span>
+                    <div class="form-group" id="editProductTargetGroup">
+                        <label for="editProductTargetSelect">Target Product ID</label>
+                        <select id="editProductTargetSelect" class="form-control scrollable-select">
+                            <option value="">Select a Product ID</option>
+                            <% if (typeof products !== 'undefined' && products.length > 0) { %>
+                                <% products.forEach(prod => { %>
+                                    <option value="<%= prod.productId %>"><%= prod.productId %> - <%= prod.name %></option>
+                                <% }) %>
+                            <% } %>
+                        </select>
+                        <span class="field-error-text" id="editProductTargetError"></span>
+                    </div>
+
+                    <div class="form-group target-hidden" id="editCategoryTargetGroup">
+                        <label for="editCategoryTargetSelect">Target Category Name</label>
+                        <select id="editCategoryTargetSelect" class="form-control scrollable-select">
+                            <option value="">Select a Category</option>
+                            <% if (typeof categories !== 'undefined' && categories.length > 0) { %>
+                                <% categories.forEach(cat => { %>
+                                    <option value="<%= cat.name %>"><%= cat.name %></option>
+                                <% }) %>
+                            <% } %>
+                        </select>
+                        <span class="field-error-text" id="editCategoryTargetError"></span>
                     </div>
 
                     <div class="form-row">

@@ -1,16 +1,21 @@
 import * as cartService from '../../services/user/cartService.js';
 import * as couponService from '../../services/user/userCouponService.js';
-import {getActivePromoBanner} from '../../services/user/bannerService.js';
+import { getActivePromoBanner } from '../../services/user/bannerService.js';
 import { getUserHeaderCounts } from '../../services/user/badgeService.js';
 import * as reviewService from '../../services/user/reviewService.js';
 import logger from '../../utils/logger.js';
+import { STATUS_CODES } from '../../src/constants/httpStatusCodes.js';
+import { COMMON_MESSAGES } from '../../src/constants/commonMessages.js';
 
 export const addToCartController = async (req, res) => {
     try {
         const { variantId, quantity } = req.body;
 
         if (!variantId) {
-            return res.status(400).json({ success: false, message: "Variant ID is required." });
+            return res.status(STATUS_CODES.BAD_REQUEST).json({ 
+                success: false, 
+                message: "Variant ID is required." || COMMON_MESSAGES.BAD_REQUEST 
+            });
         }
 
         const targetQuantity = quantity ? parseInt(quantity, 10) : 1;
@@ -20,9 +25,9 @@ export const addToCartController = async (req, res) => {
             req.session.pendingCartQuantity = targetQuantity; 
             req.session.save();
 
-            return res.status(401).json({ 
+            return res.status(STATUS_CODES.UNAUTHORIZED).json({ 
                 success: false, 
-                message: "Please login to add to cart.",
+                message: "Please login to add to cart." || COMMON_MESSAGES.UNAUTHORIZED,
                 redirectUrl: '/user/login' 
             });
         }
@@ -37,16 +42,16 @@ export const addToCartController = async (req, res) => {
 
         if (!result.success) {
             logger.warn(`User (${req.user.email}) add to cart denied: ${result.message} [Reason: ${result.reason}]`);
-            return res.status(400).json({ 
+            return res.status(STATUS_CODES.BAD_REQUEST).json({ 
                 success: false, 
                 reason: result.reason, 
-                message: result.message 
+                message: result.message || COMMON_MESSAGES.BAD_REQUEST 
             });
         }
 
         logger.info(`User (${req.user.email}) added variant ${variantId} (Qty: ${targetQuantity}) to cart.`);
 
-        return res.status(200).json({ 
+        return res.status(STATUS_CODES.OK).json({ 
             success: true, 
             message: "Item added to cart successfully!",
             count: result.totalCartCount,
@@ -55,7 +60,10 @@ export const addToCartController = async (req, res) => {
 
     } catch (error) {
         logger.error(`Cart Add Controller Pipeline Error (IP: ${req.ip}): ${error.message}\nStack: ${error.stack}`);
-        return res.status(500).json({ success: false, message: "Failed to add to cart." });
+        return res.status(STATUS_CODES.INTERNAL_SERVER_ERROR).json({ 
+            success: false, 
+            message: error.message || COMMON_MESSAGES.SERVER_ERROR 
+        });
     }
 };
 
@@ -110,9 +118,9 @@ export const loadCartPage = async (req, res) => {
 
     } catch (error) {
         logger.error(`Error loading Cart Page (IP: ${req.ip}): ${error.message}\nStack: ${error.stack}`);
-        return res.status(500).json({ 
+        return res.status(STATUS_CODES.INTERNAL_SERVER_ERROR).json({ 
             success: false, 
-            message: 'Server error occurred while loading the cart page.' 
+            message: error.message || COMMON_MESSAGES.SERVER_ERROR 
         });
     }
 };
@@ -132,7 +140,7 @@ export const applyCouponController = async (req, res) => {
 
         logger.info(`User (${userEmail}) applied coupon "${result.couponCode}" | Discount: ₹${result.discountAmount} | IP: ${clientIp}`);
 
-        return res.status(200).json({
+        return res.status(STATUS_CODES.OK).json({
             success: true,
             message: `Coupon "${result.couponCode}" applied successfully!`,
             couponCode: result.couponCode,
@@ -141,9 +149,9 @@ export const applyCouponController = async (req, res) => {
         });
     } catch (error) {
         logger.warn(`Coupon application rejected for (${req.user?.email || 'Unknown'}): ${error.message}`);
-        return res.status(error.statusCode || 500).json({
+        return res.status(error.statusCode || STATUS_CODES.INTERNAL_SERVER_ERROR).json({
             success: false,
-            message: error.message || 'Failed to apply coupon.'
+            message: error.message || COMMON_MESSAGES.SERVER_ERROR
         });
     }
 };
@@ -155,9 +163,9 @@ export const changeQuantityController = async (req, res) => {
         const userEmail = req.user.email || 'Unknown User';
 
         if (!cartItemId || !['increase', 'decrease', 'set'].includes(action)) {
-            return res.status(400).json({ 
+            return res.status(STATUS_CODES.BAD_REQUEST).json({ 
                 success: false, 
-                message: 'Invalid payload parameters.' 
+                message: 'No item in the Cart' || COMMON_MESSAGES.BAD_REQUEST 
             });
         }
 
@@ -168,10 +176,10 @@ export const changeQuantityController = async (req, res) => {
         const result = await cartService.updateCartQuantity(userId, cartItemId, action, targetQuantity);
 
         if (!result.success) {
-            return res.status(200).json({ 
+            return res.status(STATUS_CODES.OK).json({ 
                 success: false, 
                 reason: result.reason, 
-                message: result.message 
+                message: result.message || COMMON_MESSAGES.BAD_REQUEST 
             });
         }
 
@@ -179,7 +187,7 @@ export const changeQuantityController = async (req, res) => {
 
         logger.info(`User (${userEmail}) modified quantity for item [${cartItemId}]. Action: ${action} | New Qty: ${result.currentQuantity}`);
 
-        return res.status(200).json({
+        return res.status(STATUS_CODES.OK).json({
             success: true,
             action: result.action,
             currentQuantity: result.currentQuantity,
@@ -189,9 +197,9 @@ export const changeQuantityController = async (req, res) => {
 
     } catch (error) {
         logger.error(`Cart quantity shift error: ${error.message}\nStack: ${error.stack}`);
-        return res.status(500).json({ 
+        return res.status(STATUS_CODES.INTERNAL_SERVER_ERROR).json({ 
             success: false, 
-            message: 'Server error updating cart values.' 
+            message: error.message || COMMON_MESSAGES.SERVER_ERROR 
         });
     }
 };
@@ -203,9 +211,9 @@ export const removeCartItemController = async (req, res) => {
         const userEmail = req.user.email || 'Unknown User';
 
         if (!cartItemId) {
-            return res.status(400).json({ 
+            return res.status(STATUS_CODES.BAD_REQUEST).json({ 
                 success: false, 
-                message: 'Cart item identifier is required.' 
+                message: 'Cart item identifier is required.' || COMMON_MESSAGES.BAD_REQUEST 
             });
         }
 
@@ -216,9 +224,9 @@ export const removeCartItemController = async (req, res) => {
         const { isDeleted, totalCartCount } = await cartService.deleteCartItemCompletely(userId, cartItemId);
 
         if (!isDeleted) {
-            return res.status(404).json({ 
+            return res.status(STATUS_CODES.NOT_FOUND).json({ 
                 success: false, 
-                message: 'Target cart element was not found.' 
+                message: COMMON_MESSAGES.NOT_FOUND 
             });
         }
 
@@ -226,7 +234,7 @@ export const removeCartItemController = async (req, res) => {
 
         logger.info(`User (${userEmail}) removed cart item: ${cartItemId}`);
 
-        return res.status(200).json({
+        return res.status(STATUS_CODES.OK).json({
             success: true,
             message: 'Item removed from your cart successfully.',
             count: totalCartCount,
@@ -237,9 +245,9 @@ export const removeCartItemController = async (req, res) => {
 
     } catch (error) {
         logger.error(`Cart remove item error: ${error.message}\nStack: ${error.stack}`);
-        return res.status(500).json({ 
+        return res.status(STATUS_CODES.INTERNAL_SERVER_ERROR).json({ 
             success: false, 
-            message: 'Server error occurred during removal.' 
+            message: error.message || COMMON_MESSAGES.SERVER_ERROR 
         });
     }
 };
@@ -251,9 +259,9 @@ export const setExactCartQuantity = async (req, res) => {
         const { cartItemId, quantity } = req.body;
 
         if (!cartItemId || quantity === undefined || quantity === null || parseInt(quantity, 10) <= 0) {
-            return res.status(400).json({
+            return res.status(STATUS_CODES.BAD_REQUEST).json({
                 success: false,
-                message: 'Invalid item or quantity parameters.'
+                message: 'No items in the Cart' || COMMON_MESSAGES.BAD_REQUEST
             });
         }
 
@@ -264,25 +272,25 @@ export const setExactCartQuantity = async (req, res) => {
         const result = await cartService.updateItemExactQuantity(userId, cartItemId, quantity);
 
         if (!result.success) {
-            return res.status(400).json({
+            return res.status(STATUS_CODES.BAD_REQUEST).json({
                 success: false,
                 reason: result.reason,
-                message: result.message
+                message: result.message || COMMON_MESSAGES.BAD_REQUEST
             });
         }
 
         logger.info(`User (${userEmail}) set exact quantity for item [${cartItemId}] to ${result.currentQuantity}`);
 
-        return res.status(200).json({
+        return res.status(STATUS_CODES.OK).json({
             success: true,
             currentQuantity: result.currentQuantity,
             message: 'Quantity adjusted to available stock.'
         });
     } catch (error) {
         logger.error(`setExactCartQuantity error: ${error.message}\nStack: ${error.stack}`);
-        return res.status(500).json({
+        return res.status(STATUS_CODES.INTERNAL_SERVER_ERROR).json({
             success: false,
-            message: 'Failed to adjust quantity.'
+            message: error.message || COMMON_MESSAGES.SERVER_ERROR
         });
     }
 };

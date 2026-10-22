@@ -5,6 +5,9 @@ import * as reviewService from '../../services/user/reviewService.js';
 import { getActivePromoBanner } from '../../services/user/bannerService.js';
 import { getUserHeaderCounts } from '../../services/user/badgeService.js';
 import { notFoundMiddleware } from '../../middlewares/notFoundMiddleware.js';
+import { STATUS_CODES } from '../../src/constants/httpStatusCodes.js';
+import { ORDER_STATUS } from '../../src/constants/orderStatus.js';
+import { COMMON_MESSAGES } from '../../src/constants/commonMessages.js';
 
 export const loadUserOrdersPage = async (req, res) => {
     try {
@@ -51,9 +54,9 @@ export const loadUserOrdersPage = async (req, res) => {
 
     } catch (error) {
         logger.error(`Error loading user orders for (${req.user?.email || 'Unknown'}): ${error.message}\nStack: ${error.stack}`);
-        return res.status(500).json({
+        return res.status(STATUS_CODES.INTERNAL_SERVER_ERROR).json({
             success: false,
-            message: 'An internal server error occurred while retrieving your orders.'
+            message: error.message || COMMON_MESSAGES.SERVER_ERROR
         });
     }
 };
@@ -94,15 +97,19 @@ export const loadUserOrderDetailPage = async (req, res) => {
             return notFoundMiddleware(req, res);
         }
 
+        const isOrderFailed = order.status === ORDER_STATUS.FAILED;
+
         const itemStatuses = order.orderItems.map(i => i.itemStatus);
         const returnStatuses = order.orderItems.map(i => i.returnStatus).filter(s => s !== 'none');
 
-        const overallStatus = itemStatuses.every(s => s === 'cancelled') 
-            ? 'cancelled' 
-            : (itemStatuses.every(s => s === 'delivered') ? 'delivered' : itemStatuses.find(s => s !== 'cancelled') || 'processing');
+        const overallStatus = isOrderFailed
+            ? 'failed'
+            : (itemStatuses.every(s => s === 'cancelled')
+                ? 'cancelled'
+                : (itemStatuses.every(s => s === 'delivered') ? 'delivered' : itemStatuses.find(s => s !== 'cancelled') || 'processing'));
 
-        const overallReturnStatus = returnStatuses.length > 0 
-            ? (returnStatuses.every(s => s === 'item reached') ? 'item reached' : returnStatuses[0]) 
+        const overallReturnStatus = (!isOrderFailed && returnStatuses.length > 0)
+            ? (returnStatuses.every(s => s === 'item reached') ? 'item reached' : returnStatuses[0])
             : 'none';
 
         let paymentModeLabel = 'COD';
@@ -115,26 +122,17 @@ export const loadUserOrderDetailPage = async (req, res) => {
         }
 
         const calculatePaymentStatus = (mode, itemStatus, returnStatus) => {
-            if (returnStatus === 'item reached') {
-                return 'Refunded';
-            }
+            if (isOrderFailed) return 'Failed';
+            if (returnStatus === 'item reached') return 'Refunded';
 
             if (mode === 'razorpay' || mode === 'wallet') {
-                if (itemStatus === 'cancelled') {
-                    return 'Refunded';
-                }
-                if (itemStatus !== 'cancelled' && returnStatus !== 'item reached') {
-                    return 'Paid';
-                }
+                if (itemStatus === 'cancelled') return 'Refunded';
+                if (itemStatus !== 'cancelled' && returnStatus !== 'item reached') return 'Paid';
             }
 
             if (mode === 'cod') {
-                if (itemStatus !== 'delivered' && returnStatus === 'none') {
-                    return 'Unpaid';
-                }
-                if (itemStatus === 'delivered' && returnStatus !== 'item reached') {
-                    return 'Paid';
-                }
+                if (itemStatus !== 'delivered' && returnStatus === 'none') return 'Unpaid';
+                if (itemStatus === 'delivered' && returnStatus !== 'item reached') return 'Paid';
             }
 
             return 'Unpaid';
@@ -157,7 +155,7 @@ export const loadUserOrderDetailPage = async (req, res) => {
 
         let isReturnEligible = false;
         let formattedReturnDeadline = '';
-        if (overallStatus === 'delivered') {
+        if (order.status === ORDER_STATUS.SUCCESS && overallStatus === 'delivered') {
             const deliveredDate = new Date(order.updatedAt || order.createdAt);
             const returnDeadlineObj = new Date(deliveredDate);
             returnDeadlineObj.setDate(returnDeadlineObj.getDate() + 15);
@@ -173,8 +171,8 @@ export const loadUserOrderDetailPage = async (req, res) => {
         const returnSteps = ['return initiated', 'pickup assigned', 'item picked up', 'in transit', 'item reached'];
         const currentReturnStepIndex = returnSteps.indexOf(overallReturnStatus.toLowerCase());
 
-        const hasCancellableItems = order.orderItems.some(i => i.itemStatus !== 'delivered' && i.itemStatus !== 'cancelled');
-        const hasReturnableItems = order.orderItems.some(i => i.itemStatus === 'delivered' && (!i.returnStatus || i.returnStatus === 'none'));
+        const hasCancellableItems = !isOrderFailed && order.orderItems.some(i => i.itemStatus !== 'delivered' && i.itemStatus !== 'cancelled');
+        const hasReturnableItems = !isOrderFailed && order.orderItems.some(i => i.itemStatus === 'delivered' && (!i.returnStatus || i.returnStatus === 'none'));
 
         const productIds = order.orderItems
             .map(item => item.productVariantId?.productId?._id)
@@ -182,11 +180,12 @@ export const loadUserOrderDetailPage = async (req, res) => {
 
         const userReviews = await reviewService.getUserReviewsForProducts(userId, productIds);
 
-        logger.info(`User (${userEmail}) loaded details for Order [${order.orderId}] Item [${cleanItemId || 'all'}] | IP: ${clientIp}`);
+        logger.info(`User (${userEmail}) loaded details for Order [${order.orderId}] (Status: ${order.status}) | IP: ${clientIp}`);
 
         return res.render('user/orderdetail', {
             user: req.user,
             order,
+            isOrderFailed,
             userReviews,
             overallStatus,
             overallReturnStatus,
@@ -219,9 +218,85 @@ export const loadUserOrderDetailPage = async (req, res) => {
         }
 
         logger.error(`Error loading order details for (${req.user?.email || 'Unknown'}): ${error.message}\nStack: ${error.stack}`);
-        return res.status(500).json({
+        return res.status(STATUS_CODES.INTERNAL_SERVER_ERROR).json({
             success: false,
-            message: 'An internal server error occurred while retrieving order details.'
+            message: error.message || COMMON_MESSAGES.SERVER_ERROR
+        });
+    }
+};
+
+export const initiateRetryOrderPayment = async (req, res) => {
+    try {
+        const userId = req.user._id;
+        const userEmail = req.user?.email || 'Unknown User';
+        const clientIp = req.ip;
+        const { orderId } = req.body;
+
+        if (!orderId) {
+            return res.status(STATUS_CODES.BAD_REQUEST).json({
+                success: false,
+                message: 'Failed to iniate the payment' || COMMON_MESSAGES.BAD_REQUEST
+            });
+        }
+
+        const retryData = await orderService.initiateRetryPayment(userId, orderId);
+
+        logger.info(`User (${userEmail}) initiated retry payment for Order [${orderId}] | IP: ${clientIp}`);
+
+        return res.status(STATUS_CODES.OK).json({
+            success: true,
+            isRazorpay: true,
+            razorpayKeyId: process.env.RAZORPAY_KEY_ID,
+            razorpayOrderId: retryData.razorpayOrder.id,
+            amount: retryData.razorpayOrder.amount,
+            currency: retryData.razorpayOrder.currency,
+            customerName: retryData.order.shippingAddress.name,
+            customerEmail: userEmail,
+            customerPhone: retryData.order.shippingAddress.phone,
+            message: 'Retry payment initialized successfully.'
+        });
+    } catch (error) {
+        logger.error(`Retry payment initiation error for (${req.user?.email || 'Unknown'}): ${error.message}`);
+        return res.status(STATUS_CODES.BAD_REQUEST).json({
+            success: false,
+            message: error.message || COMMON_MESSAGES.SERVER_ERROR
+        });
+    }
+};
+
+export const verifyRetryOrderPayment = async (req, res) => {
+    try {
+        const userId = req.user._id;
+        const userEmail = req.user?.email || 'Unknown User';
+        const clientIp = req.ip;
+        const { orderId, razorpay_order_id, razorpay_payment_id, razorpay_signature } = req.body;
+
+        if (!orderId || !razorpay_order_id || !razorpay_payment_id || !razorpay_signature) {
+            return res.status(STATUS_CODES.BAD_REQUEST).json({
+                success: false,
+                message: 'Order payment Failed' || COMMON_MESSAGES.BAD_REQUEST
+            });
+        }
+
+        const updatedOrder = await orderService.confirmRetryPayment(userId, orderId, {
+            razorpay_order_id,
+            razorpay_payment_id,
+            razorpay_signature
+        });
+
+        logger.info(`Retry payment completed successfully! Order [${updatedOrder.orderId}] marked as SUCCESS for (${userEmail}) | IP: ${clientIp}`);
+
+        return res.status(STATUS_CODES.OK).json({
+            success: true,
+            orderId: updatedOrder.orderId,
+            message: 'Payment completed and order verified successfully.',
+            redirectUrl: `/user/checkout/success?orderId=${encodeURIComponent(updatedOrder.orderId)}`
+        });
+    } catch (error) {
+        logger.error(`Retry payment verification error for (${req.user?.email || 'Unknown'}): ${error.message}`);
+        return res.status(STATUS_CODES.BAD_REQUEST).json({
+            success: false,
+            message: error.message || COMMON_MESSAGES.SERVER_ERROR
         });
     }
 };
@@ -234,9 +309,9 @@ export const postCancelOrder = async (req, res) => {
         const { orderId, orderItemId, reason } = req.body;
 
         if (!orderId || !reason || reason.trim() === '') {
-            return res.status(400).json({
+            return res.status(STATUS_CODES.BAD_REQUEST).json({
                 success: false,
-                message: 'Please provide a valid cancellation reason.'
+                message: 'Please provide valid return reason' || COMMON_MESSAGES.BAD_REQUEST
             });
         }
 
@@ -252,16 +327,16 @@ export const postCancelOrder = async (req, res) => {
 
         logger.info(`User (${userEmail}) cancelled ${result.isEntireOrder ? 'Order' : 'Item ' + orderItemId} [${orderId}] | Refunded: ₹${result.refundedAmount || 0} | IP: ${clientIp}`);
 
-        return res.status(200).json({
+        return res.status(STATUS_CODES.OK).json({
             success: true,
             message: msg
         });
 
     } catch (error) {
         logger.error(`Error cancelling in Order (${req.body?.orderId}): ${error.message}`);
-        return res.status(error.statusCode || 500).json({
+        return res.status(error.statusCode || STATUS_CODES.INTERNAL_SERVER_ERROR).json({
             success: false,
-            message: error.message || 'An error occurred while cancelling.'
+            message: error.message || COMMON_MESSAGES.SERVER_ERROR
         });
     }
 };
@@ -318,8 +393,7 @@ export const loadInvoicePage = async (req, res) => {
                     const discountForThisItem = Math.round((itemTotal * percent) / 100);
                     totalCouponDiscountExcluded += discountForThisItem;
                 });
-            }
-            else if (order.couponType === 'flat') {
+            } else if (order.couponType === 'flat') {
                 const totalOrderAmount = order.orderItems.reduce((acc, curr) => {
                     return acc + (Number(curr.currentPrice) * Number(curr.quantity));
                 }, 0);
@@ -354,7 +428,7 @@ export const loadInvoicePage = async (req, res) => {
 
         order.orderItems = activeInvoiceItems;
 
-        logger.info(`User (${userEmail}) viewed invoice for order: ${order.orderId} | Active Items: ${activeInvoiceItems.length} | Net Coupon Discount: ₹${couponDiscountAmount} | Total: ₹${totalAmount} | IP: ${clientIp}`);
+        logger.info(`User (${userEmail}) viewed invoice for order: ${order.orderId} | Net Coupon Discount: ₹${couponDiscountAmount} | Total: ₹${totalAmount} | IP: ${clientIp}`);
 
         return res.render('user/invoice', {
             pageTitle: `HomeStation - Invoice ${order.orderId}`,
@@ -372,9 +446,9 @@ export const loadInvoicePage = async (req, res) => {
 
     } catch (error) {
         logger.error(`Error loading invoice page for (${req.user?.email || 'Unknown'}): ${error.message}\nStack: ${error.stack}`);
-        return res.status(500).json({
+        return res.status(STATUS_CODES.INTERNAL_SERVER_ERROR).json({
             success: false,
-            message: 'An internal server error occurred while preparing your invoice.'
+            message: error.message || COMMON_MESSAGES.SERVER_ERROR
         });
     }
 };
@@ -387,9 +461,9 @@ export const postReturnOrder = async (req, res) => {
         const { orderId, orderItemId, reason } = req.body;
 
         if (!orderId || !reason || reason.trim() === '') {
-            return res.status(400).json({
+            return res.status(STATUS_CODES.BAD_REQUEST).json({
                 success: false,
-                message: 'Please provide a valid return reason.'
+                message: 'Please provide valid return reason' || COMMON_MESSAGES.BAD_REQUEST
             });
         }
 
@@ -401,16 +475,16 @@ export const postReturnOrder = async (req, res) => {
 
         logger.info(`User (${userEmail}) returned ${result.isEntireOrder ? 'Order' : 'Item ' + orderItemId} [${orderId}] | IP: ${clientIp}`);
 
-        return res.status(200).json({
+        return res.status(STATUS_CODES.OK).json({
             success: true,
             message: msg
         });
 
     } catch (error) {
         logger.error(`Error returning in Order (${req.body?.orderId}): ${error.message}`);
-        return res.status(error.statusCode || 500).json({
+        return res.status(error.statusCode || STATUS_CODES.INTERNAL_SERVER_ERROR).json({
             success: false,
-            message: error.message || 'Failed to submit return request.'
+            message: error.message || COMMON_MESSAGES.SERVER_ERROR
         });
     }
 };

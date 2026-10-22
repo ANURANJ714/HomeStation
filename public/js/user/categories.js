@@ -15,6 +15,101 @@ document.addEventListener("DOMContentLoaded", () => {
     });
   }
 
+  function bindDrawerEvents() {
+    const hamburgerBtn = document.getElementById("hamburgerBtn");
+    const closeSidebarBtn = document.getElementById("closeSidebar");
+    const appNavbar = document.getElementById("appNavbar");
+    const sidebarOverlay = document.getElementById("sidebarOverlay");
+
+    if (hamburgerBtn && appNavbar && sidebarOverlay) {
+      hamburgerBtn.onclick = () => {
+        appNavbar.classList.add("active");
+        sidebarOverlay.classList.add("active");
+      };
+    }
+
+    if (closeSidebarBtn && appNavbar && sidebarOverlay) {
+      closeSidebarBtn.onclick = () => {
+        appNavbar.classList.remove("active");
+        sidebarOverlay.classList.remove("active");
+      };
+    }
+
+    if (sidebarOverlay && appNavbar) {
+      sidebarOverlay.onclick = () => {
+        appNavbar.classList.remove("active");
+        sidebarOverlay.classList.remove("active");
+      };
+    }
+  }
+
+  bindDrawerEvents();
+
+  function updateHeaderBadge(type, count) {
+    const badgeId = type === "wishlist" ? "headerWishlistBadge" : "headerCartBadge";
+    const parentSelector = type === "wishlist"
+      ? ".wishlist-link .action-text-wrapper"
+      : ".cart-link .action-text-wrapper";
+
+    let badge = document.getElementById(badgeId);
+    const parentWrapper = document.querySelector(parentSelector);
+
+    if (count > 0) {
+      if (!badge && parentWrapper) {
+        badge = document.createElement("span");
+        badge.id = badgeId;
+        badge.className = "count-pill-badge";
+        parentWrapper.appendChild(badge);
+      }
+      if (badge) {
+        badge.textContent = count;
+        badge.classList.remove("badge-hidden");
+      }
+    } else if (badge) {
+      badge.remove();
+    }
+  }
+
+  async function syncHeaderCounts() {
+    try {
+      const response = await fetch("/user/header-counts");
+      if (response.ok) {
+        const data = await response.json();
+        if (data.cartCount !== undefined) updateHeaderBadge("cart", data.cartCount);
+        if (data.wishlistCount !== undefined) updateHeaderBadge("wishlist", data.wishlistCount);
+      }
+    } catch (err) {
+      console.error("Failed to sync header counts", err);
+    }
+  }
+
+  async function reloadHeaderPartial() {
+    try {
+      const response = await fetch(window.location.href, {
+        headers: {
+          "X-Requested-With": "XMLHttpRequest",
+        },
+      });
+
+      if (response.ok) {
+        const htmlText = await response.text();
+        const parser = new DOMParser();
+        const doc = parser.parseFromString(htmlText, "text/html");
+        const freshHeader = doc.getElementById("mainHeaderContainer");
+        const currentContainer = document.getElementById("mainHeaderContainer");
+
+        if (freshHeader && currentContainer) {
+          currentContainer.innerHTML = freshHeader.innerHTML;
+          bindDrawerEvents();
+          return;
+        }
+      }
+      syncHeaderCounts();
+    } catch (err) {
+      syncHeaderCounts();
+    }
+  }
+
   document.addEventListener("click", (e) => {
     const card = e.target.closest(".clickable-product-card");
     if (!card) return;
@@ -92,120 +187,122 @@ document.addEventListener("DOMContentLoaded", () => {
     });
   });
 
-  document.querySelectorAll(".wishlist-btn").forEach((btn) => {
-    btn.addEventListener("click", async function (e) {
-      e.preventDefault();
-      e.stopPropagation();
-      const variantId = this.getAttribute("data-variant-id");
-      const icon = this.querySelector("i");
+  document.addEventListener("click", async (e) => {
+    const wishlistBtn = e.target.closest(".wishlist-btn");
+    if (!wishlistBtn) return;
 
-      try {
-        const response = await fetch("/wishlist/add", {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            "CSRF-Token": csrfToken,
-            "x-csrf-token": csrfToken,
-          },
-          body: JSON.stringify({ variantId }),
-        });
+    e.preventDefault();
+    e.stopPropagation();
+    const variantId = wishlistBtn.getAttribute("data-variant-id");
+    const icon = wishlistBtn.querySelector("i");
 
-        if (response.status === 401 || response.status === 403) {
-          window.location.href = "/user/login";
-          return;
-        }
+    try {
+      const response = await fetch("/wishlist/add", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "CSRF-Token": csrfToken,
+          "x-csrf-token": csrfToken,
+        },
+        body: JSON.stringify({ variantId }),
+      });
 
-        const data = await response.json();
-        if (data.success) {
-          if (data.action === "added") {
-            this.classList.add("liked");
-            if (icon) icon.className = "fa-solid fa-heart";
-          } else {
-            this.classList.remove("liked");
-            if (icon) icon.className = "fa-regular fa-heart";
-          }
+      if (response.status === 401 || response.status === 403) {
+        window.location.href = "/user/login";
+        return;
+      }
 
-          Swal.fire({
-            icon: "success",
-            title: data.action === "added" ? "Added!" : "Removed!",
-            text: data.message,
-            timer: 1200,
-            showConfirmButton: false,
-            heightAuto: false,
-          }).then(() => {
-            window.location.reload();
-          });
+      const data = await response.json();
+      if (data.success) {
+        if (data.action === "added") {
+          wishlistBtn.classList.add("liked");
+          if (icon) icon.className = "fa-solid fa-heart";
         } else {
-          Swal.fire({
-            icon: "warning",
-            title: "Notice",
-            text: data.message,
-            heightAuto: false,
-          });
+          wishlistBtn.classList.remove("liked");
+          if (icon) icon.className = "fa-regular fa-heart";
         }
-      } catch (error) {
-        console.error("Wishlist operation error:", error);
+
+        await reloadHeaderPartial();
+
         Swal.fire({
-          icon: "error",
-          title: "Network Error",
-          text: "Could not sync wishlist operation.",
+          icon: "success",
+          title: data.action === "added" ? "Added!" : "Removed!",
+          text: data.message,
+          timer: 1200,
+          showConfirmButton: false,
+          heightAuto: false,
+        });
+      } else {
+        Swal.fire({
+          icon: "warning",
+          title: "Notice",
+          text: data.message,
           heightAuto: false,
         });
       }
-    });
+    } catch (error) {
+      console.error("Wishlist operation error:", error);
+      Swal.fire({
+        icon: "error",
+        title: "Network Error",
+        text: "Could not sync wishlist operation.",
+        heightAuto: false,
+      });
+    }
   });
 
-  document.querySelectorAll(".add-to-cart-btn").forEach((btn) => {
-    btn.addEventListener("click", async function (e) {
-      e.preventDefault();
-      e.stopPropagation();
-      const variantId = this.getAttribute("data-variant-id");
+  document.addEventListener("click", async (e) => {
+    const addToCartBtn = e.target.closest(".add-to-cart-btn");
+    if (!addToCartBtn) return;
 
-      try {
-        const response = await fetch("/cart/add", {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            "CSRF-Token": csrfToken,
-            "x-csrf-token": csrfToken,
-          },
-          body: JSON.stringify({ variantId }),
-        });
+    e.preventDefault();
+    e.stopPropagation();
+    const variantId = addToCartBtn.getAttribute("data-variant-id");
 
-        if (response.status === 401 || response.status === 403) {
-          window.location.href = "/user/login";
-          return;
-        }
+    try {
+      const response = await fetch("/cart/add", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "CSRF-Token": csrfToken,
+          "x-csrf-token": csrfToken,
+        },
+        body: JSON.stringify({ variantId }),
+      });
 
-        const data = await response.json();
-        if (data.success) {
-          Swal.fire({
-            icon: "success",
-            title: "Added!",
-            text: data.message,
-            timer: 1200,
-            showConfirmButton: false,
-            heightAuto: false,
-          }).then(() => {
-            window.location.reload();
-          });
-        } else {
-          Swal.fire({
-            icon: "warning",
-            title: "Unavailable",
-            text: data.message,
-            heightAuto: false,
-          });
-        }
-      } catch (error) {
+      if (response.status === 401 || response.status === 403) {
+        window.location.href = "/user/login";
+        return;
+      }
+
+      const data = await response.json();
+      if (data.success) {
+        await reloadHeaderPartial();
+
         Swal.fire({
-          icon: "error",
-          title: "Network Error",
-          text: "Could not add item to cart.",
+          icon: "success",
+          title: "Added!",
+          text: data.message,
+          timer: 1200,
+          showConfirmButton: false,
+          heightAuto: false,
+        });
+      } else {
+        Swal.fire({
+          icon: "warning",
+          title: "Unavailable",
+          text: data.message,
           heightAuto: false,
         });
       }
-    });
+    } catch (error) {
+      Swal.fire({
+        icon: "error",
+        title: "Network Error",
+        text: "Could not add item to cart.",
+        heightAuto: false,
+      });
+    }
   });
 
   const searchInput = document.getElementById("searchInput");

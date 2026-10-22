@@ -54,15 +54,19 @@ document.addEventListener('DOMContentLoaded', () => {
 
     function syncTargetField(prefix) {
         const typeElem = document.getElementById(`${prefix}OfferType`);
-        const labelElem = document.getElementById(`${prefix}OfferTargetLabel`);
-        const targetElem = document.getElementById(`${prefix}OfferTarget`);
+        const productGroup = document.getElementById(`${prefix}ProductTargetGroup`);
+        const categoryGroup = document.getElementById(`${prefix}CategoryTargetGroup`);
+        const productSelect = document.getElementById(`${prefix}ProductTargetSelect`);
+        const categorySelect = document.getElementById(`${prefix}CategoryTargetSelect`);
 
         if (typeElem.value === 'product') {
-            labelElem.textContent = "Target Product ID (e.g. PRD-0001)";
-            targetElem.placeholder = "e.g. PRD-0001";
+            if (productGroup) productGroup.classList.remove('target-hidden');
+            if (categoryGroup) categoryGroup.classList.add('target-hidden');
+            if (categorySelect) categorySelect.value = '';
         } else {
-            labelElem.textContent = "Target Category Name";
-            targetElem.placeholder = "e.g. Mattresses";
+            if (productGroup) productGroup.classList.add('target-hidden');
+            if (categoryGroup) categoryGroup.classList.remove('target-hidden');
+            if (productSelect) productSelect.value = '';
         }
     }
 
@@ -87,14 +91,22 @@ document.addEventListener('DOMContentLoaded', () => {
         clearFormErrors(`${prefix}OfferForm`);
 
         const nameInput = document.getElementById(`${prefix}OfferName`);
+        const typeInput = document.getElementById(`${prefix}OfferType`);
         const discountInput = document.getElementById(`${prefix}OfferDiscount`);
-        const targetInput = document.getElementById(`${prefix}OfferTarget`);
         const startInput = document.getElementById(`${prefix}StartDate`);
         const endInput = document.getElementById(`${prefix}EndDate`);
 
+        const isProductType = typeInput.value === 'product';
+        const targetSelect = isProductType 
+            ? document.getElementById(`${prefix}ProductTargetSelect`) 
+            : document.getElementById(`${prefix}CategoryTargetSelect`);
+        const targetErrorSpan = isProductType 
+            ? document.getElementById(`${prefix}ProductTargetError`) 
+            : document.getElementById(`${prefix}CategoryTargetError`);
+
         const nameVal = nameInput.value.trim();
         const discountVal = Number(discountInput.value);
-        const targetVal = targetInput.value.trim();
+        const targetVal = targetSelect ? targetSelect.value.trim() : '';
         const startVal = startInput.value;
         const endVal = endInput.value;
 
@@ -111,8 +123,8 @@ document.addEventListener('DOMContentLoaded', () => {
         }
 
         if (!targetVal) {
-            document.getElementById(`${prefix}OfferTargetError`).textContent = 'Target is required.';
-            targetInput.classList.add('input-error');
+            targetErrorSpan.textContent = isProductType ? 'Please select a target Product ID.' : 'Please select a target Category Name.';
+            targetSelect.classList.add('input-error');
             isValid = false;
         }
 
@@ -160,11 +172,16 @@ document.addEventListener('DOMContentLoaded', () => {
             const submitBtn = document.getElementById('addOfferSubmitBtn');
             submitBtn.disabled = true;
 
+            const offerType = document.getElementById('addOfferType').value;
+            const targetValue = offerType === 'product'
+                ? document.getElementById('addProductTargetSelect').value.trim()
+                : document.getElementById('addCategoryTargetSelect').value.trim();
+
             const payload = {
                 name: document.getElementById('addOfferName').value.trim().toUpperCase(),
-                offerType: document.getElementById('addOfferType').value,
+                offerType,
                 discount: Number(document.getElementById('addOfferDiscount').value),
-                target: document.getElementById('addOfferTarget').value.trim(),
+                target: targetValue,
                 startDate: document.getElementById('addStartDate').value,
                 endDate: document.getElementById('addEndDate').value,
                 status: document.getElementById('addOfferStatus').value
@@ -247,12 +264,20 @@ document.addEventListener('DOMContentLoaded', () => {
         document.getElementById('editOfferName').value = d.name;
         document.getElementById('editOfferType').value = d.type;
         document.getElementById('editOfferDiscount').value = d.discount;
-        document.getElementById('editOfferTarget').value = d.target;
         document.getElementById('editStartDate').value = d.start;
         document.getElementById('editEndDate').value = d.end;
         document.getElementById('editOfferStatus').value = d.status;
 
         syncTargetField('edit');
+
+        if (d.type === 'product') {
+            const prodSelect = document.getElementById('editProductTargetSelect');
+            if (prodSelect) prodSelect.value = d.target;
+        } else {
+            const catSelect = document.getElementById('editCategoryTargetSelect');
+            if (catSelect) catSelect.value = d.target;
+        }
+
         openModal('editOfferModal');
     });
 
@@ -267,11 +292,16 @@ document.addEventListener('DOMContentLoaded', () => {
             const submitBtn = document.getElementById('editOfferSubmitBtn');
             submitBtn.disabled = true;
 
+            const offerType = document.getElementById('editOfferType').value;
+            const targetValue = offerType === 'product'
+                ? document.getElementById('editProductTargetSelect').value.trim()
+                : document.getElementById('editCategoryTargetSelect').value.trim();
+
             const payload = {
                 name: document.getElementById('editOfferName').value.trim().toUpperCase(),
-                offerType: document.getElementById('editOfferType').value,
+                offerType,
                 discount: Number(document.getElementById('editOfferDiscount').value),
-                target: document.getElementById('editOfferTarget').value.trim(),
+                target: targetValue,
                 startDate: document.getElementById('editStartDate').value,
                 endDate: document.getElementById('editEndDate').value,
                 status: document.getElementById('editOfferStatus').value

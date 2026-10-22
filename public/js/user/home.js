@@ -1,24 +1,46 @@
 document.addEventListener("DOMContentLoaded", () => {
   const csrfToken = document.getElementById("csrfToken")?.value || "";
 
-  const hamburgerBtn = document.getElementById("hamburgerBtn");
-  const closeSidebarBtn = document.getElementById("closeSidebar");
-  const appNavbar = document.getElementById("appNavbar");
-  const sidebarOverlay = document.getElementById("sidebarOverlay");
+  function bindDrawerEvents() {
+    const hamburgerBtn = document.getElementById("hamburgerBtn");
+    const closeSidebarBtn = document.getElementById("closeSidebar");
+    const appNavbar = document.getElementById("appNavbar");
+    const sidebarOverlay = document.getElementById("sidebarOverlay");
 
-  function openMobileDrawer() {
-    if (appNavbar) appNavbar.classList.add("active");
-    if (sidebarOverlay) sidebarOverlay.classList.add("active");
+    function openMobileDrawer() {
+      if (appNavbar) appNavbar.classList.add("active");
+      if (sidebarOverlay) sidebarOverlay.classList.add("active");
+    }
+
+    function closeMobileDrawer() {
+      if (appNavbar) appNavbar.classList.remove("active");
+      if (sidebarOverlay) sidebarOverlay.classList.remove("active");
+    }
+
+    if (hamburgerBtn) hamburgerBtn.addEventListener("click", openMobileDrawer);
+    if (closeSidebarBtn) closeSidebarBtn.addEventListener("click", closeMobileDrawer);
+    if (sidebarOverlay) sidebarOverlay.addEventListener("click", closeMobileDrawer);
+
+    const searchInput = document.getElementById("searchInput");
+    const searchBtn = document.getElementById("searchBtn");
+
+    function performSearch() {
+      if (!searchInput) return;
+      const query = searchInput.value.trim();
+      if (query) {
+        window.location.href = `/search?q=${encodeURIComponent(query)}`;
+      }
+    }
+
+    if (searchBtn) searchBtn.addEventListener("click", performSearch);
+    if (searchInput) {
+      searchInput.addEventListener("keypress", (e) => {
+        if (e.key === "Enter") performSearch();
+      });
+    }
   }
 
-  function closeMobileDrawer() {
-    if (appNavbar) appNavbar.classList.remove("active");
-    if (sidebarOverlay) sidebarOverlay.classList.remove("active");
-  }
-
-  if (hamburgerBtn) hamburgerBtn.addEventListener("click", openMobileDrawer);
-  if (closeSidebarBtn) closeSidebarBtn.addEventListener("click", closeMobileDrawer);
-  if (sidebarOverlay) sidebarOverlay.addEventListener("click", closeMobileDrawer);
+  bindDrawerEvents();
 
   document.addEventListener("click", (e) => {
     const card = e.target.closest(".clickable-product-card");
@@ -32,6 +54,31 @@ document.addEventListener("DOMContentLoaded", () => {
       window.location.href = `/products/${productId}`;
     }
   });
+
+  async function reloadHeaderPartial() {
+    try {
+      const response = await fetch("/", {
+        headers: {
+          "X-Requested-With": "XMLHttpRequest"
+        }
+      });
+      if (response.ok) {
+        const htmlText = await response.text();
+        const parser = new DOMParser();
+        const doc = parser.parseFromString(htmlText, "text/html");
+        const freshHeader = doc.getElementById("mainHeaderContainer");
+        const currentContainer = document.getElementById("mainHeaderContainer");
+        if (freshHeader && currentContainer) {
+          currentContainer.innerHTML = freshHeader.innerHTML;
+          bindDrawerEvents();
+          return;
+        }
+      }
+      syncHeaderCounts();
+    } catch (err) {
+      syncHeaderCounts();
+    }
+  }
 
   function updateHeaderBadge(type, count) {
     const badgeId = type === 'wishlist' ? 'headerWishlistBadge' : 'headerCartBadge';
@@ -51,7 +98,7 @@ document.addEventListener("DOMContentLoaded", () => {
       }
       if (badge) {
         badge.textContent = count;
-        badge.style.display = 'inline-flex';
+        badge.classList.remove('badge-hidden');
       }
     } else if (badge) {
       badge.remove();
@@ -67,7 +114,7 @@ document.addEventListener("DOMContentLoaded", () => {
         if (data.wishlistCount !== undefined) updateHeaderBadge('wishlist', data.wishlistCount);
       }
     } catch (err) {
-      window.location.reload();
+      console.error("Failed to sync header counts", err);
     }
   }
 
@@ -99,9 +146,7 @@ document.addEventListener("DOMContentLoaded", () => {
         const data = await response.json();
 
         if (data.success) {
-          if (data.totalQuantity !== undefined) {
-            updateHeaderBadge('cart', data.totalQuantity);
-          }
+          await reloadHeaderPartial();
 
           Swal.fire({
             icon: "success",
@@ -110,8 +155,6 @@ document.addEventListener("DOMContentLoaded", () => {
             timer: 1200,
             showConfirmButton: false,
             heightAuto: false,
-          }).then(() => {
-            window.location.reload();
           });
         } else {
           Swal.fire({
@@ -164,9 +207,7 @@ document.addEventListener("DOMContentLoaded", () => {
         const data = await response.json();
 
         if (data.success) {
-          if (data.wishlistCount !== undefined) {
-            updateHeaderBadge('wishlist', data.wishlistCount);
-          }
+          await reloadHeaderPartial();
 
           if (data.action === "added") {
             wishlistBtn.classList.add("liked");
@@ -179,8 +220,6 @@ document.addEventListener("DOMContentLoaded", () => {
               timer: 1200,
               showConfirmButton: false,
               heightAuto: false,
-            }).then(() => {
-              window.location.reload();
             });
 
           } else if (data.action === "removed") {
@@ -194,8 +233,6 @@ document.addEventListener("DOMContentLoaded", () => {
               timer: 1200,
               showConfirmButton: false,
               heightAuto: false,
-            }).then(() => {
-              window.location.reload();
             });
           }
         } else {
@@ -219,22 +256,4 @@ document.addEventListener("DOMContentLoaded", () => {
       }
     }
   });
-
-  const searchInput = document.getElementById("searchInput");
-  const searchBtn = document.getElementById("searchBtn");
-
-  function performSearch() {
-    if (!searchInput) return;
-    const query = searchInput.value.trim();
-    if (query) {
-      window.location.href = `/search?q=${encodeURIComponent(query)}`;
-    }
-  }
-
-  if (searchBtn) searchBtn.addEventListener("click", performSearch);
-  if (searchInput) {
-    searchInput.addEventListener("keypress", (e) => {
-      if (e.key === "Enter") performSearch();
-    });
-  }
 });

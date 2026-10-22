@@ -2,6 +2,8 @@ import logger from '../../utils/logger.js';
 import mongoose from 'mongoose';
 import * as adminOrderService from '../../services/admin/adminOrderService.js';
 import { notFoundMiddleware } from '../../middlewares/notFoundMiddleware.js';
+import { STATUS_CODES } from '../../src/constants/httpStatusCodes.js';
+import { COMMON_MESSAGES } from '../../src/constants/commonMessages.js';
 
 export const loadOrdersPage = async (req, res) => {
     try {
@@ -11,11 +13,11 @@ export const loadOrdersPage = async (req, res) => {
         const page = parseInt(req.query.page, 10) || 1;
         const limit = 5;
         const searchQuery = req.query.search ? req.query.search.trim() : '';
-        const statusFilter = req.query.status || '';
+        const statusFilter = req.query.status ? req.query.status.trim() : '';
 
         const data = await adminOrderService.getAdminOrdersPageData(page, limit, searchQuery, statusFilter);
 
-        logger.info(`Admin (${adminEmail}) viewed Orders list (Page: ${data.safePage}, Search: "${searchQuery}") | IP: ${clientIp}`);
+        logger.info(`Admin (${adminEmail}) viewed Orders list (Page: ${data.safePage}, Search: "${searchQuery}", Filter: "${statusFilter}") | IP: ${clientIp}`);
 
         return res.render('admin/orders', {
             orders: data.orders,
@@ -31,9 +33,9 @@ export const loadOrdersPage = async (req, res) => {
 
     } catch (error) {
         logger.error(`Error loading admin orders page: ${error.message}\nStack: ${error.stack}`);
-        return res.status(500).json({
+        return res.status(STATUS_CODES.INTERNAL_SERVER_ERROR).json({
             success: false,
-            message: 'Internal server error occurred while retrieving orders.'
+            message: error.message || COMMON_MESSAGES.SERVER_ERROR
         });
     }
 };
@@ -64,41 +66,57 @@ export const loadViewOrderPage = async (req, res) => {
 
         const result = await adminOrderService.getOrderDetailsByOrderIdAndItemId(cleanOrderId, cleanItemId);
 
-        if (!result || !result.order || !result.item) {
-            logger.warn(`Admin view order 404: Order [${cleanOrderId}] or Item [${cleanItemId || 'default'}] not found | Attempted by: ${adminEmail} | IP: ${clientIp}`);
+        if (!result || !result.order || (!result.item && !result.isOrderFailed)) {
+            logger.warn(`Admin view order 404: Order [${cleanOrderId}] or Item not found | Attempted by: ${adminEmail} | IP: ${clientIp}`);
             return notFoundMiddleware(req, res);
         }
 
-        const { order, item } = result;
+        const { order, item, items, isOrderFailed } = result;
 
-        const subtotal = item.currentPrice * item.quantity;
-        const originalTotal = item.originalPrice * item.quantity;
-        const couponDiscount = Math.max(0, originalTotal - subtotal);
-        const shippingFee = 0;
-        const grandTotal = subtotal + shippingFee;
-
+        let subtotal = 0;
+        let originalTotal = 0;
+        let couponDiscount = 0;
+        let grandTotal = 0;
         let paymentStatus = 'Unpaid';
+
         const isOnline = order.paymentMode === 'razorpay' || order.paymentMode === 'wallet';
 
-        if (item.returnStatus === 'item reached') {
-            paymentStatus = 'Refunded';
-        } else if (item.itemStatus === 'cancelled') {
-            paymentStatus = isOnline ? 'Refunded' : 'Unpaid';
-        } else if (isOnline) {
-            paymentStatus = 'Paid';
-        } else if (order.paymentMode === 'cod') {
-            paymentStatus = item.itemStatus === 'delivered' ? 'Paid' : 'Unpaid';
+        if (isOrderFailed) {
+            subtotal = items.reduce((sum, it) => sum + (it.currentPrice * it.quantity), 0);
+            originalTotal = items.reduce((sum, it) => sum + (it.originalPrice * it.quantity), 0);
+            couponDiscount = Number(order.couponDiscount) || 0;
+            const deliveryCharges = (subtotal > 0 && subtotal <= 500) ? 100 : 0;
+            grandTotal = Math.max(0, subtotal + deliveryCharges - couponDiscount);
+            paymentStatus = 'Failed';
+        } else {
+            subtotal = item.currentPrice * item.quantity;
+            originalTotal = item.originalPrice * item.quantity;
+            couponDiscount = Number(order.couponDiscount) || 0;
+            const shippingFee = 0;
+            grandTotal = subtotal + shippingFee;
+
+            if (item.returnStatus === 'item reached') {
+                paymentStatus = 'Refunded';
+            } else if (item.itemStatus === 'cancelled') {
+                paymentStatus = isOnline ? 'Refunded' : 'Unpaid';
+            } else if (isOnline) {
+                paymentStatus = 'Paid';
+            } else if (order.paymentMode === 'cod') {
+                paymentStatus = item.itemStatus === 'delivered' ? 'Paid' : 'Unpaid';
+            }
         }
 
-        logger.info(`Admin (${adminEmail}) viewed item [${item._id}] in Order [${order.orderId}] | IP: ${clientIp}`);
+        logger.info(`Admin (${adminEmail}) viewed Order [${order.orderId}] (Status: ${order.status}) | IP: ${clientIp}`);
 
         return res.render('admin/vieworder', {
             pageTitle: 'HomeStation - ADMIN',
             order,
             item,
+            items,
+            isOrderFailed,
             subtotal,
             couponDiscount,
-            shippingFee,
+            shippingFee: (isOrderFailed && subtotal > 0 && subtotal <= 500) ? 100 : 0,
             grandTotal,
             paymentStatus,
             csrfToken: req.csrfToken ? req.csrfToken() : ''
@@ -115,9 +133,9 @@ export const loadViewOrderPage = async (req, res) => {
         }
 
         logger.error(`Error loading view order page for Order (${req.params?.orderId}): ${error.message}\nStack: ${error.stack}`);
-        return res.status(500).json({
+        return res.status(STATUS_CODES.INTERNAL_SERVER_ERROR).json({
             success: false,
-            message: 'Internal server error occurred while retrieving order details.'
+            message: error.message || COMMON_MESSAGES.SERVER_ERROR
         });
     }
 };
@@ -130,9 +148,9 @@ export const updateOrderStatus = async (req, res) => {
 
         if (!orderId || !orderItemId || !status) {
             logger.warn(`Admin (${adminEmail}) failed status update: Missing required payload fields | IP: ${clientIp}`);
-            return res.status(400).json({
+            return res.status(STATUS_CODES.BAD_REQUEST).json({
                 success: false,
-                message: 'Order ID, Item ID, and status are required.'
+                message: 'Order ID, Item ID, and status are required.' || COMMON_MESSAGES.BAD_REQUEST
             });
         }
 
@@ -140,16 +158,16 @@ export const updateOrderStatus = async (req, res) => {
 
         if (result.isUnchanged) {
             logger.info(`Admin (${adminEmail}) submitted unchanged status for item [${orderItemId}] in Order [${orderId}] | IP: ${clientIp}`);
-            return res.status(200).json({
+            return res.status(STATUS_CODES.OK).json({
                 success: false,
                 isUnchanged: true,
                 message: 'No change made in status.'
             });
         }
 
-        logger.info(`Admin (${adminEmail}) updated status of item [${orderItemId}] in Order [${orderId}] to [${status}] (Refund processed if item reached) | IP: ${clientIp}`);
+        logger.info(`Admin (${adminEmail}) updated status of item [${orderItemId}] in Order [${orderId}] to [${status}] | IP: ${clientIp}`);
 
-        return res.status(200).json({
+        return res.status(STATUS_CODES.OK).json({
             success: true,
             isUnchanged: false,
             message: `Status updated to "${status}" successfully.`
@@ -157,9 +175,9 @@ export const updateOrderStatus = async (req, res) => {
 
     } catch (error) {
         logger.error(`Error updating item status in Order (${req.body?.orderId}): ${error.message}\nStack: ${error.stack}`);
-        return res.status(error.statusCode || 500).json({
+        return res.status(error.statusCode || STATUS_CODES.INTERNAL_SERVER_ERROR).json({
             success: false,
-            message: error.message || 'Failed to update item status.'
+            message: error.message || 'Failed to update item status.' || COMMON_MESSAGES.SERVER_ERROR
         });
     }
 };
@@ -171,25 +189,25 @@ export const handleReturnRequest = async (req, res) => {
         const { orderId, orderItemId, decision } = req.body;
 
         if (!orderId || !orderItemId || !decision) {
-            return res.status(400).json({
+            return res.status(STATUS_CODES.BAD_REQUEST).json({
                 success: false,
-                message: 'Order ID, Item ID, and decision (accepted/rejected) are required.'
+                message: 'Order ID, Item ID, and decision (accepted/rejected) are required.' || COMMON_MESSAGES.BAD_REQUEST
             });
         }
 
-        const result = await adminOrderService.handleReturnRequestDecision(orderId, orderItemId, decision);
+        await adminOrderService.handleReturnRequestDecision(orderId, orderItemId, decision);
 
         logger.info(`Admin (${adminEmail}) ${decision} return request for item [${orderItemId}] in Order [${orderId}] | IP: ${clientIp}`);
 
-        return res.status(200).json({
+        return res.status(STATUS_CODES.OK).json({
             success: true,
             message: `Return request ${decision} successfully.`
         });
     } catch (error) {
         logger.error(`Error handling return request: ${error.message}`);
-        return res.status(error.statusCode || 500).json({
+        return res.status(error.statusCode || STATUS_CODES.INTERNAL_SERVER_ERROR).json({
             success: false,
-            message: error.message || 'Failed to process return request.'
+            message: error.message || 'Failed to process return request.' || COMMON_MESSAGES.SERVER_ERROR
         });
     }
 };

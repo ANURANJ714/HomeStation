@@ -756,6 +756,58 @@ body {
     margin-top: 16px;
 }
 
+.modal-overlay.active {
+    display: flex;
+}
+
+.admin-failed-order-banner {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    background-color: #fff5f5;
+    border: 1px solid #feb2b2;
+    border-radius: 8px;
+    padding: 16px 20px;
+    margin-bottom: 25px;
+}
+
+.failed-banner-content {
+    display: flex;
+    align-items: center;
+    gap: 15px;
+}
+
+.failed-banner-content i {
+    font-size: 26px;
+    color: #e53e3e;
+}
+
+.banner-title {
+    font-size: 18px;
+    font-weight: 700;
+    color: #c53030;
+    margin: 0;
+}
+
+.banner-subtext {
+    font-size: 13px;
+    color: #742a2a;
+    margin: 3px 0 0 0;
+}
+
+.badge.badge-order-failed {
+    background-color: #fed7d7;
+    color: #c53030;
+    border: 1px solid #feb2b2;
+    padding: 6px 14px;
+    border-radius: 4px;
+    font-size: 13px;
+    font-weight: 600;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+}
+
 @media (max-width: 992px) {
   .sidebar {
     position: fixed;

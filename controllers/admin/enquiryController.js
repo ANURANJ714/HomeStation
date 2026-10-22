@@ -1,5 +1,7 @@
 import * as enquiryService from '../../services/admin/enquiryService.js';
 import logger from '../../utils/logger.js';
+import { STATUS_CODES } from '../../src/constants/httpStatusCodes.js';
+import { COMMON_MESSAGES } from '../../src/constants/commonMessages.js';
 
 export const loadEnquiriesDashboard = async (req, res) => {
     try {
@@ -32,7 +34,10 @@ export const loadEnquiriesDashboard = async (req, res) => {
 
     } catch (error) {
         logger.error(`Critical parsing exception caught inside loadEnquiriesDashboard: ${error.message}\nStack: ${error.stack}`);
-        return res.status(500).json({ success: false, message: "Internal server processing error mapping enquiries dataset context." });
+        return res.status(STATUS_CODES.INTERNAL_SERVER_ERROR).json({ 
+            success: false, 
+            message: error.message || COMMON_MESSAGES.SERVER_ERROR 
+        });
     }
 };
 
@@ -41,7 +46,7 @@ export const addNewEnquirySubject = async (req, res) => {
         const { name, needAuth } = req.body;
 
         if (!name || name.trim() === '') {
-            return res.status(400).json({ success: false, message: "Subject name field cannot be blank." });
+            return res.status(STATUS_CODES.BAD_REQUEST).json({ success: false, message: "Subject name field cannot be blank." });
         }
 
         const authCondition = needAuth === 'true' || needAuth === true;
@@ -53,15 +58,18 @@ export const addNewEnquirySubject = async (req, res) => {
 
         if (!result.success) {
             logger.warn(`Admin subject addition rejected: ${result.message}`);
-            return res.status(200).json({ success: false, reason: result.reason, message: result.message });
+            return res.status(STATUS_CODES.OK).json({ success: false, reason: result.reason, message: result.message });
         }
 
         logger.info(`Admin successfully created new enquiry subject: "${name.trim()}" [needAuth: ${authCondition}]`);
-        return res.status(200).json({ success: true, message: result.message });
+        return res.status(STATUS_CODES.OK).json({ success: true, message: result.message });
 
     } catch (error) {
         logger.error(`Critical failure in addNewEnquirySubject controller: ${error.message}`);
-        return res.status(500).json({ success: false, message: "An internal server error occurred while creating the subject." });
+        return res.status(STATUS_CODES.INTERNAL_SERVER_ERROR).json({ 
+            success: false, 
+            message: error.message || COMMON_MESSAGES.SERVER_ERROR 
+        });
     }
 };
 
@@ -70,22 +78,25 @@ export const removeEnquirySubject = async (req, res) => {
         const { id } = req.params;
 
         if (!id) {
-            return res.status(400).json({ success: false, message: "Subject identifier variable is required." });
+            return res.status(STATUS_CODES.BAD_REQUEST).json({ success: false, message: "Subject identifier variable is required." });
         }
 
         const result = await enquiryService.deleteEnquirySubject(id);
 
         if (!result.success) {
             logger.warn(`Admin action denied on subject removal for ID ${id}: ${result.message}`);
-            return res.status(200).json({ success: false, message: result.message });
+            return res.status(STATUS_CODES.OK).json({ success: false, message: result.message });
         }
 
         logger.info(`Admin successfully deleted enquiry subject ID: ${id}`);
-        return res.status(200).json({ success: true, message: result.message });
+        return res.status(STATUS_CODES.OK).json({ success: true, message: result.message });
 
     } catch (error) {
         logger.error(`Critical breakdown inside removeEnquirySubject controller pipeline: ${error.message}`);
-        return res.status(500).json({ success: false, message: "Internal server processing error removing subject reference mapping." });
+        return res.status(STATUS_CODES.INTERNAL_SERVER_ERROR).json({ 
+            success: false, 
+            message: error.message || COMMON_MESSAGES.SERVER_ERROR 
+        });
     }
 };
 
@@ -95,21 +106,24 @@ export const updateTicketStatus = async (req, res) => {
         const { enquiryStatus } = req.body;
 
         if (!id) {
-            return res.status(400).json({ success: false, message: "Ticket tracking identity reference parameter is required." });
+            return res.status(STATUS_CODES.BAD_REQUEST).json({ success: false, message: "Ticket tracking identity reference parameter is required." });
         }
 
         const result = await enquiryService.updateEnquiryTicketStatus(id, enquiryStatus);
 
         if (!result.success) {
             logger.warn(`Admin status update rejected for ticket ID ${id}: ${result.message}`);
-            return res.status(result.status || 200).json({ success: false, message: result.message });
+            return res.status(result.status || STATUS_CODES.OK).json({ success: false, message: result.message });
         }
 
         logger.info(`Admin successfully shifted status profile for ticket ID ${id} to -> "${enquiryStatus}"`);
-        return res.status(200).json({ success: true, message: result.message });
+        return res.status(STATUS_CODES.OK).json({ success: true, message: result.message });
 
     } catch (error) {
         logger.error(`Critical transaction failure tracked inside updateTicketStatus controller: ${error.message}\nStack: ${error.stack}`);
-        return res.status(500).json({ success: false, message: "An unexpected processing error occurred updating ticket properties." });
+        return res.status(STATUS_CODES.INTERNAL_SERVER_ERROR).json({ 
+            success: false, 
+            message: error.message || COMMON_MESSAGES.SERVER_ERROR 
+        });
     }
 };

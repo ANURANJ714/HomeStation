@@ -12,6 +12,15 @@ document.addEventListener('DOMContentLoaded', () => {
     updateDateTime();
     setInterval(updateDateTime, 60000);
 
+    const hamburgerMenu = document.getElementById('hamburgerMenu');
+    const sidebar = document.querySelector('.sidebar');
+    const closeSidebar = document.getElementById('closeSidebar');
+
+    if (hamburgerMenu && sidebar) {
+        hamburgerMenu.addEventListener('click', () => sidebar.classList.toggle('active'));
+        if (closeSidebar) closeSidebar.addEventListener('click', () => sidebar.classList.remove('active'));
+    }
+
     function closeAllDropdowns() {
         document.querySelectorAll('.custom-select-wrapper.open').forEach(w => w.classList.remove('open'));
     }
@@ -77,11 +86,11 @@ document.addEventListener('DOMContentLoaded', () => {
         const isReturn = btn.dataset.isReturn === 'true';
         const currentStatus = btn.dataset.currentStatus || 'processing';
 
-        modalTitleText.textContent = isReturn ? 'Update Return Stage' : 'Update Item Status';
-        modalLabelText.textContent = isReturn ? 'Return Stage' : 'Delivery Status';
+        if (modalTitleText) modalTitleText.textContent = isReturn ? 'Update Return Stage' : 'Update Item Status';
+        if (modalLabelText) modalLabelText.textContent = isReturn ? 'Return Stage' : 'Delivery Status';
 
         const stages = isReturn ? returnStages : deliveryStages;
-        modalStatusOptionsList.innerHTML = '';
+        if (modalStatusOptionsList) modalStatusOptionsList.innerHTML = '';
 
         const currentIndex = stages.findIndex(s => s.value === currentStatus);
 
@@ -89,18 +98,20 @@ document.addEventListener('DOMContentLoaded', () => {
             ? stages.filter((_, idx) => idx >= currentIndex)
             : stages;
 
-        availableStages.forEach(stage => {
-            const li = document.createElement('li');
-            li.className = `custom-select-option ${stage.value === currentStatus ? 'selected' : ''}`;
-            li.dataset.value = stage.value;
-            li.textContent = stage.label;
-            modalStatusOptionsList.appendChild(li);
-        });
+        if (modalStatusOptionsList) {
+            availableStages.forEach(stage => {
+                const li = document.createElement('li');
+                li.className = `custom-select-option ${stage.value === currentStatus ? 'selected' : ''}`;
+                li.dataset.value = stage.value;
+                li.textContent = stage.label;
+                modalStatusOptionsList.appendChild(li);
+            });
+        }
 
         const selectedStage = availableStages.find(s => s.value === currentStatus) || availableStages[0];
         if (selectedStage) {
-            mainStatusText.textContent = selectedStage.label;
-            mainStatusInput.value = selectedStage.value;
+            if (mainStatusText) mainStatusText.textContent = selectedStage.label;
+            if (mainStatusInput) mainStatusInput.value = selectedStage.value;
         }
 
         const modalOrderId = document.getElementById('modalOrderId');
@@ -109,13 +120,11 @@ document.addEventListener('DOMContentLoaded', () => {
         if (modalOrderItemId) modalOrderItemId.value = btn.dataset.itemId || pageOrderItemId;
 
         updateModal.classList.add('active');
-        updateModal.style.display = 'flex';
     }
 
     function closeModal() {
         if (!updateModal) return;
         updateModal.classList.remove('active');
-        updateModal.style.display = 'none';
     }
 
     document.addEventListener('click', (e) => {
@@ -328,14 +337,5 @@ document.addEventListener('DOMContentLoaded', () => {
                 window.location.href = "/admin/login";
             }
         });
-    }
-
-    const hamburgerMenu = document.getElementById('hamburgerMenu');
-    const sidebar = document.querySelector('.sidebar');
-    const closeSidebar = document.getElementById('closeSidebar');
-
-    if (hamburgerMenu && sidebar) {
-        hamburgerMenu.addEventListener('click', () => sidebar.classList.toggle('active'));
-        if (closeSidebar) closeSidebar.addEventListener('click', () => sidebar.classList.remove('active'));
     }
 });

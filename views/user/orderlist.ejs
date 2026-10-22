@@ -4,7 +4,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>HomeStation</title>
+    <title>HomeStation - My Orders</title>
     <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&display=swap" rel="stylesheet">
     <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,600;0,700;1,600&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
@@ -58,6 +58,13 @@
                                 <i class="fa-solid fa-rotate-left filter-icon returned"></i> Return
                             </label>
                         </li>
+                        <li>
+                            <label class="filter-option">
+                                <input type="checkbox" name="status" value="failed" <%= (statusFilters && statusFilters.includes('failed')) ? 'checked' : '' %>>
+                                <span class="checkmark"></span>
+                                <i class="fa-solid fa-circle-exclamation filter-icon failed-icon"></i> Order Failed
+                            </label>
+                        </li>
                     </ul>
                 </div>
                 <hr class="filter-divider">
@@ -105,6 +112,9 @@
                 <div class="order-list" id="orderList">
                     <% if (orders && orders.length > 0) { %>
                         <% orders.forEach(order => { %>
+                            <% 
+                                const isOrderFailed = order.status === 'failed';
+                            %>
                             <% order.orderItems.forEach(item => { 
                                 const variant = item.productVariantId;
                                 const product = variant?.productId;
@@ -123,7 +133,7 @@
                                 const safeOrderId = order.orderId ? order.orderId.replace(/^#/, '') : '';
                                 const isReturn = item.returnStatus && item.returnStatus !== 'none';
                             %>
-                                <div class="order-card">
+                                <div class="order-card <%= isOrderFailed ? 'failed-order' : '' %>">
                                     <div class="order-card-summary">
                                         <div class="order-card-left">
                                             <img src="<%= imageUrl %>" alt="<%= product?.name || 'Product' %>" class="order-img">
@@ -145,7 +155,12 @@
                                         <div class="order-card-right">
                                             <p class="order-price">₹<%= itemTotal.toLocaleString('en-IN') %></p>
 
-                                            <% if (isReturn) { %>
+                                            <% if (isOrderFailed) { %>
+                                                <span class="status-badge failed">
+                                                    <i class="fa-solid fa-circle-exclamation"></i> Order Failed
+                                                </span>
+                                                <p class="order-delivery-note text-danger">Payment Incomplete</p>
+                                            <% } else if (isReturn) { %>
                                                 <span class="status-badge returned">
                                                     <i class="fa-solid fa-rotate-left"></i>
                                                     <%= item.returnStatus.charAt(0).toUpperCase() + item.returnStatus.slice(1) %>
@@ -166,7 +181,7 @@
                                             <% } else { %>
                                                 <span class="status-badge on-the-way">
                                                     <i class="fa-solid fa-truck"></i>
-                                                    <%= item.itemStatus.charAt(0).toUpperCase() + item.itemStatus.slice(1) %>
+                                                    <%= (item.itemStatus || 'Processing').charAt(0).toUpperCase() + (item.itemStatus || 'Processing').slice(1) %>
                                                 </span>
                                                 <p class="order-delivery-note">Expected by <%= formattedExpectedDate %></p>
                                             <% } %>

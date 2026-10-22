@@ -1,6 +1,8 @@
 import logger from '../../utils/logger.js';
 import * as productService from "../../services/admin/productService.js";
 import { notFoundMiddleware } from '../../middlewares/notFoundMiddleware.js';
+import { STATUS_CODES } from '../../src/constants/httpStatusCodes.js';
+import { COMMON_MESSAGES } from '../../src/constants/commonMessages.js';
 
 export const loadProducts = async (req, res) => {
     try {
@@ -14,7 +16,7 @@ export const loadProducts = async (req, res) => {
 
         logger.info(`Admin (${adminEmail}) viewed products (Page: ${result.safePage}, Filter: "${statusFilter}", Search: "${searchQuery}")`);
 
-        res.render('admin/products', { 
+        return res.render('admin/products', { 
             products: result.products,
             categories: result.categories, 
             currentPage: result.safePage,
@@ -28,10 +30,10 @@ export const loadProducts = async (req, res) => {
     } catch (error) {
         logger.error(`Error loading products page: ${error.message}\nStack: ${error.stack}`);
         
-        res.status(500).json({
+        return res.status(STATUS_CODES.INTERNAL_SERVER_ERROR).json({
             success: false, 
             title: "Server Error", 
-            message: "Internal Server Error Occurred!"
+            message: error.message || COMMON_MESSAGES.SERVER_ERROR
         });
     }
 };
@@ -44,15 +46,15 @@ export const getAddProductPage = async (req, res) => {
 
         logger.info(`Admin (${adminEmail}) accessed the Add Product page.`);
 
-        res.render("admin/addproduct", { categories });
+        return res.render("admin/addproduct", { categories });
 
     } catch (error) {
         logger.error(`Error loading Add Product page: ${error.message}\nStack: ${error.stack}`);
         
-        res.status(500).json({
+        return res.status(STATUS_CODES.INTERNAL_SERVER_ERROR).json({
             success: false, 
             title: "Server Error", 
-            message: "Internal Server Error Occurred!"
+            message: error.message || COMMON_MESSAGES.SERVER_ERROR
         });
     }
 };
@@ -64,7 +66,7 @@ export const addProduct = async (req, res) => {
 
         if (!req.files || req.files.length === 0) {
             logger.warn(`Product creation blocked: Missing images by (${adminEmail}) | IP: ${clientIp}`);
-            return res.status(400).json({
+            return res.status(STATUS_CODES.BAD_REQUEST).json({
                 success: false,
                 message: "All 3 product images are required."
             });
@@ -76,7 +78,7 @@ export const addProduct = async (req, res) => {
 
         logger.info(`Product "${savedProduct.name}" (ID: ${savedProduct.productId}) created successfully by ${adminEmail} | IP: ${clientIp}`);
 
-        return res.status(201).json({
+        return res.status(STATUS_CODES.CREATED).json({
             success: true,
             message: "Product and variants created successfully!"
         });
@@ -84,7 +86,7 @@ export const addProduct = async (req, res) => {
     } catch (error) {
         if (error.statusCode === 400) {
             logger.warn(`Product validation failed: ${error.message}`);
-            return res.status(400).json({
+            return res.status(STATUS_CODES.BAD_REQUEST).json({
                 success: false,
                 message: error.message
             });
@@ -92,7 +94,7 @@ export const addProduct = async (req, res) => {
 
         if (error.code === 11000) {
             logger.warn(`Product duplicate key error: ${error.message}`);
-            return res.status(400).json({
+            return res.status(STATUS_CODES.BAD_REQUEST).json({
                 success: false,
                 message: "A product or variant with this identifier already exists."
             });
@@ -106,7 +108,7 @@ export const addProduct = async (req, res) => {
 
             logger.warn(`Product Mongoose schema validation failed: ${errorMessage}`);
 
-            return res.status(400).json({
+            return res.status(STATUS_CODES.BAD_REQUEST).json({
                 success: false,
                 message: errorMessage
             });
@@ -114,56 +116,56 @@ export const addProduct = async (req, res) => {
 
         logger.error(`Error adding product: ${error.message}\nStack: ${error.stack}`);
 
-        return res.status(500).json({
+        return res.status(STATUS_CODES.INTERNAL_SERVER_ERROR).json({
             success: false,
-            message: errorMessage
+            message: error.message || COMMON_MESSAGES.SERVER_ERROR
         });
     }
 };
 
 export const viewProduct = async (req, res) => {
-  try {
-    const { product_id } = req.params;
-    const adminEmail = req.user ? req.user.email : 'Unknown Admin';
+    try {
+        const { product_id } = req.params;
+        const adminEmail = req.user ? req.user.email : 'Unknown Admin';
 
-    if (!product_id || !product_id.trim()) {
-      logger.warn(`Admin product view 404: Missing product_id parameter | Attempted by: ${adminEmail}`);
-      return notFoundMiddleware(req, res);
+        if (!product_id || !product_id.trim()) {
+            logger.warn(`Admin product view 404: Missing product_id parameter | Attempted by: ${adminEmail}`);
+            return notFoundMiddleware(req, res);
+        }
+
+        const result = await productService.getProductDetailsForView(product_id.trim());
+
+        if (!result || !result.productData) {
+            logger.warn(`Admin product view 404: Product ID "${product_id}" not found or deleted | Attempted by: ${adminEmail}`);
+            return notFoundMiddleware(req, res);
+        }
+
+        logger.info(`Admin (${adminEmail}) viewed details for product "${result.productData.name}" (ID: ${product_id})`);
+
+        return res.render("admin/viewproduct", {
+            product: result.productData,
+            totalStock: result.totalStock,
+            priceDisplay: result.priceDisplay,
+        });
+        
+    } catch (error) {
+        if (
+            error.name === 'CastError' || 
+            error.name === 'BSONError' || 
+            error.message.includes('24 character hex string')
+        ) {
+            logger.warn(`Admin product view 404: Malformed ID cast error for ID "${req.params?.product_id}" | Error: ${error.message}`);
+            return notFoundMiddleware(req, res);
+        }
+
+        logger.error(`Error viewing product ID ${req.params?.product_id}: ${error.message}\nStack: ${error.stack}`);
+        
+        return res.status(STATUS_CODES.INTERNAL_SERVER_ERROR).json({ 
+            success: false, 
+            title: "Server Error", 
+            message: error.message || COMMON_MESSAGES.SERVER_ERROR 
+        });
     }
-
-    const result = await productService.getProductDetailsForView(product_id.trim());
-
-    if (!result || !result.productData) {
-      logger.warn(`Admin product view 404: Product ID "${product_id}" not found or deleted | Attempted by: ${adminEmail}`);
-      return notFoundMiddleware(req, res);
-    }
-
-    logger.info(`Admin (${adminEmail}) viewed details for product "${result.productData.name}" (ID: ${product_id})`);
-
-    return res.render("admin/viewproduct", {
-      product: result.productData,
-      totalStock: result.totalStock,
-      priceDisplay: result.priceDisplay,
-    });
-    
-  } catch (error) {
-    if (
-      error.name === 'CastError' || 
-      error.name === 'BSONError' || 
-      error.message.includes('24 character hex string')
-    ) {
-      logger.warn(`Admin product view 404: Malformed ID cast error for ID "${req.params.product_id}" | Error: ${error.message}`);
-      return notFoundMiddleware(req, res);
-    }
-
-    logger.error(`Error viewing product ID ${req.params.product_id}: ${error.message}\nStack: ${error.stack}`);
-    
-    return res.status(500).json({ 
-      success: false, 
-      title: "Server Error", 
-      message: "An internal server error occurred." 
-    });
-  }
 };
 
 export const getEditProductPage = async (req, res) => {
@@ -197,16 +199,16 @@ export const getEditProductPage = async (req, res) => {
             error.name === 'BSONError' || 
             error.message.includes('24 character hex string')
         ) {
-            logger.warn(`Admin edit product 404: Malformed ID cast error for ID "${req.params.product_id}" | Error: ${error.message}`);
+            logger.warn(`Admin edit product 404: Malformed ID cast error for ID "${req.params?.product_id}" | Error: ${error.message}`);
             return notFoundMiddleware(req, res);
         }
 
-        logger.error(`Error loading edit product page (ID: ${req.params.product_id}): ${error.message}\nStack: ${error.stack}`);
+        logger.error(`Error loading edit product page (ID: ${req.params?.product_id}): ${error.message}\nStack: ${error.stack}`);
         
-        return res.status(500).json({
+        return res.status(STATUS_CODES.INTERNAL_SERVER_ERROR).json({
             success: false, 
             title: "Server Error", 
-            message: "An internal server error occurred while loading the page."
+            message: error.message || COMMON_MESSAGES.SERVER_ERROR
         });
     }
 };
@@ -224,7 +226,7 @@ export const updateProduct = async (req, res) => {
         if (!result.isUpdated) {
             if (result.isNotFound) {
                 logger.warn(`Product update blocked: ID ${product_id} not found. Attempted by: ${adminEmail} | IP: ${clientIp}`);
-                return res.status(404).json({
+                return res.status(STATUS_CODES.NOT_FOUND).json({
                     success: false,
                     message: "Product not found."
                 });
@@ -233,23 +235,23 @@ export const updateProduct = async (req, res) => {
 
         logger.info(`Product "${result.product.name}" (ID: ${product_id}) successfully updated by ${adminEmail} | IP: ${clientIp}`);
 
-        return res.status(200).json({
+        return res.status(STATUS_CODES.OK).json({
             success: true,
             message: "Product updated successfully!"
         });
 
     } catch (error) {
         if (error.statusCode === 400) {
-            logger.warn(`Product update validation failed (ID: ${req.params.product_id}): ${error.message}`);
-            return res.status(400).json({
+            logger.warn(`Product update validation failed (ID: ${req.params?.product_id}): ${error.message}`);
+            return res.status(STATUS_CODES.BAD_REQUEST).json({
                 success: false,
                 message: error.message
             });
         }
 
         if (error.code === 11000) {
-            logger.warn(`Product variant duplicate key error (ID: ${req.params.product_id}): ${error.message}`);
-            return res.status(400).json({
+            logger.warn(`Product variant duplicate key error (ID: ${req.params?.product_id}): ${error.message}`);
+            return res.status(STATUS_CODES.BAD_REQUEST).json({
                 success: false,
                 message: "A variant with this name already exists for this product."
             });
@@ -261,19 +263,19 @@ export const updateProduct = async (req, res) => {
                 .map((val) => val.message)
                 .join(", ");
 
-            logger.warn(`Product Mongoose schema validation failed (ID: ${req.params.product_id}): ${errorMessage}`);
+            logger.warn(`Product Mongoose schema validation failed (ID: ${req.params?.product_id}): ${errorMessage}`);
 
-            return res.status(400).json({
+            return res.status(STATUS_CODES.BAD_REQUEST).json({
                 success: false,
                 message: errorMessage
             });
         }
 
-        logger.error(`Error updating product ID ${req.params.product_id}: ${error.message}\nStack: ${error.stack}`);
+        logger.error(`Error updating product ID ${req.params?.product_id}: ${error.message}\nStack: ${error.stack}`);
 
-        return res.status(500).json({
+        return res.status(STATUS_CODES.INTERNAL_SERVER_ERROR).json({
             success: false,
-            message: errorMessage
+            message: error.message || COMMON_MESSAGES.SERVER_ERROR
         });
     }
 };
@@ -289,7 +291,7 @@ export const softDeleteProduct = async (req, res) => {
             idFromFrontend === 'undefined'
         ) {
             logger.warn(`Soft delete rejected: Invalid ID parameter [${idFromFrontend}] by Admin (${adminEmail})`);
-            return res.status(400).json({
+            return res.status(STATUS_CODES.BAD_REQUEST).json({
                 success: false,
                 message: 'Invalid ID sent to server.'
             });
@@ -299,7 +301,7 @@ export const softDeleteProduct = async (req, res) => {
 
         if (!result.isFound) {
             logger.warn(`Soft delete failed: Product not found for ID [${idFromFrontend}] by Admin (${adminEmail})`);
-            return res.status(404).json({
+            return res.status(STATUS_CODES.NOT_FOUND).json({
                 success: false,
                 message: result.message
             });
@@ -307,16 +309,16 @@ export const softDeleteProduct = async (req, res) => {
 
         logger.info(`Admin (${adminEmail}) soft deleted product "${result.productName}" (ID: ${idFromFrontend})`);
 
-        return res.status(200).json({
+        return res.status(STATUS_CODES.OK).json({
             success: true,
             message: result.message
         });
 
     } catch (error) {
-        logger.error(`Error soft deleting product (ID: ${req.params.product_id}): ${error.message}\nStack: ${error.stack}`);
-        return res.status(500).json({
+        logger.error(`Error soft deleting product (ID: ${req.params?.product_id}): ${error.message}\nStack: ${error.stack}`);
+        return res.status(STATUS_CODES.INTERNAL_SERVER_ERROR).json({
             success: false,
-            message: 'An error occurred while deleting the product.'
+            message: error.message || COMMON_MESSAGES.SERVER_ERROR
         });
     }
 };
@@ -331,7 +333,7 @@ export const loadDeletedProducts = async (req, res) => {
 
         logger.info(`Admin (${adminEmail}) viewed deleted products (Page: ${result.safePage})`);
 
-        res.render("admin/deletedproducts", {
+        return res.render("admin/deletedproducts", {
             products: result.products,
             currentPage: result.safePage,
             totalPages: result.totalPages,
@@ -342,10 +344,10 @@ export const loadDeletedProducts = async (req, res) => {
     } catch (error) {
         logger.error(`Error loading deleted products page: ${error.message}\nStack: ${error.stack}`);
         
-        res.status(500).json({
+        return res.status(STATUS_CODES.INTERNAL_SERVER_ERROR).json({
             success: false,
             title: "Server Error",
-            message: "An error occurred while loading the deleted products.", 
+            message: error.message || COMMON_MESSAGES.SERVER_ERROR
         });
     }
 };
@@ -357,7 +359,7 @@ export const restoreProduct = async (req, res) => {
 
         if (!idFromFrontend || idFromFrontend === "null" || idFromFrontend === "undefined") {
             logger.warn(`Product restore blocked: Invalid ID string received. User: ${adminEmail}`);
-            return res.status(400).json({ success: false, message: "Invalid product ID." });
+            return res.status(STATUS_CODES.BAD_REQUEST).json({ success: false, message: "Invalid product ID." });
         }
 
         const result = await productService.restoreSoftDeletedProduct(idFromFrontend);
@@ -365,15 +367,15 @@ export const restoreProduct = async (req, res) => {
         if (!result.isRestored) {
             if (result.reason === "invalid_id") {
                 logger.warn(`Product restore blocked: Invalid ObjectId format (${idFromFrontend}). User: ${adminEmail}`);
-                return res.status(400).json({ success: false, message: result.message });
+                return res.status(STATUS_CODES.BAD_REQUEST).json({ success: false, message: result.message });
             }
             if (result.reason === "not_found") {
                 logger.warn(`Product restore failed: ID ${idFromFrontend} not found. User: ${adminEmail}`);
-                return res.status(404).json({ success: false, message: result.message });
+                return res.status(STATUS_CODES.NOT_FOUND).json({ success: false, message: result.message });
             }
             if (result.reason === "category_deleted") {
                 logger.warn(`Product restore blocked: Parent category is deleted (Product ID: ${idFromFrontend}). User: ${adminEmail}`);
-                return res.status(400).json({
+                return res.status(STATUS_CODES.BAD_REQUEST).json({
                     success: false,
                     title: "Restoring Failed!",
                     message: result.message,
@@ -383,19 +385,18 @@ export const restoreProduct = async (req, res) => {
 
         logger.info(`Product "${result.product.name}" (ID: ${idFromFrontend}) was successfully restored by ${adminEmail}.`);
         
-        return res.json({
+        return res.status(STATUS_CODES.OK).json({
             success: true,
             message: "Product successfully restored.",
         });
 
     } catch (error) {
-        logger.error(`Error restoring product ID ${req.params.product_id}: ${error.message}\nStack: ${error.stack}`);
+        logger.error(`Error restoring product ID ${req.params?.product_id}: ${error.message}\nStack: ${error.stack}`);
         
-        return res.status(500).json({
+        return res.status(STATUS_CODES.INTERNAL_SERVER_ERROR).json({
             success: false,
             title: "System Error",
-            message: "An error occurred while restoring the product.",
+            message: error.message || COMMON_MESSAGES.SERVER_ERROR
         });
     }
 };
-
