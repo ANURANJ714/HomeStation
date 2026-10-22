@@ -4,6 +4,7 @@ import Category from '../../models/Category.js';
 import EnquirySubject from '../../models/EnquirySubject.js';
 import EnquiryMessage from '../../models/EnquiryMessage.js';
 import Offer from '../../models/Offer.js';
+import { STATUS_CODES } from '../../src/constants/httpStatusCodes.js';
 
 export const getHomePageData = async () => {
     try {
@@ -168,17 +169,17 @@ export const createEnquiryTicket = async (inquiryData) => {
         const { name, email, subjectId, message } = inquiryData;
 
         if (!name || !name.trim() || !email || !email.trim() || !subjectId || !message || !message.trim()) {
-            return { success: false, status: 400, message: "All input fields are mandatory parameters." };
+            return { success: false, status: STATUS_CODES.BAD_REQUEST, message: "All input fields are mandatory parameters." };
         }
 
         const emailRegexCheck = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
         if (!emailRegexCheck.test(email.trim())) {
-            return { success: false, status: 400, message: "Please supply a structurally valid email reference." };
+            return { success: false, status: STATUS_CODES.BAD_REQUEST, message: "Please supply a structurally valid email reference." };
         }
 
         const targetSubject = await EnquirySubject.findOne({ _id: subjectId, isDeleted: false });
         if (!targetSubject) {
-            return { success: false, status: 200, message: "The selected enquiry subject is invalid or has been discontinued." };
+            return { success: false, status: STATUS_CODES.OK, message: "The selected enquiry subject is invalid or has been discontinued." };
         }
 
         const lastTicket = await EnquiryMessage.findOne({}, { ticketId: 1 })
@@ -209,7 +210,7 @@ export const createEnquiryTicket = async (inquiryData) => {
 
         return { 
             success: true, 
-            status: 200,
+            status: STATUS_CODES.OK,
             message: `Your inquiry has been successfully raised. Ticket reference: ${generatedTicketStr}` 
         };
 

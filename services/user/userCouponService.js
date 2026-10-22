@@ -1,11 +1,12 @@
 import Order from '../../models/Order.js';
 import Coupon from '../../models/Coupon.js';
+import { STATUS_CODES } from '../../src/constants/httpStatusCodes.js';
 
 export const validateAndCalculateCouponDiscount = async (userId, couponCode, originalPayableAmount) => {
     try {
         if (!couponCode || !couponCode.trim()) {
             const err = new Error('Please enter a coupon code.');
-            err.statusCode = 400;
+            err.statusCode = STATUS_CODES.BAD_REQUEST;
             throw err;
         }
 
@@ -15,7 +16,7 @@ export const validateAndCalculateCouponDiscount = async (userId, couponCode, ori
 
         if (isNaN(basePayableAmountSnapshot) || basePayableAmountSnapshot <= 0) {
             const err = new Error('Invalid cart total amount.');
-            err.statusCode = 400;
+            err.statusCode = STATUS_CODES.BAD_REQUEST;
             throw err;
         }
 
@@ -30,7 +31,7 @@ export const validateAndCalculateCouponDiscount = async (userId, couponCode, ori
 
         if (!coupon) {
             const err = new Error('The coupon is unavailable.');
-            err.statusCode = 404;
+            err.statusCode = STATUS_CODES.NOT_FOUND;
             throw err;
         }
 
@@ -39,13 +40,13 @@ export const validateAndCalculateCouponDiscount = async (userId, couponCode, ori
 
         if (expiryDate < todayStart) {
             const err = new Error('This coupon has expired.');
-            err.statusCode = 400;
+            err.statusCode = STATUS_CODES.BAD_REQUEST;
             throw err;
         }
 
         if (coupon.usedCount >= coupon.usageLimit) {
             const err = new Error('This coupon has reached its maximum usage limit.');
-            err.statusCode = 400;
+            err.statusCode = STATUS_CODES.BAD_REQUEST;
             throw err;
         }
 
@@ -56,13 +57,13 @@ export const validateAndCalculateCouponDiscount = async (userId, couponCode, ori
 
         if (previousOrderWithCoupon) {
             const err = new Error('You have already redeemed this coupon on a previous order.');
-            err.statusCode = 400;
+            err.statusCode = STATUS_CODES.BAD_REQUEST;
             throw err;
         }
 
         if (basePayableAmountSnapshot < coupon.minPurchase) {
             const err = new Error(`Minimum purchase of ₹${coupon.minPurchase.toLocaleString('en-IN')} is required to apply this coupon.`);
-            err.statusCode = 400;
+            err.statusCode = STATUS_CODES.BAD_REQUEST;
             throw err;
         }
 

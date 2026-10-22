@@ -11,11 +11,11 @@
     <link rel="icon" type="image/x-icon" href="https://res.cloudinary.com/dz7fuqwnr/image/upload/v1778395481/WhatsApp_Image_2026-05-10_at_12.12.36_nra5vk.jpg">
     <link rel="stylesheet" href="/css/user/orderpaymentfail.css">
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
-    <script src="https://checkout.razorpay.com/v1/checkout.js"></script>
 </head>
 
 <body>
     <input type="hidden" id="csrfToken" value="<%= typeof csrfToken !== 'undefined' ? csrfToken : '' %>">
+    <input type="hidden" id="failedOrderId" value="<%= typeof orderId !== 'undefined' ? orderId : '' %>">
 
     <main class="failure-wrapper">
         <div class="failure-card">

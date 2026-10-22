@@ -1,5 +1,6 @@
 import EnquirySubject from '../../models/EnquirySubject.js';
 import EnquiryMessage from '../../models/EnquiryMessage.js';
+import { STATUS_CODES } from '../../src/constants/httpStatusCodes.js';
 
 export const getPaginatedEnquiries = async (filterData) => {
     try {
@@ -101,12 +102,12 @@ export const updateEnquiryTicketStatus = async (ticketId, status) => {
     try {
         const allowedStatuses = ['Ticket Raised', 'Pending', 'Resolved'];
         if (!status || !allowedStatuses.includes(status)) {
-            return { success: false, status: 400, message: "Invalid status parameters supplied." };
+            return { success: false, status: STATUS_CODES.BAD_REQUEST, message: "Invalid status parameters supplied." };
         }
 
         const ticket = await EnquiryMessage.findById(ticketId);
         if (!ticket) {
-            return { success: false, status: 404, message: "The requested enquiry ticket could not be found." };
+            return { success: false, status: STATUS_CODES.NOT_FOUND, message: "The requested enquiry ticket could not be found." };
         }
 
         ticket.ticketStatus = status;
@@ -114,7 +115,7 @@ export const updateEnquiryTicketStatus = async (ticketId, status) => {
 
         return { 
             success: true, 
-            status: 200, 
+            status: STATUS_CODES.OK, 
             message: `Ticket #${ticket.ticketId} status has been updated to "${status}" successfully!` 
         };
 

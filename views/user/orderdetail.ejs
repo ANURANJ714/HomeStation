@@ -28,8 +28,15 @@
 
     <section class="order-detail-wrapper">
         <div class="container">
-            <div class="order-detail-box">
-                <% if (overallReturnStatus && overallReturnStatus !== 'none') { %>
+            <div class="order-detail-box <%= isOrderFailed ? 'failed-order-detail-box' : '' %>">
+
+                <% if (isOrderFailed) { %>
+                    <div class="order-failed-top-banner">
+                        <i class="fa-solid fa-circle-exclamation"></i>
+                        <span>Order Payment Failed</span>
+                        <p class="failed-top-subtext">The payment for this order was not completed. You can retry the payment below.</p>
+                    </div>
+                <% } else if (overallReturnStatus && overallReturnStatus !== 'none') { %>
                     <div class="status-tracker-container return-tracker-bg">
                         <div class="status-tracker-bar">
                             <% 
@@ -100,10 +107,14 @@
                         </div>
                         <div class="detail-item">
                             <span class="detail-label">
-                                <%= overallStatus === 'delivered' ? 'Delivered Date' : (overallStatus === 'cancelled' ? 'Cancelled Date' : 'Expected Date') %>
+                                <%= isOrderFailed ? 'Payment Status' : (overallStatus === 'delivered' ? 'Delivered Date' : (overallStatus === 'cancelled' ? 'Cancelled Date' : 'Expected Date')) %>
                             </span>
                             <span class="detail-value">
-                                <%= (overallStatus === 'delivered' || overallStatus === 'cancelled') ? formattedUpdatedDate : formattedExpectedDate %>
+                                <% if (isOrderFailed) { %>
+                                    <span class="text-danger font-bold">Failed</span>
+                                <% } else { %>
+                                    <%= (overallStatus === 'delivered' || overallStatus === 'cancelled') ? formattedUpdatedDate : formattedExpectedDate %>
+                                <% } %>
                             </span>
                         </div>
                         <div class="detail-item">
@@ -131,10 +142,10 @@
                                 const firstImage = (product?.images && product.images.length > 0) ? product.images[0] : 'https://placehold.co/280x160';
                                 const productId = product?._id ? product._id.toString() : '';
                                 const existingReview = (typeof userReviews !== 'undefined' && userReviews && userReviews[productId]) ? userReviews[productId] : null;
-                                const hasReturn = item.returnStatus && item.returnStatus !== 'none';
+                                const hasReturn = !isOrderFailed && item.returnStatus && item.returnStatus !== 'none';
                                 const cleanOrderId = order.orderId ? order.orderId.replace(/^#/, '') : '';
                             %>
-                                <div class="detail-item full-width product-main-info">
+                                <div class="detail-item full-width product-main-info <%= isOrderFailed ? 'failed-item-info' : '' %>">
                                     <div class="product-text-details">
                                         <div class="info-group">
                                             <span class="detail-label">Product Name</span>
@@ -146,7 +157,11 @@
                                         <div class="info-group">
                                             <span class="detail-label">Item Status</span>
                                             <div class="item-status-prominent">
-                                                <% if (hasReturn) { %>
+                                                <% if (isOrderFailed) { %>
+                                                    <span class="badge-status-prominent badge-danger">
+                                                        <i class="fa-solid fa-circle-exclamation"></i> Payment Incomplete
+                                                    </span>
+                                                <% } else if (hasReturn) { %>
                                                     <span class="badge-status-prominent badge-orange">
                                                         <i class="fa-solid fa-rotate-left"></i> <%= item.returnStatus.charAt(0).toUpperCase() + item.returnStatus.slice(1) %>
                                                     </span>
@@ -195,7 +210,7 @@
                                             <span class="detail-value">₹<%= item.currentPrice.toLocaleString('en-IN') %> × <%= item.quantity %> = <strong>₹<%= (item.currentPrice * item.quantity).toLocaleString('en-IN') %></strong></span>
                                         </div>
 
-                                        <% if (item.itemStatus === 'delivered' && item.returnRequestStatus === 'requested' && item.returnStatus === 'none') { %>
+                                        <% if (!isOrderFailed && item.itemStatus === 'delivered' && item.returnRequestStatus === 'requested' && item.returnStatus === 'none') { %>
                                             <div class="return-request-alert-card requested">
                                                 <div class="alert-title-row">
                                                     <i class="fa-solid fa-clock-rotate-left"></i>
@@ -203,7 +218,7 @@
                                                 </div>
                                                 <p class="alert-reason-text"><strong>Reason:</strong> <%= item.returnReason || 'Not specified' %></p>
                                             </div>
-                                        <% } else if (item.itemStatus === 'delivered' && item.returnRequestStatus === 'rejected' && item.returnStatus === 'none') { %>
+                                        <% } else if (!isOrderFailed && item.itemStatus === 'delivered' && item.returnRequestStatus === 'rejected' && item.returnStatus === 'none') { %>
                                             <div class="return-request-alert-card rejected">
                                                 <div class="alert-title-row">
                                                     <i class="fa-solid fa-circle-xmark"></i>
@@ -213,36 +228,38 @@
                                             </div>
                                         <% } %>
 
-                                        <div class="item-actions-row">
-                                            <% if (item.itemStatus === 'delivered' && (!item.returnStatus || item.returnStatus === 'none')) { %>
-                                                <a href="/user/orders/invoice/<%= cleanOrderId %>?itemId=<%= item._id %>" class="btn-modal-action btn-invoice">
-                                                    <i class="fa-solid fa-file-invoice"></i> Download Invoice
-                                                </a>
+                                        <% if (!isOrderFailed) { %>
+                                            <div class="item-actions-row">
+                                                <% if (item.itemStatus === 'delivered' && (!item.returnStatus || item.returnStatus === 'none')) { %>
+                                                    <a href="/user/orders/invoice/<%= cleanOrderId %>?itemId=<%= item._id %>" class="btn-modal-action btn-invoice">
+                                                        <i class="fa-solid fa-file-invoice"></i> Download Invoice
+                                                    </a>
 
-                                                <button type="button" class="btn-modal-action btn-review trigger-review-modal-btn"
-                                                    data-product-id="<%= productId %>"
-                                                    data-product-name="<%= product?.name || 'Product' %>"
-                                                    data-existing-rating="<%= existingReview ? existingReview.rating : 5 %>"
-                                                    data-existing-comment="<%= existingReview ? existingReview.comment : '' %>">
-                                                    <% if (existingReview) { %>
-                                                        <i class="fa-solid fa-pen-to-square"></i> Edit Review
-                                                    <% } else { %>
-                                                        <i class="fa-solid fa-star"></i> Write a Review
+                                                    <button type="button" class="btn-modal-action btn-review trigger-review-modal-btn"
+                                                        data-product-id="<%= productId %>"
+                                                        data-product-name="<%= product?.name || 'Product' %>"
+                                                        data-existing-rating="<%= existingReview ? existingReview.rating : 5 %>"
+                                                        data-existing-comment="<%= existingReview ? existingReview.comment : '' %>">
+                                                        <% if (existingReview) { %>
+                                                            <i class="fa-solid fa-pen-to-square"></i> Edit Review
+                                                        <% } else { %>
+                                                            <i class="fa-solid fa-star"></i> Write a Review
+                                                        <% } %>
+                                                    </button>
+
+                                                    <% if (isReturnEligible && (!item.returnRequestStatus || item.returnRequestStatus === null)) { %>
+                                                        <button type="button" class="btn-modal-action btn-return trigger-item-return-btn" data-item-id="<%= item._id %>">
+                                                            <i class="fa-solid fa-rotate-left"></i> Return Item
+                                                        </button>
                                                     <% } %>
-                                                </button>
 
-                                                <% if (isReturnEligible && (!item.returnRequestStatus || item.returnRequestStatus === null)) { %>
-                                                    <button type="button" class="btn-modal-action btn-return trigger-item-return-btn" data-item-id="<%= item._id %>">
-                                                        <i class="fa-solid fa-rotate-left"></i> Return Item
+                                                <% } else if (['processing', 'packed'].includes(item.itemStatus) && (!item.returnStatus || item.returnStatus === 'none')) { %>
+                                                    <button type="button" class="btn-modal-action btn-cancel trigger-item-cancel-btn" data-item-id="<%= item._id %>">
+                                                        <i class="fa-solid fa-ban"></i> Cancel Item
                                                     </button>
                                                 <% } %>
-
-                                            <% } else if (['processing', 'packed'].includes(item.itemStatus) && (!item.returnStatus || item.returnStatus === 'none')) { %>
-                                                <button type="button" class="btn-modal-action btn-cancel trigger-item-cancel-btn" data-item-id="<%= item._id %>">
-                                                    <i class="fa-solid fa-ban"></i> Cancel Item
-                                                </button>
-                                            <% } %>
-                                        </div>
+                                            </div>
+                                        <% } %>
                                     </div>
                                     <div class="product-image-box">
                                         <a href="/products/<%= productId %>" title="View Product Details">
@@ -262,6 +279,19 @@
                                 <p class="address-phone"><i class="fa-solid fa-phone"></i> <%= order.shippingAddress.phone %></p>
                             </div>
                         </div>
+
+                        <% if (isOrderFailed) { %>
+                            <div class="detail-item full-width retry-payment-container">
+                                <div class="retry-payment-info">
+                                    <h4>Payment Pending</h4>
+                                    <p>Your payment was not completed for this order. Click below to retry payment and confirm your purchase.</p>
+                                </div>
+                                <button type="button" class="btn-retry-payment" id="retryPaymentBtn">
+                                    <i class="fa-solid fa-arrow-rotate-right"></i> Retry Payment
+                                </button>
+                            </div>
+                        <% } %>
+
                     </div>
                 </div>
             </div>
@@ -372,6 +402,7 @@
 
     <%- include('../partials/user/footer') %>
 
+    <script src="https://checkout.razorpay.com/v1/checkout.js"></script>
     <script src="/js/user/orderdetail.js"></script>
 </body>
 

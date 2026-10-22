@@ -1,6 +1,8 @@
 import passport from "passport";
 import User from '../../models/User.js';
 import bcrypt from 'bcrypt';
+import { STATUS_CODES } from '../../src/constants/httpStatusCodes.js';
+import { COMMON_MESSAGES } from '../../src/constants/commonMessages.js';
 
 export const validateLoginInput = (email, password) => {
     try {
@@ -9,7 +11,7 @@ export const validateLoginInput = (email, password) => {
         }
 
         if (typeof email !== "string" || typeof password !== "string") {
-            return { isValid: false, message: "Invalid input format." };
+            return { isValid: false, message: "Invalid format of credentials." };
         }
 
         const trimmedEmail = email.trim();
@@ -24,7 +26,7 @@ export const validateLoginInput = (email, password) => {
 
         return { isValid: true };
     } catch (error) {
-        throw new Error(`Input validation failed: ${error.message}`);
+        throw new Error(`Input validation failed: ${error.message || COMMON_MESSAGES.SERVER_ERROR}`);
     }
 };
 
@@ -46,7 +48,7 @@ export const verifyAdminCredentials = async (email, password) => {
 
         return { isAuthenticated: true, user };
     } catch (error) {
-        throw new Error(`Admin credential verification failed: ${error.message}`);
+        throw new Error(`Admin credential verification failed: ${error.message || COMMON_MESSAGES.SERVER_ERROR}`);
     }
 };
 
@@ -60,7 +62,7 @@ export const checkAdminExists = async (email) => {
 
         return { isValid: true, user };
     } catch (error) {
-        throw new Error(`Database error while verifying admin email: ${error.message}`);
+        throw new Error(`Database error while verifying admin email: ${error.message || COMMON_MESSAGES.SERVER_ERROR}`);
     }
 };
 
@@ -82,6 +84,6 @@ export const updateAdminPassword = async (email, rawPassword) => {
         return { isUpdated: true, user };
 
     } catch (error) {
-        throw new Error(`Database error while updating admin password: ${error.message}`);
+        throw new Error(`Database error while updating admin password: ${error.message || COMMON_MESSAGES.SERVER_ERROR}`);
     }
 };

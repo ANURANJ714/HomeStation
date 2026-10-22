@@ -855,6 +855,15 @@ body {
     gap: 15px;
 }
 
+.target-hidden {
+    display: none !important;
+}
+
+.scrollable-select {
+    max-height: 180px;
+    overflow-y: auto;
+}
+
 @media(max-width: 480px) {
     .form-row {
         grid-template-columns: 1fr;

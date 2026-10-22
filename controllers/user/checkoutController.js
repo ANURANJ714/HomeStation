@@ -7,6 +7,9 @@ import * as orderService from '../../services/user/orderService.js';
 import * as userService from '../../services/user/authService.js';
 import * as couponService from '../../services/user/userCouponService.js';
 import * as razorpayService from '../../services/user/razorpayService.js';
+import { ORDER_STATUS } from '../../src/constants/orderStatus.js';
+import { STATUS_CODES } from '../../src/constants/httpStatusCodes.js';
+import { COMMON_MESSAGES } from '../../src/constants/commonMessages.js';
 
 export const postCartItems = async (req, res) => {
     try {
@@ -22,10 +25,10 @@ export const postCartItems = async (req, res) => {
 
             if (!hasFullName || !hasPhone) {
                 logger.warn(`Checkout blocked: Incomplete profile for Google User (${userEmail}) | IP: ${clientIp}`);
-                return res.status(400).json({
+                return res.status(STATUS_CODES.BAD_REQUEST).json({
                     success: false,
                     reason: 'INCOMPLETE_PROFILE',
-                    message: 'Complete your profile before making your first purchase',
+                    message: 'Complete your profile before making your first purchase' || COMMON_MESSAGES.BAD_REQUEST,
                     redirectUrl: '/user/profile'
                 });
             }
@@ -35,10 +38,10 @@ export const postCartItems = async (req, res) => {
 
         if (!result.isValid) {
             logger.warn(`Checkout validation rejected for (${userEmail}): ${result.message} [Reason: ${result.reason}]`);
-            return res.status(400).json({
+            return res.status(STATUS_CODES.BAD_REQUEST).json({
                 success: false,
                 reason: result.reason,
-                message: result.message,
+                message: result.message || COMMON_MESSAGES.BAD_REQUEST,
                 cartItemId: result.cartItemId || null,
                 availableStock: result.availableStock || 0,
                 productName: result.productName || null
@@ -73,10 +76,10 @@ export const postCartItems = async (req, res) => {
                 verifiedCouponDiscount = couponRes.discountAmount;
             } catch (couponError) {
                 logger.warn(`Checkout coupon rejection for (${userEmail}) with code [${appliedCouponCode}]: ${couponError.message}`);
-                return res.status(couponError.statusCode || 400).json({
+                return res.status(couponError.statusCode || STATUS_CODES.BAD_REQUEST).json({
                     success: false,
                     reason: 'INVALID_COUPON',
-                    message: couponError.message || 'The selected coupon is invalid or no longer applicable.'
+                    message: couponError.message || COMMON_MESSAGES.BAD_REQUEST
                 });
             }
         }
@@ -97,9 +100,9 @@ export const postCartItems = async (req, res) => {
             totalPayable
         };
 
-        logger.info(`Checkout session prepared for (${userEmail}). Subtotal: ₹${subtotal}, Coupon: ${verifiedCouponCode || 'None'} [Type: ${verifiedCouponType || 'N/A'}, Value: ${verifiedCouponDiscountValue || 'N/A'}] (-₹${verifiedCouponDiscount}), Total Payable: ₹${totalPayable} | IP: ${clientIp}`);
+        logger.info(`Checkout session prepared for (${userEmail}). Subtotal: ₹${subtotal}, Coupon: ${verifiedCouponCode || 'None'}, Total Payable: ₹${totalPayable} | IP: ${clientIp}`);
 
-        return res.status(200).json({
+        return res.status(STATUS_CODES.OK).json({
             success: true,
             message: 'Cart verified successfully.',
             warningNotice: result.warningNotice || null,
@@ -108,9 +111,9 @@ export const postCartItems = async (req, res) => {
 
     } catch (error) {
         logger.error(`postCartItems Error for (${req.user?.email || 'Unknown'}): ${error.message}\nStack: ${error.stack}`);
-        return res.status(500).json({
+        return res.status(STATUS_CODES.INTERNAL_SERVER_ERROR).json({
             success: false,
-            message: 'An internal server error occurred while processing checkout.'
+            message: error.message || COMMON_MESSAGES.SERVER_ERROR
         });
     }
 };
@@ -146,10 +149,10 @@ export const loadCheckoutAddress = async (req, res) => {
     } catch (error) {
         logger.error(`Error loading checkout address page for ${req.user?.email || 'Unknown'} (IP: ${req.ip}): ${error.message}\nStack: ${error.stack}`);
         
-        return res.status(500).json({
+        return res.status(STATUS_CODES.INTERNAL_SERVER_ERROR).json({
             success: false,
             title: "Server Error",
-            message: "An internal server error occurred while loading delivery addresses."
+            message: error.message || COMMON_MESSAGES.SERVER_ERROR
         });
     }
 };
@@ -162,17 +165,17 @@ export const postCheckoutAddress = async (req, res) => {
         const { selectedAddressId, stockResolution } = req.body;
 
         if (!selectedAddressId) {
-            return res.status(400).json({
+            return res.status(STATUS_CODES.BAD_REQUEST).json({
                 success: false,
-                message: 'Please select a delivery address to proceed.'
+                message: 'Please select an address' || COMMON_MESSAGES.BAD_REQUEST
             });
         }
 
         if (!req.session.checkoutOrder) {
-            return res.status(400).json({
+            return res.status(STATUS_CODES.BAD_REQUEST).json({
                 success: false,
                 reason: 'NO_ITEMS',
-                message: 'Your checkout session has expired. Please verify your cart.',
+                message: 'Checkout is not initiated' || COMMON_MESSAGES.SESSION_EXPIRED,
                 redirectUrl: '/user/cart'
             });
         }
@@ -187,10 +190,10 @@ export const postCheckoutAddress = async (req, res) => {
                 delete req.session.checkoutActive;
                 delete req.session.checkoutOrder;
             }
-            return res.status(400).json({
+            return res.status(STATUS_CODES.BAD_REQUEST).json({
                 success: false,
                 reason: validation.reason,
-                message: validation.message,
+                message: validation.message || COMMON_MESSAGES.BAD_REQUEST,
                 variantId: validation.variantId || null,
                 availableStock: validation.availableStock ?? null,
                 productName: validation.productName || null,
@@ -200,9 +203,9 @@ export const postCheckoutAddress = async (req, res) => {
 
         const address = await addressService.getAddressById(userId, selectedAddressId);
         if (!address) {
-            return res.status(404).json({
+            return res.status(STATUS_CODES.NOT_FOUND).json({
                 success: false,
-                message: 'Selected delivery address was not found.'
+                message: 'Address not found' || COMMON_MESSAGES.NOT_FOUND
             });
         }
 
@@ -230,10 +233,10 @@ export const postCheckoutAddress = async (req, res) => {
             } catch (couponError) {
                 logger.warn(`Address checkout coupon rejection for (${userEmail}) on code [${activeCouponCode}]: ${couponError.message}`);
                 
-                return res.status(couponError.statusCode || 400).json({
+                return res.status(couponError.statusCode || STATUS_CODES.BAD_REQUEST).json({
                     success: false,
                     reason: 'INVALID_COUPON',
-                    message: `Coupon Error: ${couponError.message || 'Applied coupon is no longer valid for this order amount.'}`
+                    message: couponError.message ? `Coupon Error: ${couponError.message}` : COMMON_MESSAGES.BAD_REQUEST
                 });
             }
         }
@@ -254,9 +257,9 @@ export const postCheckoutAddress = async (req, res) => {
             totalPayable
         };
 
-        logger.info(`User (${userEmail}) confirmed delivery address [${selectedAddressId}]. Subtotal: ₹${validation.subtotal}, Coupon: ${verifiedCouponCode || 'None'} [Type: ${verifiedCouponType || 'N/A'}, Value: ${verifiedCouponDiscountValue || 'N/A'}] (-₹${verifiedCouponDiscount}), Total Payable: ₹${totalPayable} | IP: ${clientIp}`);
+        logger.info(`User (${userEmail}) confirmed delivery address [${selectedAddressId}]. Total Payable: ₹${totalPayable} | IP: ${clientIp}`);
 
-        return res.status(200).json({
+        return res.status(STATUS_CODES.OK).json({
             success: true,
             message: 'Delivery address confirmed.',
             warningNotice: validation.warningNotice || null,
@@ -265,9 +268,9 @@ export const postCheckoutAddress = async (req, res) => {
 
     } catch (error) {
         logger.error(`Error saving checkout address for (${req.user?.email || 'Unknown'}): ${error.message}\nStack: ${error.stack}`);
-        return res.status(500).json({
+        return res.status(STATUS_CODES.INTERNAL_SERVER_ERROR).json({
             success: false,
-            message: error.message || 'Unable to select address. Please try again.'
+            message: error.message || COMMON_MESSAGES.SERVER_ERROR
         });
     }
 };
@@ -298,10 +301,10 @@ export const loadSelectPaymentMode = async (req, res) => {
     } catch (error) {
         logger.error(`Error loading payment selection page for ${req.user?.email || 'Unknown'} (IP: ${req.ip}): ${error.message}\nStack: ${error.stack}`);
 
-        return res.status(500).json({
+        return res.status(STATUS_CODES.INTERNAL_SERVER_ERROR).json({
             success: false,
             title: 'Server Error',
-            message: 'An internal server error occurred while loading payment modes.'
+            message: error.message || COMMON_MESSAGES.SERVER_ERROR
         });
     }
 };
@@ -315,9 +318,9 @@ export const postCheckoutPaymentMode = async (req, res) => {
 
         const allowedModes = ['razorpay', 'wallet', 'cod'];
         if (!paymentMode || !allowedModes.includes(paymentMode)) {
-            return res.status(400).json({
+            return res.status(STATUS_CODES.BAD_REQUEST).json({
                 success: false,
-                message: 'Please select a valid payment method.'
+                message: 'Payment mode is not selected' || COMMON_MESSAGES.BAD_REQUEST
             });
         }
 
@@ -332,10 +335,10 @@ export const postCheckoutPaymentMode = async (req, res) => {
                 delete req.session.checkoutActive;
                 delete req.session.checkoutOrder;
             }
-            return res.status(400).json({
+            return res.status(STATUS_CODES.BAD_REQUEST).json({
                 success: false,
                 reason: validation.reason,
-                message: validation.message,
+                message: validation.message || COMMON_MESSAGES.BAD_REQUEST,
                 variantId: validation.variantId || null,
                 availableStock: validation.availableStock ?? null,
                 productName: validation.productName || null,
@@ -368,10 +371,10 @@ export const postCheckoutPaymentMode = async (req, res) => {
             } catch (couponError) {
                 logger.warn(`Payment mode checkout coupon rejection for (${userEmail}) on code [${activeCouponCode}]: ${couponError.message}`);
                 
-                return res.status(couponError.statusCode || 400).json({
+                return res.status(couponError.statusCode || STATUS_CODES.BAD_REQUEST).json({
                     success: false,
                     reason: 'INVALID_COUPON',
-                    message: `Coupon Error: ${couponError.message || 'Applied coupon is no longer valid for this order amount.'}`
+                    message: couponError.message ? `Coupon Error: ${couponError.message}` : COMMON_MESSAGES.BAD_REQUEST
                 });
             }
         }
@@ -384,7 +387,7 @@ export const postCheckoutPaymentMode = async (req, res) => {
             if (walletBalance < totalPayable) {
                 logger.warn(`Payment selection rejected for (${userEmail}): Insufficient wallet balance. Required: ₹${totalPayable}, Available: ₹${walletBalance} | IP: ${clientIp}`);
 
-                return res.status(400).json({
+                return res.status(STATUS_CODES.BAD_REQUEST).json({
                     success: false,
                     reason: 'INSUFFICIENT_WALLET_BALANCE',
                     message: `Insufficient wallet balance. Total payable is ₹${totalPayable.toLocaleString('en-IN')}, but your wallet balance is ₹${walletBalance.toLocaleString('en-IN')}.`
@@ -406,9 +409,9 @@ export const postCheckoutPaymentMode = async (req, res) => {
             totalPayable
         };
 
-        logger.info(`User (${userEmail}) selected payment mode: [${paymentMode}]. Final Total: ₹${totalPayable}, Coupon: ${verifiedCouponCode || 'None'} [Type: ${verifiedCouponType || 'N/A'}, Value: ${verifiedCouponDiscountValue || 'N/A'}] | IP: ${clientIp}`);
+        logger.info(`User (${userEmail}) selected payment mode: [${paymentMode}]. Final Total: ₹${totalPayable} | IP: ${clientIp}`);
 
-        return res.status(200).json({
+        return res.status(STATUS_CODES.OK).json({
             success: true,
             message: 'Payment mode selected successfully.',
             warningNotice: validation.warningNotice || null,
@@ -416,9 +419,9 @@ export const postCheckoutPaymentMode = async (req, res) => {
         });
     } catch (error) {
         logger.error(`Error saving payment mode for ${req.user?.email || 'Unknown'} (IP: ${req.ip}): ${error.message}\nStack: ${error.stack}`);
-        return res.status(500).json({
+        return res.status(STATUS_CODES.INTERNAL_SERVER_ERROR).json({
             success: false,
-            message: 'Failed to process payment selection. Please try again.'
+            message: error.message || COMMON_MESSAGES.SERVER_ERROR
         });
     }
 };
@@ -493,7 +496,7 @@ export const loadOrderReview = async (req, res) => {
         checkout.totalPayable = totalPayable;
         req.session.checkoutOrder = checkout;
 
-        logger.info(`User (${userEmail}) accessed Order Review. Total: ₹${totalPayable}, Coupon: ${verifiedCouponCode || 'None'} (-₹${verifiedCouponDiscount}) | IP: ${clientIp}`);
+        logger.info(`User (${userEmail}) accessed Order Review. Total: ₹${totalPayable} | IP: ${clientIp}`);
 
         return res.render('user/orderreview', {
             pageTitle: 'HomeStation - Order Review & Checkout',
@@ -518,10 +521,10 @@ export const loadOrderReview = async (req, res) => {
     } catch (error) {
         logger.error(`Error loading order review page for ${req.user?.email || 'Unknown'} (IP: ${req.ip}): ${error.message}\nStack: ${error.stack}`);
 
-        return res.status(500).json({
+        return res.status(STATUS_CODES.INTERNAL_SERVER_ERROR).json({
             success: false,
             title: 'Server Error',
-            message: 'An internal server error occurred while preparing order review.'
+            message: error.message || COMMON_MESSAGES.SERVER_ERROR
         });
     }
 };
@@ -537,10 +540,10 @@ export const placeOrder = async (req, res) => {
 
         if (!checkout || !checkout.cartItems || !checkout.shippingAddressId || !checkout.paymentMode) {
             logger.warn(`Place order rejected: Incomplete session for (${userEmail}) | IP: ${clientIp}`);
-            return res.status(400).json({
+            return res.status(STATUS_CODES.BAD_REQUEST).json({
                 success: false,
                 reason: 'INCOMPLETE_SESSION',
-                message: 'Incomplete checkout session details.',
+                message: 'Complete the checkout process to place the order' || COMMON_MESSAGES.BAD_REQUEST,
                 redirectUrl: '/user/checkout/failure'
             });
         }
@@ -555,10 +558,10 @@ export const placeOrder = async (req, res) => {
                 delete req.session.checkoutActive;
                 delete req.session.checkoutOrder;
             }
-            return res.status(400).json({
+            return res.status(STATUS_CODES.BAD_REQUEST).json({
                 success: false,
                 reason: validation.reason,
-                message: validation.message,
+                message: validation.message || COMMON_MESSAGES.BAD_REQUEST,
                 variantId: validation.variantId || null,
                 availableStock: validation.availableStock ?? null,
                 productName: validation.productName || null,
@@ -588,11 +591,10 @@ export const placeOrder = async (req, res) => {
                 verifiedCouponDiscount = couponRes.discountAmount;
             } catch (couponError) {
                 logger.warn(`Order placement blocked: Coupon [${checkout.couponUsed}] failed validation for (${userEmail}): ${couponError.message}`);
-                
-                return res.status(couponError.statusCode || 400).json({
+                return res.status(couponError.statusCode || STATUS_CODES.BAD_REQUEST).json({
                     success: false,
                     reason: 'INVALID_COUPON',
-                    message: `Coupon Error: ${couponError.message || 'The applied coupon is no longer valid for this order.'}`,
+                    message: couponError.message ? `Coupon Error: ${couponError.message}` : COMMON_MESSAGES.BAD_REQUEST,
                     redirectUrl: null
                 });
             }
@@ -609,11 +611,10 @@ export const placeOrder = async (req, res) => {
                 req.session.orderFailed = true;
                 req.session.orderFailureTimestamp = Date.now();
 
-                return res.status(400).json({
+                return res.status(STATUS_CODES.BAD_REQUEST).json({
                     success: false,
                     reason: 'INSUFFICIENT_WALLET_BALANCE',
-                    message: `Insufficient wallet balance. Total payable is ₹${totalPayable.toLocaleString('en-IN')}, but your wallet balance is ₹${walletBalance.toLocaleString('en-IN')}.`,
-                    redirectUrl: '/user/checkout/failure'
+                    message: `Insufficient wallet balance. Total payable is ₹${totalPayable.toLocaleString('en-IN')}, but your wallet balance is ₹${walletBalance.toLocaleString('en-IN')}.`
                 });
             }
         }
@@ -624,10 +625,10 @@ export const placeOrder = async (req, res) => {
         ]);
 
         if (!shippingAddress) {
-            return res.status(400).json({
+            return res.status(STATUS_CODES.BAD_REQUEST).json({
                 success: false,
                 reason: 'INVALID_ADDRESS',
-                message: 'Shipping address is invalid or not found.',
+                message: 'No address selected' || COMMON_MESSAGES.NOT_FOUND,
                 redirectUrl: null
             });
         }
@@ -642,11 +643,11 @@ export const placeOrder = async (req, res) => {
                 validatedCheckoutData: { ...validation, deliveryCharges: shippingCharges, totalPayable },
                 shippingAddress,
                 billingAddress,
-                couponData: { 
-                    couponUsed: verifiedCouponCode, 
+                couponData: {
+                    couponUsed: verifiedCouponCode,
                     couponType: verifiedCouponType,
                     couponDiscountValue: verifiedCouponDiscountValue,
-                    couponDiscount: verifiedCouponDiscount 
+                    couponDiscount: verifiedCouponDiscount
                 },
                 razorpayOrderId: razorpayOrder.id
             };
@@ -655,7 +656,7 @@ export const placeOrder = async (req, res) => {
 
             logger.info(`Razorpay order generated [${razorpayOrder.id}] for User (${userEmail}) | Amount: ₹${totalPayable}`);
 
-            return res.status(200).json({
+            return res.status(STATUS_CODES.OK).json({
                 success: true,
                 isRazorpay: true,
                 razorpayKeyId: process.env.RAZORPAY_KEY_ID,
@@ -674,17 +675,18 @@ export const placeOrder = async (req, res) => {
             shippingAddress,
             billingAddress,
             checkout.paymentMode,
-            { 
-                couponUsed: verifiedCouponCode, 
+            {
+                couponUsed: verifiedCouponCode,
                 couponType: verifiedCouponType,
                 couponDiscountValue: verifiedCouponDiscountValue,
-                couponDiscount: verifiedCouponDiscount 
-            }
+                couponDiscount: verifiedCouponDiscount
+            },
+            ORDER_STATUS.SUCCESS
         );
 
         const order = createdData.order;
 
-        logger.info(`Order placed successfully! ID: ${order.orderId}, Coupon: ${verifiedCouponCode || 'None'}, Type: ${verifiedCouponType || 'N/A'}, Value: ${verifiedCouponDiscountValue || 'N/A'}, Discount: ₹${verifiedCouponDiscount}, Total: ₹${totalPayable} by (${userEmail}) | IP: ${clientIp}`);
+        logger.info(`Order placed successfully! ID: ${order.orderId} for (${userEmail}) | IP: ${clientIp}`);
 
         req.session.lastPlacedOrderId = order.orderId;
         req.session.orderSuccessTimestamp = Date.now();
@@ -693,7 +695,7 @@ export const placeOrder = async (req, res) => {
 
         await new Promise((resolve) => req.session.save(resolve));
 
-        return res.status(200).json({
+        return res.status(STATUS_CODES.OK).json({
             success: true,
             orderId: order.orderId,
             warningNotice: validation.warningNotice || null,
@@ -706,9 +708,9 @@ export const placeOrder = async (req, res) => {
 
         await new Promise((resolve) => req.session.save(resolve));
 
-        return res.status(400).json({
+        return res.status(STATUS_CODES.BAD_REQUEST).json({
             success: false,
-            message: error.message || 'Order processing failed.',
+            message: error.message || COMMON_MESSAGES.SERVER_ERROR,
             redirectUrl: '/user/checkout/failure'
         });
     }
@@ -719,25 +721,56 @@ export const verifyRazorpayPayment = async (req, res) => {
         const userId = req.user._id;
         const userEmail = req.user?.email || 'Unknown User';
         const clientIp = req.ip;
-        const { razorpay_order_id, razorpay_payment_id, razorpay_signature } = req.body;
-
-        if (!razorpay_order_id || !razorpay_payment_id || !razorpay_signature) {
-            logger.warn(`Razorpay payment verification rejected: Missing parameters for (${userEmail})`);
-            req.session.orderFailed = true;
-            return res.status(400).json({
-                success: false,
-                message: 'Invalid payment confirmation data received.',
-                redirectUrl: '/user/checkout/failure'
-            });
-        }
+        const { razorpay_order_id, razorpay_payment_id, razorpay_signature, paymentFailed } = req.body;
 
         const pendingOrder = req.session.pendingRazorpayOrder;
         if (!pendingOrder || pendingOrder.razorpayOrderId !== razorpay_order_id) {
             logger.warn(`Razorpay payment confirmation session mismatch for (${userEmail})`);
             req.session.orderFailed = true;
-            return res.status(400).json({
+            return res.status(STATUS_CODES.BAD_REQUEST).json({
                 success: false,
-                message: 'Payment verification session expired. Please verify your order.',
+                message: COMMON_MESSAGES.SESSION_EXPIRED,
+                redirectUrl: '/user/checkout/failure'
+            });
+        }
+
+        if (paymentFailed) {
+            logger.warn(`Razorpay payment failed or cancelled by user (${userEmail}). Creating failed order.`);
+
+            const createdFailedData = await orderService.createNewOrder(
+                userId,
+                pendingOrder.validatedCheckoutData,
+                pendingOrder.shippingAddress,
+                pendingOrder.billingAddress,
+                'razorpay',
+                pendingOrder.couponData,
+                ORDER_STATUS.FAILED 
+            );
+
+            const failedOrder = createdFailedData.order;
+
+            delete req.session.checkoutActive;
+            delete req.session.checkoutOrder;
+            delete req.session.pendingRazorpayOrder;
+            req.session.orderFailed = true;
+
+            await new Promise((resolve) => req.session.save(resolve));
+
+            return res.status(STATUS_CODES.OK).json({
+                success: false,
+                orderStatus: ORDER_STATUS.FAILED,
+                orderId: failedOrder.orderId,
+                message: 'Order Failed' || COMMON_MESSAGES.BAD_REQUEST,
+                redirectUrl: '/user/checkout/failure'
+            });
+        }
+
+        if (!razorpay_order_id || !razorpay_payment_id || !razorpay_signature) {
+            logger.warn(`Razorpay verification rejected: Missing parameters for (${userEmail})`);
+            req.session.orderFailed = true;
+            return res.status(STATUS_CODES.BAD_REQUEST).json({
+                success: false,
+                message: 'Order Failed' || COMMON_MESSAGES.BAD_REQUEST,
                 redirectUrl: '/user/checkout/failure'
             });
         }
@@ -749,11 +782,28 @@ export const verifyRazorpayPayment = async (req, res) => {
         );
 
         if (!isSignatureValid) {
-            logger.error(`Razorpay signature mismatch for User (${userEmail}) | Order: ${razorpay_order_id}`);
+            logger.error(`Razorpay signature mismatch for User (${userEmail}) | Order: ${razorpay_order_id}. Recording as failed order.`);
+
+            await orderService.createNewOrder(
+                userId,
+                pendingOrder.validatedCheckoutData,
+                pendingOrder.shippingAddress,
+                pendingOrder.billingAddress,
+                'razorpay',
+                pendingOrder.couponData,
+                ORDER_STATUS.FAILED
+            );
+
+            delete req.session.checkoutActive;
+            delete req.session.checkoutOrder;
+            delete req.session.pendingRazorpayOrder;
             req.session.orderFailed = true;
-            return res.status(400).json({
+
+            await new Promise((resolve) => req.session.save(resolve));
+
+            return res.status(STATUS_CODES.BAD_REQUEST).json({
                 success: false,
-                message: 'Payment authentication failed. Tampering detected.',
+                message: 'Order Failed' || COMMON_MESSAGES.BAD_REQUEST,
                 redirectUrl: '/user/checkout/failure'
             });
         }
@@ -764,12 +814,13 @@ export const verifyRazorpayPayment = async (req, res) => {
             pendingOrder.shippingAddress,
             pendingOrder.billingAddress,
             'razorpay',
-            pendingOrder.couponData
+            pendingOrder.couponData,
+            ORDER_STATUS.SUCCESS
         );
 
         const order = createdData.order;
 
-        logger.info(`Razorpay payment verified & Order generated! ID: ${order.orderId}, Coupon: ${pendingOrder.couponData?.couponUsed || 'None'}, Type: ${pendingOrder.couponData?.couponType || 'N/A'}, Value: ${pendingOrder.couponData?.couponDiscountValue || 'N/A'}, User: (${userEmail}) | IP: ${clientIp}`);
+        logger.info(`Razorpay payment verified & Order generated! ID: ${order.orderId} for User: (${userEmail}) | IP: ${clientIp}`);
 
         req.session.lastPlacedOrderId = order.orderId;
         req.session.orderSuccessTimestamp = Date.now();
@@ -779,7 +830,7 @@ export const verifyRazorpayPayment = async (req, res) => {
 
         await new Promise((resolve) => req.session.save(resolve));
 
-        return res.status(200).json({
+        return res.status(STATUS_CODES.OK).json({
             success: true,
             orderId: order.orderId,
             redirectUrl: `/user/checkout/success?orderId=${encodeURIComponent(order.orderId)}`
@@ -787,9 +838,9 @@ export const verifyRazorpayPayment = async (req, res) => {
     } catch (error) {
         logger.error(`Razorpay verification exception for (${req.user?.email || 'Unknown'}): ${error.message}\nStack: ${error.stack}`);
         req.session.orderFailed = true;
-        return res.status(500).json({
+        return res.status(STATUS_CODES.INTERNAL_SERVER_ERROR).json({
             success: false,
-            message: error.message || 'Failed to complete order verification.',
+            message: error.message || COMMON_MESSAGES.SERVER_ERROR,
             redirectUrl: '/user/checkout/failure'
         });
     }
@@ -811,28 +862,30 @@ export const loadSuccessPage = async (req, res) => {
         const sessionTime = req.session.orderSuccessTimestamp;
         const queryOrderId = req.query.orderId;
 
-        if (!sessionOrderId || !sessionTime) {
-            logger.warn(`Unauthorized/expired access attempt to success page by (${userEmail}) | IP: ${clientIp}`);
+        const activeOrderId = queryOrderId || sessionOrderId;
+
+        if (!activeOrderId) {
+            logger.warn(`Unauthorized access attempt to success page by (${userEmail}) | IP: ${clientIp}`);
             return res.redirect('/user/orders');
         }
 
-        const fiveMinutes = 5 * 60 * 1000;
-        if (Date.now() - sessionTime > fiveMinutes) {
+        if (sessionOrderId && sessionTime) {
+            const fiveMinutes = 5 * 60 * 1000;
+            if (Date.now() - sessionTime > fiveMinutes) {
+                delete req.session.lastPlacedOrderId;
+                delete req.session.orderSuccessTimestamp;
+                logger.warn(`Expired success page session access by (${userEmail}) | IP: ${clientIp}`);
+                return res.redirect('/user/orders');
+            }
             delete req.session.lastPlacedOrderId;
             delete req.session.orderSuccessTimestamp;
-            logger.warn(`Expired success page access by (${userEmail}) | IP: ${clientIp}`);
-            return res.redirect('/user/orders');
         }
-
-        const activeOrderId = queryOrderId || sessionOrderId;
 
         const order = await orderService.getUserOrderFullDetails(userId, activeOrderId);
         if (!order) {
+            logger.warn(`Order [${activeOrderId}] not found for success page view by (${userEmail})`);
             return res.redirect('/user/orders');
         }
-
-        delete req.session.lastPlacedOrderId;
-        delete req.session.orderSuccessTimestamp;
 
         setNoCacheHeaders(res);
         logger.info(`User (${userEmail}) loaded Order Success page for ID: ${activeOrderId} | IP: ${clientIp}`);
@@ -844,11 +897,10 @@ export const loadSuccessPage = async (req, res) => {
 
     } catch (error) {
         logger.error(`Error rendering order success page for (${req.user?.email || 'Unknown'}): ${error.message}\nStack: ${error.stack}`);
-        
-        return res.status(500).json({
+        return res.status(STATUS_CODES.INTERNAL_SERVER_ERROR).json({
             success: false,
             title: "Server Error",
-            message: "An unexpected error occurred while loading the order confirmation page."
+            message: error.message || COMMON_MESSAGES.SERVER_ERROR
         });
     }
 };
@@ -857,25 +909,27 @@ export const loadFailurePage = async (req, res) => {
     try {
         const clientIp = req.ip;
         const userEmail = req.user?.email || 'Unknown User';
+        const orderId = req.query.orderId || req.session.failedOrderId || '';
 
         delete req.session.orderFailed;
         delete req.session.orderFailureTimestamp;
+        delete req.session.failedOrderId;
 
         setNoCacheHeaders(res);
-        logger.warn(`User (${userEmail}) viewed Order Failure page | IP: ${clientIp}`);
+        logger.warn(`User (${userEmail}) viewed Order Failure page for Order [${orderId || 'N/A'}] | IP: ${clientIp}`);
 
         return res.render('user/orderpaymentfail', { 
             pageTitle: 'HomeStation - Payment Failed',
+            orderId: orderId,
             csrfToken: req.csrfToken ? req.csrfToken() : '' 
         });
 
     } catch (error) {
         logger.error(`Error rendering order failure page: ${error.message}`);
-        
-        return res.status(500).json({
+        return res.status(STATUS_CODES.INTERNAL_SERVER_ERROR).json({
             success: false,
             title: "Server Error",
-            message: "An unexpected error occurred while loading the payment failure page."
+            message: error.message || COMMON_MESSAGES.SERVER_ERROR
         });
     }
 };

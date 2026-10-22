@@ -5,6 +5,8 @@ import { getUserHeaderCounts } from '../../services/user/badgeService.js';
 import * as cartService from '../../services/user/cartService.js';
 import * as reviewService from '../../services/user/reviewService.js';
 import logger from '../../utils/logger.js';
+import { STATUS_CODES } from '../../src/constants/httpStatusCodes.js';
+import { COMMON_MESSAGES } from '../../src/constants/commonMessages.js';
 
 export const loadHomePage = async (req, res) => {
     try {
@@ -65,7 +67,10 @@ export const loadHomePage = async (req, res) => {
 
     } catch (error) {
         logger.error(`Error loading Home Page (IP: ${req.ip}): ${error.message}\nStack: ${error.stack}`);
-        return res.status(500).json({ success: false, message: "Server error occurred!" });
+        return res.status(STATUS_CODES.INTERNAL_SERVER_ERROR).json({ 
+            success: false, 
+            message: error.message || COMMON_MESSAGES.SERVER_ERROR 
+        });
     }
 };
 
@@ -95,9 +100,9 @@ export const loadContactPage = async (req, res) => {
 
     } catch (error) {
         logger.error(`Critical parsing breakdown inside loadContactPage controller: ${error.message}\nStack: ${error.stack}`);
-        return res.status(500).json({ 
+        return res.status(STATUS_CODES.INTERNAL_SERVER_ERROR).json({ 
             success: false, 
-            message: "An unexpected processing error occurred loading the support catalog form." 
+            message: error.message || COMMON_MESSAGES.SERVER_ERROR 
         });
     }
 };
@@ -115,15 +120,18 @@ export const submitContactInquiryForm = async (req, res) => {
 
         if (!result.success) {
             logger.warn(`User enquiry ticket submission rejected: ${result.message}`);
-            return res.status(result.status || 200).json({ success: false, message: result.message });
+            return res.status(result.status || STATUS_CODES.OK).json({ success: false, message: result.message });
         }
 
         logger.info(`Inquiry ticket created cleanly by [${email ? email.trim().toLowerCase() : 'Unknown'}] using subject ID -> ${subjectId}`);
-        return res.status(200).json({ success: true, message: result.message });
+        return res.status(STATUS_CODES.OK).json({ success: true, message: result.message });
 
     } catch (error) {
         logger.error(`Critical transaction failure tracked inside submitContactInquiryForm controller: ${error.message}\nStack: ${error.stack}`);
-        return res.status(500).json({ success: false, message: "An unexpected database mapping exception failure occurred." });
+        return res.status(STATUS_CODES.INTERNAL_SERVER_ERROR).json({ 
+            success: false, 
+            message: error.message || COMMON_MESSAGES.SERVER_ERROR 
+        });
     }
 };
 
@@ -149,9 +157,9 @@ export const loadPrivacyPolicyPage = async (req, res) => {
 
     } catch (error) {
         logger.error(`Parsing failure caught inside loadPrivacyPolicyPage controller context: ${error.message}\nStack: ${error.stack}`);
-        return res.status(500).json({ 
+        return res.status(STATUS_CODES.INTERNAL_SERVER_ERROR).json({ 
             success: false, 
-            message: "An internal parsing error occurred loading legal policy documents." 
+            message: error.message || COMMON_MESSAGES.SERVER_ERROR 
         });
     }
 };

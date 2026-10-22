@@ -6,6 +6,8 @@ import { getActivePromoBanner } from "../../services/user/bannerService.js";
 import { getUserHeaderCounts } from "../../services/user/badgeService.js";
 import { notFoundMiddleware } from "../../middlewares/notFoundMiddleware.js";
 import logger from "../../utils/logger.js";
+import { STATUS_CODES } from "../../src/constants/httpStatusCodes.js";
+import { COMMON_MESSAGES } from "../../src/constants/commonMessages.js";
 
 export const loadProductsCatalogPage = async (req, res) => {
   try {
@@ -124,10 +126,9 @@ export const loadProductsCatalogPage = async (req, res) => {
       `Critical Product Catalog Controller Failure: ${error.message}\nStack: ${error.stack}`,
     );
 
-    return res.status(500).json({
+    return res.status(STATUS_CODES.INTERNAL_SERVER_ERROR).json({
       success: false,
-      message:
-        "An unexpected error occurred while generating the mattress catalog items.",
+      message: error.message || COMMON_MESSAGES.SERVER_ERROR,
     });
   }
 };
@@ -199,182 +200,12 @@ export const loadProductDetailViewPage = async (req, res) => {
             return notFoundMiddleware(req, res);
         }
 
-        logger.error(`Error loading Product details (ID: ${req.params.id}): ${error.message}\nStack: ${error.stack}`);
-        return res.status(500).json({ success: false, message: "An unexpected internal server error occurred." });
-    }
-};
-
-export const getValidatedProductDetails = async (productId) => {
-  try {
-    const currentDate = new Date();
-
-    const activeOffers = await Offer.find({
-      isDeleted: false,
-      status: "active",
-      startDate: { $lte: currentDate },
-      endDate: { $gte: currentDate },
-    }).lean();
-
-    const productOffersMap = {};
-    const categoryOffersMap = {};
-
-    activeOffers.forEach((offer) => {
-      const targetIdStr = offer.targetId ? offer.targetId.toString() : null;
-      if (!targetIdStr) return;
-
-      if (offer.offerType === "product") {
-        if (
-          !productOffersMap[targetIdStr] ||
-          offer.discount > productOffersMap[targetIdStr]
-        ) {
-          productOffersMap[targetIdStr] = offer.discount;
-        }
-      } else if (offer.offerType === "category") {
-        if (
-          !categoryOffersMap[targetIdStr] ||
-          offer.discount > categoryOffersMap[targetIdStr]
-        ) {
-          categoryOffersMap[targetIdStr] = offer.discount;
-        }
-      }
-    });
-
-    const calculateBestDiscount = (
-      variantDiscount = 0,
-      targetProductId,
-      targetCategoryId,
-    ) => {
-      const pIdStr = targetProductId ? targetProductId.toString() : "";
-      const cIdStr = targetCategoryId ? targetCategoryId.toString() : "";
-
-      const productOfferDiscount = productOffersMap[pIdStr] || 0;
-      const categoryOfferDiscount = categoryOffersMap[cIdStr] || 0;
-      const baseDiscount = Number(variantDiscount) || 0;
-
-      return Math.max(
-        baseDiscount,
-        productOfferDiscount,
-        categoryOfferDiscount,
-      );
-    };
-
-    const product = await Product.findOne({
-      _id: productId,
-      isDeleted: false,
-    }).lean();
-    if (!product) {
-      const error = new Error("Requested product is no longer available.");
-      error.reason = "UNAVAILABLE";
-      throw error;
-    }
-
-    const category = await Category.findOne({
-      _id: product.categoryId,
-      isDeleted: false,
-    }).lean();
-    if (!category) {
-      const error = new Error("Requested product is no longer available.");
-      error.reason = "UNAVAILABLE";
-      throw error;
-    }
-
-    const rawVariants = await ProductVariant.find({
-      productId: product._id,
-    }).lean();
-    const activeInStockVariants = [];
-    let runningTotalStockValue = 0;
-
-    rawVariants.forEach((v) => {
-      runningTotalStockValue += v.stock;
-      if (v.stock > 0) {
-        const effectiveDiscount = calculateBestDiscount(
-          v.discount,
-          product._id,
-          product.categoryId,
-        );
-
-        const calculatedPrice = Math.round(
-          v.originalPrice * (1 - effectiveDiscount / 100),
-        );
-
-        activeInStockVariants.push({
-          ...v,
-          effectiveDiscount,
-          calculatedPrice,
+        logger.error(`Error loading Product details (ID: ${req.params?.id}): ${error.message}\nStack: ${error.stack}`);
+        return res.status(STATUS_CODES.INTERNAL_SERVER_ERROR).json({ 
+            success: false, 
+            message: error.message || COMMON_MESSAGES.SERVER_ERROR 
         });
-      }
-    });
-
-    if (runningTotalStockValue <= 0 || activeInStockVariants.length === 0) {
-      const error = new Error("This product is currently out of stock.");
-      error.reason = "OUT_OF_STOCK";
-      throw error;
     }
-
-    const analyticalMatches = await Product.aggregate([
-      {
-        $match: {
-          _id: { $ne: product._id },
-          categoryId: category._id,
-          isDeleted: false,
-        },
-      },
-      { $sample: { size: 4 } },
-      {
-        $lookup: {
-          from: "productvariants",
-          localField: "_id",
-          foreignField: "productId",
-          as: "variants",
-        },
-      },
-      {
-        $addFields: {
-          inStockVariants: {
-            $filter: {
-              input: "$variants",
-              as: "v",
-              cond: { $gt: ["$$v.stock", 0] },
-            },
-          },
-        },
-      },
-      { $match: { $expr: { $gt: [{ $size: "$inStockVariants" }, 0] } } },
-    ]);
-
-    const processedSuggestionsDeck = analyticalMatches.map((p) => {
-      const primaryOption = p.inStockVariants[0];
-      const effectiveDiscount = calculateBestDiscount(
-        primaryOption.discount,
-        p._id,
-        p.categoryId,
-      );
-
-      const calculatedPrice = Math.round(
-        primaryOption.originalPrice * (1 - effectiveDiscount / 100),
-      );
-
-      return {
-        ...p,
-        displayVariant: {
-          ...primaryOption,
-          effectiveDiscount,
-          calculatedPrice,
-        },
-      };
-    });
-
-    return {
-      product,
-      variants: activeInStockVariants,
-      relatedProducts: processedSuggestionsDeck,
-    };
-  } catch (error) {
-    if (error.reason) throw error;
-    throw new Error(
-      `Data mapping transaction failed on service resolution: ${error.message}`,
-    );
-  }
 };
 
 export const loadAllProductReviewsPage = async (req, res) => {
@@ -388,7 +219,7 @@ export const loadAllProductReviewsPage = async (req, res) => {
         `Access to reviews page failed: Missing Product ID | IP: ${req.ip}`,
       );
       return res
-        .status(400)
+        .status(STATUS_CODES.BAD_REQUEST)
         .json({
           success: false,
           message: "Target product reference ID is missing.",
@@ -430,12 +261,11 @@ export const loadAllProductReviewsPage = async (req, res) => {
     });
   } catch (error) {
     logger.error(
-      `Error loading all reviews for Product ID ${req.params.id}: ${error.message}\nStack: ${error.stack}`,
+      `Error loading all reviews for Product ID ${req.params?.id}: ${error.message}\nStack: ${error.stack}`,
     );
-    return res.status(500).json({
+    return res.status(STATUS_CODES.INTERNAL_SERVER_ERROR).json({
       success: false,
-      message:
-        "An internal server error occurred while retrieving customer reviews.",
+      message: error.message || COMMON_MESSAGES.SERVER_ERROR,
     });
   }
 };
@@ -492,10 +322,9 @@ export const executeCatalogSearchPage = async (req, res) => {
     logger.error(
       `Critical parsing exception caught in executeCatalogSearchPage: ${error.message}\nStack: ${error.stack}`,
     );
-    return res.status(500).json({
+    return res.status(STATUS_CODES.INTERNAL_SERVER_ERROR).json({
       success: false,
-      message:
-        "An explicit exception failure occurred handling search profiles.",
+      message: error.message || COMMON_MESSAGES.SERVER_ERROR,
     });
   }
 };
@@ -548,10 +377,10 @@ export const loadTopDealsPage = async (req, res) => {
       `Critical error caught inside loadTopDealsPage controller template pipeline: ${error.message}\nStack: ${error.stack}`,
     );
     return res
-      .status(500)
+      .status(STATUS_CODES.INTERNAL_SERVER_ERROR)
       .json({
         success: false,
-        message: "An error occurred compiling top discount records.",
+        message: error.message || COMMON_MESSAGES.SERVER_ERROR,
       });
   }
 };
@@ -603,10 +432,9 @@ export const loadBestsellersPage = async (req, res) => {
     logger.error(
       `Critical error inside loadBestsellersPage controller: ${error.message}\nStack: ${error.stack}`,
     );
-    return res.status(500).json({
+    return res.status(STATUS_CODES.INTERNAL_SERVER_ERROR).json({
       success: false,
-      message:
-        "An unexpected layout processing error occurred loading best sellers.",
+      message: error.message || COMMON_MESSAGES.SERVER_ERROR,
     });
   }
 };

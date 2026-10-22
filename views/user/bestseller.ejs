@@ -19,7 +19,9 @@
 
     <%- include('../partials/user/promoBar') %>
 
-    <%- include('../partials/user/header', { activePage: 'bestsellers' }) %>
+    <div id="mainHeaderContainer">
+        <%- include('../partials/user/header', { activePage: 'bestsellers' }) %>
+    </div>
 
     <nav class="breadcrumb-nav" aria-label="breadcrumb">
         <div class="container">
@@ -112,7 +114,7 @@
                 <% if (totalPages > 1) { %>
                     <div class="pagination">
                         <% if (currentPage > 1) { %>
-                            <button class="page-btn change-deals-page-btn" type="button" data-page="<%= currentPage - 1 %>">
+                            <button class="page-btn change-bestsellers-page-btn" type="button" data-page="<%= currentPage - 1 %>">
                                 <i class="fa-solid fa-chevron-left"></i> Previous
                             </button>
                         <% } else { %>
@@ -123,14 +125,14 @@
 
                         <div class="page-numbers">
                             <% for (let i = 1; i <= totalPages; i++) { %>
-                                <button class="page-num change-deals-page-btn <%= i === currentPage ? 'active' : '' %>" type="button" data-page="<%= i %>">
+                                <button class="page-num change-bestsellers-page-btn <%= i === currentPage ? 'active' : '' %>" type="button" data-page="<%= i %>">
                                     <%= i %>
                                 </button>
                             <% } %>
                         </div>
 
                         <% if (currentPage < totalPages) { %>
-                            <button class="page-btn change-deals-page-btn" type="button" data-page="<%= currentPage + 1 %>">
+                            <button class="page-btn change-bestsellers-page-btn" type="button" data-page="<%= currentPage + 1 %>">
                                 Next <i class="fa-solid fa-chevron-right"></i>
                             </button>
                         <% } else { %>
@@ -146,7 +148,7 @@
 
     <%- include('../partials/user/footer') %>
 
-    <script src="/js/user/topdeals.js"></script>
+    <script src="/js/user/bestseller.js"></script>
 </body>
 
 </html>

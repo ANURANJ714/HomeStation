@@ -1,8 +1,10 @@
 import crypto from 'crypto';
 import passport from 'passport';
-import * as userAuthService from '../../services/user/authService.js'
+import * as userAuthService from '../../services/user/authService.js';
 import { sendOtpEmail } from '../../services/user/emailService.js';
 import logger from '../../utils/logger.js';
+import { STATUS_CODES } from '../../src/constants/httpStatusCodes.js';
+import { COMMON_MESSAGES } from '../../src/constants/commonMessages.js';
 
 export const loadLogin = async (req, res) => {
     try {
@@ -11,15 +13,15 @@ export const loadLogin = async (req, res) => {
 
         logger.info(`User login page accessed from IP: ${clientIp}`);
 
-        res.render('user/userlogin', { errorMessage }); 
+        return res.render('user/userlogin', { errorMessage }); 
 
     } catch (error) {
         logger.error(`Error loading user login page (IP: ${req.ip}): ${error.message}\nStack: ${error.stack}`);
         
-        res.status(500).json({
+        return res.status(STATUS_CODES.INTERNAL_SERVER_ERROR).json({
             success: false,
             title: "Server Error",
-            message: "An internal server error occurred while loading the login page."
+            message: error.message || COMMON_MESSAGES.SERVER_ERROR
         });
     }
 };
@@ -32,40 +34,40 @@ export const processLogin = (req, res, next) => {
         passport.authenticate('local', (err, user, info) => {
             if (err) {
                 logger.error(`Authentication error for ${emailAttempt} (IP: ${clientIp}): ${err.message}`);
-                return res.status(500).json({ 
+                return res.status(STATUS_CODES.INTERNAL_SERVER_ERROR).json({ 
                     success: false, 
-                    message: "An internal server error occurred during authentication." 
+                    message: err.message || COMMON_MESSAGES.SERVER_ERROR 
                 });
             }
 
             if (!user) {
                 logger.warn(`Failed login attempt for ${emailAttempt} (IP: ${clientIp}): ${info?.message || 'Unauthorized'}`);
-                return res.status(401).json({ 
+                return res.status(STATUS_CODES.UNAUTHORIZED).json({ 
                     success: false, 
-                    message: info?.message || "Invalid credentials." 
+                    message: info?.message || "Invalid credentials." || COMMON_MESSAGES.UNAUTHORIZED 
                 });
             }
 
             if (user.role === 'Admin') {
                 logger.warn(`Admin login attempted on customer endpoint by ${user.email} (IP: ${clientIp})`);
-                return res.status(403).json({
+                return res.status(STATUS_CODES.FORBIDDEN).json({
                     success: false,
-                    message: "Admin accounts cannot sign in through the customer portal. Please use the Admin Portal."
+                    message: "Admin accounts cannot sign in through the customer portal. Please use the Admin Portal." || COMMON_MESSAGES.FORBIDDEN
                 });
             }
             
             req.logIn(user, { keepSessionInfo: true }, (loginErr) => {
                 if (loginErr) {
                     logger.error(`Session establishment error for ${user.email} (IP: ${clientIp}): ${loginErr.message}`);
-                    return res.status(500).json({ 
+                    return res.status(STATUS_CODES.INTERNAL_SERVER_ERROR).json({ 
                         success: false, 
-                        message: "A session error occurred while logging in." 
+                        message: loginErr.message || COMMON_MESSAGES.SERVER_ERROR 
                     });
                 }
 
                 logger.info(`User (${user.email}) successfully logged in. IP: ${clientIp}`);
 
-                return res.status(200).json({
+                return res.status(STATUS_CODES.OK).json({
                     success: true,
                     message: "Login successful.",
                     user: { 
@@ -81,9 +83,9 @@ export const processLogin = (req, res, next) => {
     } catch (error) {
         logger.error(`Unexpected sync error in processLogin (IP: ${req.ip}): ${error.message}\nStack: ${error.stack}`);
         
-        return res.status(500).json({ 
+        return res.status(STATUS_CODES.INTERNAL_SERVER_ERROR).json({ 
             success: false, 
-            message: "An unexpected server error occurred." 
+            message: error.message || COMMON_MESSAGES.SERVER_ERROR 
         });
     }
 };
@@ -94,15 +96,15 @@ export const loadRegister = async (req, res) => {
 
         logger.info(`User registration page accessed from IP: ${clientIp}`);
 
-        res.render('user/createaccount'); 
+        return res.render('user/createaccount'); 
 
     } catch (error) {
         logger.error(`Error loading user registration page (IP: ${req.ip}): ${error.message}\nStack: ${error.stack}`);
         
-        res.status(500).json({
+        return res.status(STATUS_CODES.INTERNAL_SERVER_ERROR).json({
             success: false,
             title: "Server Error",
-            message: "An internal server error occurred while loading the registration page."
+            message: error.message || COMMON_MESSAGES.SERVER_ERROR
         });
     }
 };
@@ -114,13 +116,16 @@ export const processRegister = async (req, res) => {
 
         if (password !== confirmPassword) {
             logger.warn(`Registration blocked: Passwords do not match for ${email}. IP: ${clientIp}`);
-            return res.status(400).json({ success: false, message: "Passwords do not match." });
+            return res.status(STATUS_CODES.BAD_REQUEST).json({ 
+                success: false, 
+                message: "Passwords do not match." || COMMON_MESSAGES.BAD_REQUEST 
+            });
         }
 
         if (req.session.otp && req.session.otpExpires > Date.now()) {
             if (req.session.tempUserData && req.session.tempUserData.email === email) {
                 logger.info(`Intercepted double-click during registration for ${email}: OTP already active. IP: ${clientIp}`);
-                return res.status(200).json({ 
+                return res.status(STATUS_CODES.OK).json({ 
                     success: true, 
                     message: "OTP already sent. Please check your email." 
                 });
@@ -150,24 +155,30 @@ export const processRegister = async (req, res) => {
         req.session.save((err) => {
             if (err) {
                 logger.error(`Session Save Error during registration for ${email}: ${err.message}`);
-                return res.status(500).json({ success: false, message: "Session error occurred." });
+                return res.status(STATUS_CODES.INTERNAL_SERVER_ERROR).json({ 
+                    success: false, 
+                    message: err.message || COMMON_MESSAGES.SERVER_ERROR 
+                });
             }
 
             logger.info(`Registration initiated. OTP sent to ${email} | Referred By: ${referredBy || 'None'} | IP: ${clientIp}`);
-            return res.status(200).json({ success: true, message: "OTP sent successfully." });
+            return res.status(STATUS_CODES.OK).json({ success: true, message: "OTP sent successfully." });
         });
 
     } catch (error) {
-        const statusCode = error.statusCode || 500;
-        const message = error.statusCode ? error.message : "An internal server error occurred!";
+        const statusCode = error.statusCode || STATUS_CODES.INTERNAL_SERVER_ERROR;
+        const message = error.message || COMMON_MESSAGES.SERVER_ERROR;
 
-        if (statusCode >= 500) {
+        if (statusCode >= STATUS_CODES.INTERNAL_SERVER_ERROR) {
             logger.error(`Registration Error (IP: ${req.ip}, Email: ${req.body.email}): ${error.message}\nStack: ${error.stack}`);
         } else {
             logger.warn(`Registration validation failed for ${req.body.email}: ${message}`);
         }
 
-        return res.status(statusCode).json({ success: false, message: message });
+        return res.status(statusCode).json({ 
+            success: false, 
+            message: message 
+        });
     }
 };
 
@@ -186,15 +197,15 @@ export const loadOtpPage = (req, res) => {
         
         logger.info(`User OTP verification page accessed for email: ${emailToVerify}. IP: ${clientIp}`);
 
-        res.render('user/verify-otp', { email: emailToVerify });
+        return res.render('user/verify-otp', { email: emailToVerify });
 
     } catch (error) {
         logger.error(`Error loading user OTP verification page (IP: ${req.ip}): ${error.message}\nStack: ${error.stack}`);
         
-        return res.status(500).json({
+        return res.status(STATUS_CODES.INTERNAL_SERVER_ERROR).json({
             success: false,
             title: "Server Error",
-            message: "An internal server error occurred while loading the verification page."
+            message: error.message || COMMON_MESSAGES.SERVER_ERROR
         });
     }
 };
@@ -205,9 +216,9 @@ export const resendOtp = async (req, res) => {
 
         if (!req.session.tempUserData && !req.session.resetEmail) {
             logger.warn(`User OTP resend blocked: Session expired or missing. IP: ${clientIp}`);
-            return res.status(400).json({ 
+            return res.status(STATUS_CODES.BAD_REQUEST).json({ 
                 success: false, 
-                message: "Session expired. Please start over." 
+                message: "Session expired. Please start over." || COMMON_MESSAGES.SESSION_EXPIRED 
             });
         }
 
@@ -222,7 +233,7 @@ export const resendOtp = async (req, res) => {
             
             logger.warn(`User OTP resend blocked: Rate limit triggered for ${emailToVerify}. Wait ${remainingSeconds}s. IP: ${clientIp}`);
             
-            return res.status(429).json({ 
+            return res.status(STATUS_CODES.TOO_MANY_REQUESTS).json({ 
                 success: false, 
                 message: `Please wait ${remainingSeconds} seconds before requesting a new OTP.` 
             });
@@ -238,12 +249,15 @@ export const resendOtp = async (req, res) => {
         req.session.save((err) => {
             if (err) {
                 logger.error(`Session Save Error during user OTP resend for ${emailToVerify}: ${err.message}`);
-                return res.status(500).json({ success: false, message: "Session error occurred." });
+                return res.status(STATUS_CODES.INTERNAL_SERVER_ERROR).json({ 
+                    success: false, 
+                    message: err.message || COMMON_MESSAGES.SERVER_ERROR 
+                });
             }
 
             logger.info(`A new user OTP was successfully sent to ${emailToVerify}. IP: ${clientIp}`);
             
-            return res.status(200).json({ 
+            return res.status(STATUS_CODES.OK).json({ 
                 success: true, 
                 message: "OTP resent successfully." 
             });
@@ -252,9 +266,9 @@ export const resendOtp = async (req, res) => {
     } catch (error) {
         logger.error(`User Resend OTP Error (IP: ${req.ip}): ${error.message}\nStack: ${error.stack}`);
         
-        return res.status(500).json({ 
+        return res.status(STATUS_CODES.INTERNAL_SERVER_ERROR).json({ 
             success: false, 
-            message: "Error resending OTP." 
+            message: error.message || COMMON_MESSAGES.SERVER_ERROR 
         });
     }
 };
@@ -269,17 +283,26 @@ export const verifyOtp = async (req, res) => {
 
         if (!hasValidSession || !req.session.otp) {
             logger.warn(`User OTP verify blocked: Session expired or missing for ${emailContext}. IP: ${clientIp}`);
-            return res.status(400).json({ success: false, message: "Session expired. Please start over." });
+            return res.status(STATUS_CODES.BAD_REQUEST).json({ 
+                success: false, 
+                message: "Session expired. Please start over." || COMMON_MESSAGES.SESSION_EXPIRED 
+            });
         }
 
         if (Date.now() > req.session.otpExpires) {
             logger.warn(`User OTP verify failed: OTP expired for ${emailContext}. IP: ${clientIp}`);
-            return res.status(400).json({ success: false, message: "OTP has expired. Please request a new one." });
+            return res.status(STATUS_CODES.BAD_REQUEST).json({ 
+                success: false, 
+                message: "OTP has expired. Please request a new one." || COMMON_MESSAGES.SESSION_EXPIRED 
+            });
         }
 
         if (otp !== req.session.otp) {
             logger.warn(`User OTP verify failed: Invalid OTP entered for ${emailContext}. IP: ${clientIp}`);
-            return res.status(400).json({ success: false, message: "Invalid OTP. Please try again." });
+            return res.status(STATUS_CODES.BAD_REQUEST).json({ 
+                success: false, 
+                message: "Invalid OTP. Please try again." || COMMON_MESSAGES.BAD_REQUEST 
+            });
         }
 
         if (req.session.otpContext === 'registration') {
@@ -295,24 +318,27 @@ export const verifyOtp = async (req, res) => {
             req.logIn(newUser, { keepSessionInfo: true }, (err) => {
                 if (err) {
                     logger.error(`Auto-login failed after registration for ${newUser.email} (IP: ${clientIp}): ${err.message}`);
-                    return res.status(500).json({ 
+                    return res.status(STATUS_CODES.INTERNAL_SERVER_ERROR).json({ 
                         success: false, 
-                        message: 'Account created but failed to log in automatically' 
+                        message: err.message || 'Account created but failed to log in automatically' || COMMON_MESSAGES.SERVER_ERROR 
                     });
                 }
                 
                 req.session.save((saveErr) => {
                     if (saveErr) {
                         logger.error(`Session save error after registration for ${newUser.email}: ${saveErr.message}`);
-                        return res.status(500).json({ success: false, message: "Session error during login." });
+                        return res.status(STATUS_CODES.INTERNAL_SERVER_ERROR).json({ 
+                            success: false, 
+                            message: saveErr.message || COMMON_MESSAGES.SERVER_ERROR 
+                        });
                     }
                     
                     logger.info(`User (${newUser.email}) auto-logged in. Redirecting to profile. IP: ${clientIp}`);
                     
-                    return res.status(200).json({
+                    return res.status(STATUS_CODES.OK).json({ 
                         success: true, 
                         message: 'Account created successfully', 
-                        redirectUrl: '/user/profile'
+                        redirectUrl: '/user/profile' 
                     });
                 });
             });
@@ -328,24 +354,27 @@ export const verifyOtp = async (req, res) => {
             req.session.save((saveErr) => {
                 if (saveErr) {
                     logger.error(`Session save error during password reset OTP verify for ${emailContext}: ${saveErr.message}`);
-                    return res.status(500).json({ success: false, message: "Session error." });
+                    return res.status(STATUS_CODES.INTERNAL_SERVER_ERROR).json({ 
+                        success: false, 
+                        message: saveErr.message || COMMON_MESSAGES.SERVER_ERROR 
+                    });
                 }
                 
                 logger.info(`User OTP successfully verified for password reset (${emailContext}). IP: ${clientIp}`);
                 
-                return res.status(200).json({
-                    success: true,
-                    message: "OTP Verified!",
-                    redirectUrl: '/user/reset-password'
+                return res.status(STATUS_CODES.OK).json({ 
+                    success: true, 
+                    message: "OTP Verified!", 
+                    redirectUrl: '/user/reset-password' 
                 });
             });
         }
 
     } catch (error) {
         logger.error(`Verify OTP Error (IP: ${req.ip}): ${error.message}\nStack: ${error.stack}`);
-        return res.status(500).json({ 
+        return res.status(STATUS_CODES.INTERNAL_SERVER_ERROR).json({ 
             success: false, 
-            message: "An error occurred during verification." 
+            message: error.message || COMMON_MESSAGES.SERVER_ERROR 
         });
     }
 };
@@ -356,15 +385,15 @@ export const loadForgotPassword = async (req, res) => {
 
         logger.info(`User forgot password page accessed from IP: ${clientIp}`);
 
-        res.render('user/forgotpassword'); 
+        return res.render('user/forgotpassword'); 
 
     } catch (error) {
         logger.error(`Error loading user forgot password page (IP: ${req.ip}): ${error.message}\nStack: ${error.stack}`);
         
-        res.status(500).json({
+        return res.status(STATUS_CODES.INTERNAL_SERVER_ERROR).json({
             success: false,
             title: "Server Error",
-            message: "An internal server error occurred while loading the forgot password page."
+            message: error.message || COMMON_MESSAGES.SERVER_ERROR
         });
     }
 };
@@ -379,19 +408,19 @@ export const processForgotPassword = async (req, res) => {
         if (!result.isValid) {
             if (result.reason === 'NOT_FOUND') {
                 logger.warn(`User password reset failed: No account found for ${email}. IP: ${clientIp}`);
-                return res.status(404).json({ 
+                return res.status(STATUS_CODES.NOT_FOUND).json({ 
                     success: false, 
                     isExistingUser: false, 
-                    message: "No account found with this email. Please create an account." 
+                    message: "No account found with this email. Please create an account." || COMMON_MESSAGES.NOT_FOUND 
                 });
             }
 
             if (result.reason === 'GOOGLE_AUTH') {
                 logger.warn(`User password reset blocked: Attempted on Google Auth account (${email}). IP: ${clientIp}`);
-                return res.status(400).json({
+                return res.status(STATUS_CODES.BAD_REQUEST).json({
                     success: false,
                     isExistingUser: true,
-                    message: "This email is linked to a Google account. Please use 'Continue with Google' to log in."
+                    message: "This email is linked to a Google account. Please use 'Continue with Google' to log in." || COMMON_MESSAGES.BAD_REQUEST
                 });
             }
         }
@@ -408,14 +437,17 @@ export const processForgotPassword = async (req, res) => {
         req.session.save((err) => {
             if (err) {
                 logger.error(`Session Save Error during user password reset for ${email}: ${err.message}`);
-                return res.status(500).json({ success: false, message: "Session error occurred." });
+                return res.status(STATUS_CODES.INTERNAL_SERVER_ERROR).json({ 
+                    success: false, 
+                    message: err.message || COMMON_MESSAGES.SERVER_ERROR 
+                });
             }
             
             logger.info(`User password reset initiated. OTP sent to ${email}. IP: ${clientIp}`);
             
-            return res.status(200).json({ 
+            return res.status(STATUS_CODES.OK).json({ 
                 success: true, 
-                isExistingUser: true,
+                isExistingUser: true, 
                 message: "OTP sent to your email." 
             });
         });
@@ -423,14 +455,14 @@ export const processForgotPassword = async (req, res) => {
     } catch (error) {
         logger.error(`User Forgot Password Error (IP: ${req.ip}, Email: ${req.body.email}): ${error.message}\nStack: ${error.stack}`);
         
-        return res.status(500).json({ 
+        return res.status(STATUS_CODES.INTERNAL_SERVER_ERROR).json({ 
             success: false, 
-            message: "Server error." 
+            message: error.message || COMMON_MESSAGES.SERVER_ERROR 
         });
     }
 };
 
-export const loadResetPassword = (req, res) => {
+export const loadResetPassword = async (req, res) => {
     try {
         const clientIp = req.ip;
         const email = req.session.resetEmail || 'Unknown Email';
@@ -442,15 +474,15 @@ export const loadResetPassword = (req, res) => {
 
         logger.info(`User new password page accessed for email: ${email}. IP: ${clientIp}`);
 
-        res.render('user/newpassword');
+        return res.render('user/newpassword');
 
     } catch (error) {
         logger.error(`Error loading user new password page (IP: ${req.ip}): ${error.message}\nStack: ${error.stack}`);
         
-        return res.status(500).json({
+        return res.status(STATUS_CODES.INTERNAL_SERVER_ERROR).json({
             success: false,
             title: "Server Error",
-            message: "An internal server error occurred while loading the page."
+            message: error.message || COMMON_MESSAGES.SERVER_ERROR
         });
     }
 };
@@ -463,18 +495,18 @@ export const processResetPassword = async (req, res) => {
 
         if (!email || !req.session.canResetPassword) {
             logger.warn(`User password reset blocked: Session expired or invalid state. IP: ${clientIp}`);
-            return res.status(403).json({ 
+            return res.status(STATUS_CODES.FORBIDDEN).json({ 
                 success: false, 
-                message: "Session expired. Please start over." 
+                message: "Session expired. Please start over." || COMMON_MESSAGES.SESSION_EXPIRED 
             });
         }
 
         const passwordRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[!@#$]).{12,}$/;
         if (!passwordRegex.test(password)) {
             logger.warn(`User password reset blocked: Complexity requirements failed for ${email}. IP: ${clientIp}`);
-            return res.status(400).json({ 
+            return res.status(STATUS_CODES.BAD_REQUEST).json({ 
                 success: false, 
-                message: "Password does not meet security requirements." 
+                message: "Password does not meet security requirements." || COMMON_MESSAGES.BAD_REQUEST 
             });
         }
 
@@ -482,7 +514,10 @@ export const processResetPassword = async (req, res) => {
 
         if (!result.isUpdated) {
             logger.warn(`User password reset failed: Account not found (${email}). IP: ${clientIp}`);
-            return res.status(404).json({ success: false, message: "User account not found." });
+            return res.status(STATUS_CODES.NOT_FOUND).json({ 
+                success: false, 
+                message: "User account not found." || COMMON_MESSAGES.NOT_FOUND 
+            });
         }
 
         req.session.canResetPassword = false;
@@ -491,12 +526,15 @@ export const processResetPassword = async (req, res) => {
         req.session.save((err) => {
             if (err) {
                 logger.error(`Session Save Error during user password reset for ${email}: ${err.message}`);
-                return res.status(500).json({ success: false, message: "Session error occurred." });
+                return res.status(STATUS_CODES.INTERNAL_SERVER_ERROR).json({ 
+                    success: false, 
+                    message: err.message || COMMON_MESSAGES.SERVER_ERROR 
+                });
             }
 
             logger.info(`User password successfully reset for ${email}. IP: ${clientIp}`);
             
-            return res.status(200).json({ 
+            return res.status(STATUS_CODES.OK).json({ 
                 success: true, 
                 message: "Password updated successfully!",
                 redirectUrl: '/user/login'
@@ -506,9 +544,9 @@ export const processResetPassword = async (req, res) => {
     } catch (error) {
         logger.error(`User Reset Password Error (IP: ${req.ip}): ${error.message}\nStack: ${error.stack}`);
         
-        return res.status(500).json({ 
+        return res.status(STATUS_CODES.INTERNAL_SERVER_ERROR).json({ 
             success: false, 
-            message: "Server error." 
+            message: error.message || COMMON_MESSAGES.SERVER_ERROR 
         });
     }
 };

@@ -22,7 +22,9 @@
 
     <%- include('../partials/user/promoBar') %>
 
-    <%- include('../partials/user/header', { activePage: 'products' }) %>
+    <div id="mainHeaderContainer">
+        <%- include('../partials/user/header', { activePage: 'products' }) %>
+    </div>
 
     <% 
         // 1. Resolve selected category names from active categories

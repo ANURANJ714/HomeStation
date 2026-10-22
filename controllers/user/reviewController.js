@@ -1,5 +1,7 @@
 import logger from '../../utils/logger.js';
 import * as reviewService from '../../services/user/reviewService.js';
+import { STATUS_CODES } from '../../src/constants/httpStatusCodes.js';
+import { COMMON_MESSAGES } from '../../src/constants/commonMessages.js';
 
 export const submitReview = async (req, res) => {
     try {
@@ -9,7 +11,7 @@ export const submitReview = async (req, res) => {
         const { productId, rating, comment } = req.body;
 
         if (!comment || comment.trim().length < 10) {
-            return res.status(400).json({
+            return res.status(STATUS_CODES.BAD_REQUEST).json({
                 success: false,
                 message: 'Review comment must be at least 10 characters long.'
             });
@@ -19,7 +21,7 @@ export const submitReview = async (req, res) => {
 
         logger.info(`User (${userEmail}) submitted review for Product [${productId}] with ${rating} stars | IP: ${clientIp}`);
 
-        return res.status(200).json({
+        return res.status(STATUS_CODES.OK).json({
             success: true,
             message: 'Your review has been saved successfully!',
             review
@@ -28,9 +30,9 @@ export const submitReview = async (req, res) => {
     } catch (error) {
         logger.error(`Error saving review for User (${req.user?.email || 'Unknown'}): ${error.message}\nStack: ${error.stack}`);
 
-        return res.status(error.statusCode || 500).json({
+        return res.status(error.statusCode || STATUS_CODES.INTERNAL_SERVER_ERROR).json({
             success: false,
-            message: error.message || 'An error occurred while submitting your review.'
+            message: error.message || COMMON_MESSAGES.SERVER_ERROR
         });
     }
 };

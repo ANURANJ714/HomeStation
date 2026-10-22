@@ -33,6 +33,28 @@ document.addEventListener("DOMContentLoaded", () => {
       });
     }
 
+    async function handleGatewayFailure(razorpayOrderId, failureReason) {
+      try {
+        placeOrderBtn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Saving Failed Order...';
+        await fetch("/user/checkout/order/verify-payment", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            "CSRF-Token": csrfToken,
+            "x-csrf-token": csrfToken,
+          },
+          body: JSON.stringify({
+            razorpay_order_id: razorpayOrderId,
+            paymentFailed: true,
+          }),
+        });
+      } catch (err) {
+        console.error("Could not register failed order:", err);
+      } finally {
+        showOrderFailureModalAndRedirect(failureReason);
+      }
+    }
+
     async function submitOrderPlacement(stockResolution = null) {
       placeOrderBtn.disabled = true;
       placeOrderBtn.innerHTML =
@@ -126,7 +148,7 @@ document.addEventListener("DOMContentLoaded", () => {
             },
             modal: {
               ondismiss: function () {
-                showOrderFailureModalAndRedirect("Payment was cancelled or dismissed.");
+                handleGatewayFailure(data.razorpayOrderId, "Payment was cancelled or dismissed.");
               },
             },
             handler: async function (paymentResponse) {
@@ -163,7 +185,7 @@ document.addEventListener("DOMContentLoaded", () => {
           const rzp = new Razorpay(options);
           rzp.on("payment.failed", function (failResponse) {
             const errorMsg = failResponse.error?.description || "Payment gateway processing failed.";
-            showOrderFailureModalAndRedirect(errorMsg);
+            handleGatewayFailure(data.razorpayOrderId, errorMsg);
           });
           rzp.open();
           return;

@@ -1,5 +1,7 @@
-import * as salesReportService from '../../services/admin/salesReportService.js';
 import logger from '../../utils/logger.js';
+import * as salesReportService from '../../services/admin/salesReportService.js';
+import { STATUS_CODES } from '../../src/constants/httpStatusCodes.js';
+import { COMMON_MESSAGES } from '../../src/constants/commonMessages.js';
 
 export const getSalesReport = async (req, res) => {
     try {
@@ -23,10 +25,10 @@ export const getSalesReport = async (req, res) => {
         });
     } catch (error) {
         logger.error(`Error loading sales report: ${error.message}\nStack: ${error.stack}`);
-        return res.status(500).json({
+        return res.status(STATUS_CODES.INTERNAL_SERVER_ERROR).json({
             success: false,
             title: "Server Error",
-            message: "An error occurred while loading the sales report."
+            message: error.message || COMMON_MESSAGES.SERVER_ERROR
         });
     }
 };
@@ -45,7 +47,10 @@ export const downloadPdfReport = async (req, res) => {
         return res.end(pdfBuffer);
     } catch (error) {
         logger.error(`PDF export error: ${error.message}\nStack: ${error.stack}`);
-        return res.status(500).json({ success: false, message: "Failed to download PDF." });
+        return res.status(STATUS_CODES.INTERNAL_SERVER_ERROR).json({ 
+            success: false, 
+            message: error.message || COMMON_MESSAGES.SERVER_ERROR 
+        });
     }
 };
 
@@ -63,6 +68,9 @@ export const exportSpreadsheet = async (req, res) => {
         return res.end(excelBuffer);
     } catch (error) {
         logger.error(`Excel export error: ${error.message}\nStack: ${error.stack}`);
-        return res.status(500).json({ success: false, message: "Failed to export spreadsheet." });
+        return res.status(STATUS_CODES.INTERNAL_SERVER_ERROR).json({ 
+            success: false, 
+            message: error.message || COMMON_MESSAGES.SERVER_ERROR 
+        });
     }
 };

@@ -1,26 +1,27 @@
 import User from '../../models/User.js';
 import * as walletService from '../../services/user/walletService.js';
+import { STATUS_CODES } from '../../src/constants/httpStatusCodes.js';
 
 export const validateData = async (fullName, email, phone) =>{
     try{
         const nameRegex = /^[A-Za-z]+(?:[ '-][A-Za-z]+)*$/;
         if (!nameRegex.test(fullName)) {
             const error = new Error('Please provide a valid name (letters and single spaces only, no numbers, special characters, or leading/trailing spaces).');
-            error.statusCode = 400;
+            error.statusCode = STATUS_CODES.BAD_REQUEST;
             throw error;
         }
 
         const phoneRegex = /^[0-9]{10}$/;
         if (!phoneRegex.test(phone)) {
             const error = new Error('Please provide a valid 10-digit phone number.');
-            error.statusCode = 400;
+            error.statusCode = STATUS_CODES.BAD_REQUEST;
             throw error;
         }
 
         const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
         if (!emailRegex.test(email)) {
             const error = new Error('Please provide a valid email address.');
-            error.statusCode = 400;
+            error.statusCode = STATUS_CODES.BAD_REQUEST;
             throw error;
         }
     }catch (error) {
@@ -106,13 +107,13 @@ export const applyReferralCodeService = async (userId, referralCodeInput) => {
         const currentUser = await User.findById(userId);
         if (!currentUser) {
             const error = new Error("User account not found.");
-            error.statusCode = 404;
+            error.statusCode = STATUS_CODES.NOT_FOUND;
             throw error;
         }
 
         if (currentUser.referredBy) {
             const error = new Error("You have already applied a referral code.");
-            error.statusCode = 400;
+            error.statusCode = STATUS_CODES.BAD_REQUEST;
             throw error;
         }
 
@@ -121,7 +122,7 @@ export const applyReferralCodeService = async (userId, referralCodeInput) => {
             const daysDiff = (Date.now() - createdDate.getTime()) / (1000 * 60 * 60 * 24);
             if (daysDiff > 30) {
                 const error = new Error("The referral code offer is only valid within 30 days of registration.");
-                error.statusCode = 400;
+                error.statusCode = STATUS_CODES.BAD_REQUEST;
                 throw error;
             }
         }
@@ -129,13 +130,13 @@ export const applyReferralCodeService = async (userId, referralCodeInput) => {
         const cleanCode = referralCodeInput ? String(referralCodeInput).trim() : '';
         if (!cleanCode) {
             const error = new Error("Please enter a referral code.");
-            error.statusCode = 400;
+            error.statusCode = STATUS_CODES.BAD_REQUEST;
             throw error;
         }
 
         if (currentUser.referralCode && currentUser.referralCode.toLowerCase() === cleanCode.toLowerCase()) {
             const error = new Error("You cannot use your own referral code.");
-            error.statusCode = 400;
+            error.statusCode = STATUS_CODES.BAD_REQUEST;
             throw error;
         }
 
@@ -146,7 +147,7 @@ export const applyReferralCodeService = async (userId, referralCodeInput) => {
 
         if (!referrerUser) {
             const error = new Error("Invalid referral code. No active account found with this code.");
-            error.statusCode = 404;
+            error.statusCode = STATUS_CODES.NOT_FOUND;
             throw error;
         }
 
@@ -161,7 +162,7 @@ export const applyReferralCodeService = async (userId, referralCodeInput) => {
         };
     } catch (error) {
         if (!error.statusCode) {
-            error.statusCode = 500;
+            error.statusCode = STATUS_CODES.INTERNAL_SERVER_ERROR;
         }
         throw error;
     }

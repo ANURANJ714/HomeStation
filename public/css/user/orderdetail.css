@@ -589,96 +589,194 @@ ul {
 }
 
 .badge-payment-status {
-    display: inline-block;
-    padding: 3px 10px;
-    font-size: 13px;
-    font-weight: 600;
-    border-radius: 4px;
-    text-transform: capitalize;
+  display: inline-block;
+  padding: 3px 10px;
+  font-size: 13px;
+  font-weight: 600;
+  border-radius: 4px;
+  text-transform: capitalize;
 }
 
 .badge-payment-paid {
-    background-color: #e8f5e9;
-    color: #2e7d32;
-    border: 1px solid #c8e6c9;
+  background-color: #e8f5e9;
+  color: #2e7d32;
+  border: 1px solid #c8e6c9;
 }
 
 .badge-payment-unpaid {
-    background-color: #fff8e1;
-    color: #f57f17;
-    border: 1px solid #ffecb3;
+  background-color: #fff8e1;
+  color: #f57f17;
+  border: 1px solid #ffecb3;
 }
 
 .badge-payment-refunded {
-    background-color: #ede7f6;
-    color: #512da8;
-    border: 1px solid #d1c4e9;
+  background-color: #ede7f6;
+  color: #512da8;
+  border: 1px solid #d1c4e9;
 }
 
 .coupon-summary-block {
-    background-color: #fcfcfc;
-    border: 1px dashed #d1d5db;
-    border-radius: 8px;
-    padding: 12px 16px;
-    margin-top: 10px;
+  background-color: #fcfcfc;
+  border: 1px dashed #d1d5db;
+  border-radius: 8px;
+  padding: 12px 16px;
+  margin-top: 10px;
 }
 
 .coupon-applied-details {
-    display: flex;
-    align-items: center;
-    gap: 12px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
 }
 
 .coupon-tag-badge {
-    background-color: #e6f4ea;
-    color: #137333;
-    font-weight: 700;
-    padding: 3px 8px;
-    border-radius: 4px;
-    font-size: 13px;
-    letter-spacing: 0.5px;
-    display: inline-flex;
-    align-items: center;
-    gap: 5px;
+  background-color: #e6f4ea;
+  color: #137333;
+  font-weight: 700;
+  padding: 3px 8px;
+  border-radius: 4px;
+  font-size: 13px;
+  letter-spacing: 0.5px;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
 }
 
 .coupon-discount-saved {
-    color: #137333;
-    font-weight: 600;
-    font-size: 14px;
+  color: #137333;
+  font-weight: 600;
+  font-size: 14px;
 }
 
 .return-request-alert-card {
-    border-radius: 8px;
-    padding: 14px 18px;
-    margin-top: 14px;
-    margin-bottom: 8px;
+  border-radius: 8px;
+  padding: 14px 18px;
+  margin-top: 14px;
+  margin-bottom: 8px;
 }
 
 .return-request-alert-card.requested {
-    background-color: #fef7e0;
-    border: 1px solid #f9ab00;
-    color: #b06000;
+  background-color: #fef7e0;
+  border: 1px solid #f9ab00;
+  color: #b06000;
 }
 
 .return-request-alert-card.rejected {
-    background-color: #fce8e6;
-    border: 1px solid #ea4335;
-    color: #c5221f;
+  background-color: #fce8e6;
+  border: 1px solid #ea4335;
+  color: #c5221f;
 }
 
 .return-request-alert-card .alert-title-row {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    font-size: 14px;
-    margin-bottom: 6px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 14px;
+  margin-bottom: 6px;
 }
 
 .return-request-alert-card .alert-reason-text {
+  margin: 0;
+  font-size: 13px;
+  color: #374151;
+}
+
+.order-detail-box.failed-order-detail-box {
+    border: 1px solid #fed7d7;
+}
+
+.order-failed-top-banner {
+    background-color: #fff5f5;
+    border-bottom: 2px solid #feb2b2;
+    padding: 20px 24px;
+    text-align: center;
+}
+
+.order-failed-top-banner i {
+    font-size: 28px;
+    color: #e53e3e;
+    display: block;
+    margin-bottom: 6px;
+}
+
+.order-failed-top-banner span {
+    font-size: 22px;
+    font-weight: 700;
+    color: #c53030;
+    display: block;
+}
+
+.order-failed-top-banner .failed-top-subtext {
+    font-size: 14px;
+    color: #742a2a;
+    margin-top: 4px;
+}
+
+.detail-item.full-width.product-main-info.failed-item-info {
+    background-color: #fffaf0;
+    border-color: #feebc8;
+}
+
+.retry-payment-container {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    background-color: #fff5f5;
+    border: 1px solid #feb2b2;
+    border-radius: 8px;
+    padding: 20px 24px;
+    margin-top: 15px;
+    gap: 20px;
+}
+
+.retry-payment-info h4 {
+    font-size: 18px;
+    font-weight: 700;
+    color: #c53030;
+    margin: 0 0 6px 0;
+}
+
+.retry-payment-info p {
+    font-size: 14px;
+    color: #742a2a;
     margin: 0;
-    font-size: 13px;
-    color: #374151;
+    line-height: 1.4;
+}
+
+.btn-retry-payment {
+    background-color: #c53030;
+    color: #ffffff;
+    border: none;
+    border-radius: 6px;
+    padding: 12px 28px;
+    font-size: 15px;
+    font-weight: 600;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    gap: 10px;
+    white-space: nowrap;
+    transition: background-color 0.2s ease, transform 0.1s ease;
+}
+
+.btn-retry-payment:hover {
+    background-color: #9b2c2c;
+    transform: translateY(-1px);
+}
+
+.btn-retry-payment:disabled {
+    background-color: #e2e8f0;
+    color: #a0aec0;
+    cursor: not-allowed;
+    transform: none;
+}
+
+.modal-overlay.active {
+    display: flex;
+}
+
+.custom-reason-textarea.visible {
+    display: block;
 }
 
 @media (max-width: 768px) {
@@ -690,6 +788,16 @@ ul {
     grid-template-columns: 1fr;
     gap: 15px;
     padding: 15px;
+  }
+  .retry-payment-container {
+    flex-direction: column;
+    align-items: stretch;
+    text-align: center;
+  }
+
+  .btn-retry-payment {
+    justify-content: center;
+    width: 100%;
   }
 }
 

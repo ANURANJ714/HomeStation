@@ -882,6 +882,40 @@ body {
   z-index: 20000 !important;
 }
 
+.stat-card.stat-card-failed {
+    border-left: 4px solid #e53e3e;
+}
+
+.stat-icon.stat-icon-failed {
+    background-color: #fff5f5;
+    color: #e53e3e;
+}
+
+.stat-val-failed {
+    color: #c53030;
+}
+
+.badge.badge-order-failed {
+    background-color: #fff5f5;
+    color: #c53030;
+    border: 1px solid #feb2b2;
+    padding: 4px 10px;
+    border-radius: 4px;
+    font-size: 12px;
+    font-weight: 600;
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+}
+
+tr.row-order-failed {
+    background-color: #fffaf0;
+}
+
+tr.row-order-failed:hover {
+    background-color: #fff5f5;
+}
+
 @media (max-width: 1200px) {
   .stats-grid-5 {
     grid-template-columns: repeat(3, 1fr);

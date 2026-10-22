@@ -1,9 +1,11 @@
 import crypto from 'crypto';
-import {sendOtpEmail} from '../../services/user/emailService.js'
+import { sendOtpEmail } from '../../services/user/emailService.js';
 import logger from '../../utils/logger.js';
-import {getActivePromoBanner} from '../../services/user/bannerService.js';
+import { getActivePromoBanner } from '../../services/user/bannerService.js';
 import { getUserHeaderCounts } from '../../services/user/badgeService.js';
 import * as profileService from '../../services/user/profileService.js';
+import { STATUS_CODES } from '../../src/constants/httpStatusCodes.js';
+import { COMMON_MESSAGES } from '../../src/constants/commonMessages.js';
 
 export const getProfile = async (req, res) => { 
     try {
@@ -40,10 +42,10 @@ export const getProfile = async (req, res) => {
     } catch (error) {
         logger.error(`Error loading profile page for ${req.user?.email || 'Unknown'} (IP: ${req.ip}): ${error.message}\nStack: ${error.stack}`);
         
-        return res.status(500).json({
+        return res.status(STATUS_CODES.INTERNAL_SERVER_ERROR).json({
             success: false,
             title: "Server Error",
-            message: "An internal server error occurred while loading the profile page."
+            message: error.message || COMMON_MESSAGES.SERVER_ERROR
         });
     }
 };
@@ -57,10 +59,10 @@ export const applyReferralCode = async (req, res) => {
         const result = await profileService.applyReferralCodeService(userId, referralCode);
 
         logger.info(`User (${req.user.email}) successfully applied referral code: ${referralCode} | IP: ${clientIp}`);
-        return res.status(200).json(result);
+        return res.status(STATUS_CODES.OK).json(result);
     } catch (error) {
-        const statusCode = error.statusCode || 500;
-        const message = error.message || "An unexpected error occurred while applying the referral code.";
+        const statusCode = error.statusCode || STATUS_CODES.INTERNAL_SERVER_ERROR;
+        const message = error.message || COMMON_MESSAGES.SERVER_ERROR;
         
         logger.warn(`Referral application failed for (${req.user?.email || 'Unknown'}): ${message} [Status: ${statusCode}] | IP: ${req.ip}\nStack: ${error.stack}`);
         
@@ -82,9 +84,9 @@ export const updateProfile = async (req, res) => {
         const email = req.body.email ? req.body.email.trim() : '';
 
         if (!fullName || !phone || !email) {
-            return res.status(400).json({
+            return res.status(STATUS_CODES.BAD_REQUEST).json({
                 success: false,
-                message: "Full Name, Phone Number, and Email Address are all strictly required."
+                message: 'Missing Fields. Complete the fields to proceed.' || COMMON_MESSAGES.BAD_REQUEST
             });
         }
 
@@ -96,9 +98,9 @@ export const updateProfile = async (req, res) => {
         if (email !== userEmail) {
             if (req.user.authProvider !== 'local') {
                 logger.warn(`Profile update blocked: Attempted email change on Google account (${userEmail}). IP: ${clientIp}`);
-                return res.status(403).json({ 
+                return res.status(STATUS_CODES.FORBIDDEN).json({ 
                     success: false, 
-                    message: "Google accounts cannot change email." 
+                    message: 'Email change forbidden for Google accounts' || COMMON_MESSAGES.FORBIDDEN 
                 });
             }
 
@@ -120,19 +122,25 @@ export const updateProfile = async (req, res) => {
 
         if (!result.isUpdated) {
             logger.warn(`Profile update failed: User document not found for ID ${userId}. IP: ${clientIp}`);
-            return res.status(404).json({ success: false, message: "User account not found." });
+            return res.status(STATUS_CODES.NOT_FOUND).json({ 
+                success: false, 
+                message: 'No user account found' || COMMON_MESSAGES.NOT_FOUND 
+            });
         }
 
         if (requiresEmailVerification) {
             return req.session.save((err) => {
                 if (err) {
                     logger.error(`Session Save Error during profile update (email change) for ${userEmail}: ${err.message}`);
-                    return res.status(500).json({ success: false, message: "Session error occurred." });
+                    return res.status(STATUS_CODES.INTERNAL_SERVER_ERROR).json({ 
+                        success: false, 
+                        message: err.message || COMMON_MESSAGES.SERVER_ERROR 
+                    });
                 }
                 
                 logger.info(`Profile updated (partial) and email change initiated for ${userEmail}. OTP sent to ${email}. IP: ${clientIp}`);
                 
-                return res.status(200).json({ 
+                return res.status(STATUS_CODES.OK).json({ 
                     success: true, 
                     message: "Profile saved. Please verify your new email.", 
                     requiresVerification: true 
@@ -142,7 +150,7 @@ export const updateProfile = async (req, res) => {
 
         logger.info(`Profile updated successfully for ${userEmail}. IP: ${clientIp}`);
         
-        return res.status(200).json({ 
+        return res.status(STATUS_CODES.OK).json({ 
             success: true, 
             message: "Profile updated successfully", 
             user: result.user 
@@ -150,20 +158,21 @@ export const updateProfile = async (req, res) => {
 
     } catch (error) {
         if (error.statusCode === 400) {
-            return res.status(400).json({
+            return res.status(STATUS_CODES.BAD_REQUEST).json({
                 success: false,
-                message: error.message
+                message: error.message || COMMON_MESSAGES.BAD_REQUEST
             });
         }
 
         logger.error(`Update Profile Error for ${req.user?.email || 'Unknown'} (IP: ${req.ip}): ${error.message}\nStack: ${error.stack}`);
         
-        return res.status(500).json({ 
+        return res.status(STATUS_CODES.INTERNAL_SERVER_ERROR).json({ 
             success: false, 
-            message: "Server error." 
+            message: error.message || COMMON_MESSAGES.SERVER_ERROR 
         });
     }
 };
+
 export const updatePassword = async (req, res) => {
     try {
         const { oldPassword, newPassword, confirmPassword } = req.body;
@@ -174,42 +183,59 @@ export const updatePassword = async (req, res) => {
 
         if (!oldPassword) {
             logger.warn(`Password update blocked: Missing old password for ${userEmail}. IP: ${clientIp}`);
-            return res.status(400).json({ success: false, message: "Old password is required." });
+            return res.status(STATUS_CODES.BAD_REQUEST).json({ 
+                success: false, 
+                message: "Old password is required." 
+            });
         }
 
         if (newPassword !== confirmPassword) {
             logger.warn(`Password update blocked: New passwords do not match for ${userEmail}. IP: ${clientIp}`);
-            return res.status(400).json({ success: false, message: "New passwords do not match." });
+            return res.status(STATUS_CODES.BAD_REQUEST).json({ 
+                success: false, 
+                message: "New passwords do not match." 
+            });
         }
 
         const result = await profileService.changeUserPassword(userId, oldPassword, newPassword);
 
         if (!result.success) {
-            
             if (result.reason === 'SAME_AS_OLD_PASSWORD') {
                 logger.warn(`Password update blocked: New password is the same as the old password for ${userEmail}. IP: ${clientIp}`);
-                return res.status(400).json({ success: false, message: "Enter a new password. It cannot be the same as your old password." });
+                return res.status(STATUS_CODES.BAD_REQUEST).json({ 
+                    success: false, 
+                    message: "Enter a new password. It cannot be the same as your old password." 
+                });
             }
 
             if (result.reason === 'NOT_FOUND') {
                 logger.warn(`Password update failed: Account not found for ID ${userId}. IP: ${clientIp}`);
-                return res.status(404).json({ success: false, message: "User account not found." });
+                return res.status(STATUS_CODES.NOT_FOUND).json({ 
+                    success: false, 
+                    message: 'Account not found' || COMMON_MESSAGES.NOT_FOUND 
+                });
             }
             
             if (result.reason === 'GOOGLE_AUTH') {
                 logger.warn(`Password update blocked: Attempted on Google Auth account (${userEmail}). IP: ${clientIp}`);
-                return res.status(403).json({ success: false, message: "Google accounts do not use local passwords." });
+                return res.status(STATUS_CODES.FORBIDDEN).json({ 
+                    success: false, 
+                    message: 'Password update forbidden for Google accounts' || COMMON_MESSAGES.FORBIDDEN 
+                });
             }
 
             if (result.reason === 'INCORRECT_OLD_PASSWORD') {
                 logger.warn(`Password update failed: Incorrect old password provided for ${userEmail}. IP: ${clientIp}`);
-                return res.status(401).json({ success: false, message: "Incorrect old password." });
+                return res.status(STATUS_CODES.UNAUTHORIZED).json({ 
+                    success: false, 
+                    message: 'Incorrect old password provided' || COMMON_MESSAGES.UNAUTHORIZED 
+                });
             }
         }
 
         logger.info(`User password successfully updated for ${userEmail}. IP: ${clientIp}`);
         
-        return res.status(200).json({ 
+        return res.status(STATUS_CODES.OK).json({ 
             success: true, 
             message: "Password updated successfully!" 
         });
@@ -217,9 +243,9 @@ export const updatePassword = async (req, res) => {
     } catch (error) {
         logger.error(`Update Password Error for ${req.user?.email || 'Unknown'} (IP: ${req.ip}): ${error.message}\nStack: ${error.stack}`);
         
-        return res.status(500).json({ 
+        return res.status(STATUS_CODES.INTERNAL_SERVER_ERROR).json({ 
             success: false, 
-            message: "Failed to update password." 
+            message: error.message || COMMON_MESSAGES.SERVER_ERROR 
         });
     }
 };
@@ -256,14 +282,13 @@ export const loadVerifyEmailPage = async (req, res) => {
     } catch (error) {
         logger.error(`Error loading verify-email page for ${req.user?.email || 'Unknown'} (IP: ${req.ip}): ${error.message}\nStack: ${error.stack}`);
         
-        return res.status(500).json({
+        return res.status(STATUS_CODES.INTERNAL_SERVER_ERROR).json({
             success: false,
             title: "Server Error",
-            message: "An internal server error occurred while loading the verification page."
+            message: error.message || COMMON_MESSAGES.SERVER_ERROR
         });
     }
 };
-
 
 export const verifyEmailChange = async (req, res) => {
     try {
@@ -276,17 +301,17 @@ export const verifyEmailChange = async (req, res) => {
 
         if (!newEmail || !req.session.emailOtp || req.session.emailOtpExpires < Date.now()) {
             logger.warn(`Email change verification blocked: OTP expired or session missing for ${oldEmail}. IP: ${clientIp}`);
-            return res.status(400).json({ 
+            return res.status(STATUS_CODES.BAD_REQUEST).json({ 
                 success: false, 
-                message: "OTP has expired. Please request a new one." 
+                message: 'OTP has been Expired' || COMMON_MESSAGES.SESSION_EXPIRED 
             });
         }
 
         if (req.session.emailOtp !== otp) {
             logger.warn(`Email change verification failed: Invalid OTP entered for ${oldEmail}. IP: ${clientIp}`);
-            return res.status(400).json({ 
+            return res.status(STATUS_CODES.BAD_REQUEST).json({ 
                 success: false, 
-                message: "Invalid OTP." 
+                message: 'Invalid OTP' || COMMON_MESSAGES.BAD_REQUEST 
             });
         }
 
@@ -294,7 +319,10 @@ export const verifyEmailChange = async (req, res) => {
 
         if (!result.isUpdated) {
             logger.error(`Email change failed: User document not found for ID ${userId}. IP: ${clientIp}`);
-            return res.status(404).json({ success: false, message: "User account not found." });
+            return res.status(STATUS_CODES.NOT_FOUND).json({ 
+                success: false, 
+                message: 'Email update failed' || COMMON_MESSAGES.NOT_FOUND 
+            });
         }
         
         req.session.newEmailPending = null;
@@ -304,12 +332,15 @@ export const verifyEmailChange = async (req, res) => {
         req.session.save((err) => {
             if (err) {
                 logger.error(`Session Save Error during email update for ${oldEmail}: ${err.message}`);
-                return res.status(500).json({ success: false, message: "Session error occurred." });
+                return res.status(STATUS_CODES.INTERNAL_SERVER_ERROR).json({ 
+                    success: false, 
+                    message: err.message || COMMON_MESSAGES.SERVER_ERROR 
+                });
             }
 
             logger.info(`User email successfully updated from ${oldEmail} to ${newEmail}. IP: ${clientIp}`);
             
-            return res.status(200).json({ 
+            return res.status(STATUS_CODES.OK).json({ 
                 success: true, 
                 message: "Email successfully updated." 
             });
@@ -318,9 +349,9 @@ export const verifyEmailChange = async (req, res) => {
     } catch (error) {
         logger.error(`Verify Email Change Error for ${req.user?.email || 'Unknown'} (IP: ${req.ip}): ${error.message}\nStack: ${error.stack}`);
         
-        return res.status(500).json({ 
+        return res.status(STATUS_CODES.INTERNAL_SERVER_ERROR).json({ 
             success: false, 
-            message: "Server error." 
+            message: error.message || COMMON_MESSAGES.SERVER_ERROR 
         });
     }
 };
@@ -333,15 +364,15 @@ export const resendEmailOtp = async (req, res) => {
 
         if (!pendingEmail) {
             logger.warn(`Email OTP resend blocked: No pending email change found for ${userEmail}. IP: ${clientIp}`);
-            return res.status(400).json({ 
+            return res.status(STATUS_CODES.BAD_REQUEST).json({ 
                 success: false, 
-                message: "No email change pending." 
+                message: 'Please provide valid email' || COMMON_MESSAGES.BAD_REQUEST 
             });
         }
 
         if (req.session.emailOtp && req.session.emailOtpExpires > Date.now()) {
             logger.warn(`Email OTP resend blocked: OTP still active for pending email ${pendingEmail}. IP: ${clientIp}`);
-            return res.status(400).json({ 
+            return res.status(STATUS_CODES.BAD_REQUEST).json({ 
                 success: false, 
                 message: "An OTP is already active and valid. Please check your inbox." 
             });
@@ -356,12 +387,15 @@ export const resendEmailOtp = async (req, res) => {
         req.session.save((err) => {
             if (err) {
                 logger.error(`Session Save Error during email OTP resend for ${userEmail}: ${err.message}`);
-                return res.status(500).json({ success: false, message: "Session error occurred." });
+                return res.status(STATUS_CODES.INTERNAL_SERVER_ERROR).json({ 
+                    success: false, 
+                    message: err.message || COMMON_MESSAGES.SERVER_ERROR 
+                });
             }
 
             logger.info(`A new email change OTP was successfully sent to ${pendingEmail}. IP: ${clientIp}`);
             
-            return res.status(200).json({ 
+            return res.status(STATUS_CODES.OK).json({ 
                 success: true, 
                 message: "A new OTP has been sent." 
             });
@@ -370,9 +404,9 @@ export const resendEmailOtp = async (req, res) => {
     } catch (error) {
         logger.error(`Resend Email OTP Error for ${req.user?.email || 'Unknown'} (IP: ${req.ip}): ${error.message}\nStack: ${error.stack}`);
         
-        return res.status(500).json({ 
+        return res.status(STATUS_CODES.INTERNAL_SERVER_ERROR).json({ 
             success: false, 
-            message: "Failed to resend OTP." 
+            message: error.message || COMMON_MESSAGES.SERVER_ERROR 
         });
     }
 };
@@ -385,18 +419,18 @@ export const logoutUser = (req, res) => {
         req.logout((err) => {
             if (err) {
                 logger.error(`User logout error for ${userEmail} (IP: ${clientIp}): ${err.message}`);
-                return res.status(500).json({ 
+                return res.status(STATUS_CODES.INTERNAL_SERVER_ERROR).json({ 
                     success: false, 
-                    message: "An error occurred during the logout process." 
+                    message: err.message || COMMON_MESSAGES.SERVER_ERROR 
                 });
             }
             
             req.session.destroy((destroyErr) => {
                 if (destroyErr) {
                     logger.error(`Session destruction error during user logout for ${userEmail}: ${destroyErr.message}`);
-                    return res.status(500).json({ 
+                    return res.status(STATUS_CODES.INTERNAL_SERVER_ERROR).json({ 
                         success: false, 
-                        message: "Failed to completely destroy session." 
+                        message: destroyErr.message || COMMON_MESSAGES.SERVER_ERROR 
                     });
                 }
                 
@@ -404,7 +438,7 @@ export const logoutUser = (req, res) => {
                 
                 logger.info(`User (${userEmail}) successfully logged out. IP: ${clientIp}`);
                 
-                return res.status(200).json({
+                return res.status(STATUS_CODES.OK).json({
                     success: true,
                     message: "Logged out successfully.",
                     redirectUrl: '/'
@@ -415,9 +449,9 @@ export const logoutUser = (req, res) => {
     } catch (error) {
         logger.error(`Unexpected error during user logout (IP: ${req.ip}): ${error.message}\nStack: ${error.stack}`);
         
-        return res.status(500).json({ 
+        return res.status(STATUS_CODES.INTERNAL_SERVER_ERROR).json({ 
             success: false, 
-            message: "An internal server error occurred." 
+            message: error.message || COMMON_MESSAGES.SERVER_ERROR 
         });
     }
 };

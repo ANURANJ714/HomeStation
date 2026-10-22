@@ -1,5 +1,7 @@
 import User from '../../models/User.js';
 import Order from '../../models/Order.js';
+import { COMMON_MESSAGES } from '../../src/constants/commonMessages.js';
+import { ORDER_STATUS } from '../../src/constants/orderStatus.js';
 
 export const getPaginatedUsers = async (params) => {
     try {
@@ -9,8 +11,8 @@ export const getPaginatedUsers = async (params) => {
 
         if (search) {
             query.$or = [
-                { fullName: { $regex: search, $options: 'i' } },
-                { email: { $regex: search, $options: 'i' } }
+                { fullName: { $regex: search,$options: 'i' } },
+                { email: { $regex: search,$options: 'i' } }
             ];
         }
 
@@ -55,7 +57,7 @@ export const getPaginatedUsers = async (params) => {
         };
 
     } catch (error) {
-        throw new Error(`Database error while fetching user management data: ${error.message}`);
+        throw new Error(`Database error while fetching user management data: ${error.message || COMMON_MESSAGES.SERVER_ERROR}`);
     }
 };
 
@@ -81,7 +83,7 @@ export const toggleUserBlockStatus = async (userId) => {
         };
 
     } catch (error) {
-        throw new Error(`Database error while toggling user status: ${error.message}`);
+        throw new Error(`Database error while toggling user status: ${error.message || COMMON_MESSAGES.SERVER_ERROR}`);
     }
 };
 
@@ -91,7 +93,11 @@ export const getUsersOrderAndSpendMetrics = async (userIds) => {
             return {};
         }
 
-        const orders = await Order.find({ userId: { $in: userIds } }).lean();
+        // Only query successful orders for user metrics calculation
+        const orders = await Order.find({ 
+            userId: { $in: userIds },
+            status: ORDER_STATUS.SUCCESS
+        }).lean();
 
         const metricsMap = {};
 
@@ -134,6 +140,6 @@ export const getUsersOrderAndSpendMetrics = async (userIds) => {
 
         return metricsMap;
     } catch (error) {
-        throw new Error(`Database error while calculating user metrics: ${error.message}`);
+        throw new Error(`Database error while calculating user metrics: ${error.message || COMMON_MESSAGES.SERVER_ERROR}`);
     }
 };

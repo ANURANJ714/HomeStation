@@ -1,6 +1,8 @@
 import * as categoryService from '../../services/admin/categoryService.js';
 import { handleAdminNotFound } from '../admin/adminErrorController.js';
 import logger from '../../utils/logger.js';
+import { STATUS_CODES } from '../../src/constants/httpStatusCodes.js';
+import { COMMON_MESSAGES } from '../../src/constants/commonMessages.js';
 
 export const loadCategories = async (req, res) => {
     try {
@@ -25,10 +27,10 @@ export const loadCategories = async (req, res) => {
     } catch (error) {
         logger.error(`Error loading categories: ${error.message}\nStack: ${error.stack}`);
         
-        return res.status(500).json({
+        return res.status(STATUS_CODES.INTERNAL_SERVER_ERROR).json({
             success: false, 
             title: "Server Error", 
-            message: "Internal Server Error Occurred!"
+            message: error.message || COMMON_MESSAGES.SERVER_ERROR
         });
     }
 };
@@ -40,35 +42,41 @@ export const addCategory = async (req, res) => {
 
         if (!name || name.trim() === '') {
             logger.warn(`Category creation blocked: Missing name. User: ${adminEmail}`);
-            return res.status(400).json({ success: false, message: "Category name is required." });
+            return res.status(STATUS_CODES.BAD_REQUEST).json({ 
+                success: false, 
+                message: "Category name is required." || COMMON_MESSAGES.BAD_REQUEST 
+            });
         }
 
         if (!req.file) {
             logger.warn(`Category creation blocked: Missing image for "${name}". User: ${adminEmail}`);
-            return res.status(400).json({ success: false, message: "Category image is required." });
+            return res.status(STATUS_CODES.BAD_REQUEST).json({ 
+                success: false, 
+                message: "Category image is required." || COMMON_MESSAGES.BAD_REQUEST 
+            });
         }
 
         const result = await categoryService.createCategory(name, req.file.path);
 
         if (!result.isCreated) {
             logger.warn(`Category creation blocked: Duplicate name "${name}". User: ${adminEmail}`);
-            return res.status(400).json({ 
+            return res.status(STATUS_CODES.BAD_REQUEST).json({ 
                 success: false, 
-                message: result.message 
+                message: result.message || COMMON_MESSAGES.BAD_REQUEST 
             });
         }
 
         logger.info(`New category "${name}" successfully created by ${adminEmail}.`);
-        return res.status(201).json({ 
+        return res.status(STATUS_CODES.CREATED).json({ 
             success: true, 
             message: "Category added successfully!" 
         });
 
     } catch (error) {
         logger.error(`Error adding category: ${error.message}\nStack: ${error.stack}`);
-        return res.status(500).json({ 
+        return res.status(STATUS_CODES.INTERNAL_SERVER_ERROR).json({ 
             success: false, 
-            message: "An internal server error occurred." 
+            message: error.message || COMMON_MESSAGES.SERVER_ERROR 
         });
     }
 };
@@ -82,12 +90,15 @@ export const deleteCategory = async (req, res) => {
 
         if (!category) {
             logger.warn(`Category deletion failed: ID ${categoryId} not found. Attempted by: ${adminEmail}`);
-            return res.status(404).json({ success: false, message: "Category not found." });
+            return res.status(STATUS_CODES.NOT_FOUND).json({ 
+                success: false, 
+                message: "Category not found." || COMMON_MESSAGES.NOT_FOUND 
+            });
         }
 
         logger.info(`Category "${category.name}" (ID: ${categoryId}) was deleted by ${adminEmail}.`);
 
-        return res.status(200).json({ 
+        return res.status(STATUS_CODES.OK).json({ 
             success: true, 
             message: `Category "${category.name}" and its products have been deleted.` 
         });
@@ -95,9 +106,9 @@ export const deleteCategory = async (req, res) => {
     } catch (error) {
         logger.error(`Error deleting category ID ${req.params.category_id}: ${error.message}\nStack: ${error.stack}`);
         
-        return res.status(500).json({ 
+        return res.status(STATUS_CODES.INTERNAL_SERVER_ERROR).json({ 
             success: false, 
-            message: "Server error occurred." 
+            message: error.message || COMMON_MESSAGES.SERVER_ERROR 
         });
     }
 };
@@ -111,11 +122,14 @@ export const restoreCategory = async (req, res) => {
 
         if (!category) {
             logger.warn(`Category restore failed: ID ${categoryId} not found. Attempted by: ${adminEmail}`);
-            return res.status(404).json({ success: false, message: "Category not found." });
+            return res.status(STATUS_CODES.NOT_FOUND).json({ 
+                success: false, 
+                message: "Category not found." || COMMON_MESSAGES.NOT_FOUND 
+            });
         }
         logger.info(`Category "${category.name}" (ID: ${categoryId}) was restored by ${adminEmail}.`);
         
-        return res.status(200).json({ 
+        return res.status(STATUS_CODES.OK).json({ 
             success: true, 
             message: `Category "${category.name}" and its products have been restored.` 
         });
@@ -123,9 +137,9 @@ export const restoreCategory = async (req, res) => {
     } catch (error) {
         logger.error(`Error restoring category ID ${req.params.category_id}: ${error.message}\nStack: ${error.stack}`);
         
-        return res.status(500).json({ 
+        return res.status(STATUS_CODES.INTERNAL_SERVER_ERROR).json({ 
             success: false, 
-            message: "Server error occurred." 
+            message: error.message || COMMON_MESSAGES.SERVER_ERROR 
         });
     }
 };
@@ -138,7 +152,10 @@ export const editCategory = async (req, res) => {
 
         if (!name || name.trim() === '') {
             logger.warn(`Category edit blocked: Missing name (ID: ${categoryId}). User: ${adminEmail}`);
-            return res.status(400).json({ success: false, message: "Category name is required." });
+            return res.status(STATUS_CODES.BAD_REQUEST).json({ 
+                success: false, 
+                message: "Category name is required." || COMMON_MESSAGES.BAD_REQUEST 
+            });
         }
 
         const imagePath = req.file ? req.file.path : null;
@@ -148,16 +165,22 @@ export const editCategory = async (req, res) => {
         if (!result.isUpdated) {
             if (result.isNotFound) {
                 logger.warn(`Category edit failed: ID ${categoryId} not found. User: ${adminEmail}`);
-                return res.status(404).json({ success: false, message: result.message });
+                return res.status(STATUS_CODES.NOT_FOUND).json({ 
+                    success: false, 
+                    message: result.message || COMMON_MESSAGES.NOT_FOUND 
+                });
             }
 
             logger.warn(`Category edit blocked: Duplicate name "${name}" (ID: ${categoryId}). User: ${adminEmail}`);
-            return res.status(400).json({ success: false, message: result.message });
+            return res.status(STATUS_CODES.BAD_REQUEST).json({ 
+                success: false, 
+                message: result.message || COMMON_MESSAGES.BAD_REQUEST 
+            });
         }
 
         logger.info(`Category "${name}" (ID: ${categoryId}) successfully updated by ${adminEmail}. Image updated: ${!!imagePath}`);
         
-        return res.status(200).json({ 
+        return res.status(STATUS_CODES.OK).json({ 
             success: true, 
             message: "Category updated successfully!" 
         });
@@ -165,9 +188,9 @@ export const editCategory = async (req, res) => {
     } catch (error) {
         logger.error(`Error editing category ID ${req.params.category_id}: ${error.message}\nStack: ${error.stack}`);
         
-        return res.status(500).json({ 
+        return res.status(STATUS_CODES.INTERNAL_SERVER_ERROR).json({ 
             success: false, 
-            message: "An internal server error occurred." 
+            message: error.message || COMMON_MESSAGES.SERVER_ERROR 
         });
     }
 };
@@ -210,7 +233,7 @@ export const viewCategoryProducts = async (req, res, next) => {
         });
 
     } catch (error) {
-        logger.error(`Error loading category products (Category ID: ${req.params.category_id}): ${error.message}\nStack: ${error.stack}`);
+        logger.error(`Error loading category products (Category ID: ${req.params?.category_id}): ${error.message}\nStack: ${error.stack}`);
         next(error);
     }
 };

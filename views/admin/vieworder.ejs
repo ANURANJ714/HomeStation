@@ -4,7 +4,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>HomeStation - ADMIN</title>
+    <title><%= typeof pageTitle !== 'undefined' ? pageTitle : 'HomeStation - ADMIN' %></title>
     <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&display=swap" rel="stylesheet">
     <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,600;0,700;1,600&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
@@ -16,7 +16,7 @@
 <body>
     <input type="hidden" id="csrfToken" value="<%= typeof csrfToken !== 'undefined' ? csrfToken : '' %>">
     <input type="hidden" id="pageOrderId" value="<%= order.orderId %>">
-    <input type="hidden" id="pageOrderItemId" value="<%= item._id %>">
+    <input type="hidden" id="pageOrderItemId" value="<%= (typeof item !== 'undefined' && item) ? item._id : '' %>">
 
     <div class="dashboard-layout">
 
@@ -114,6 +114,19 @@
                     </a>
                 </div>
 
+                <% if (isOrderFailed) { %>
+                    <div class="admin-failed-order-banner">
+                        <div class="failed-banner-content">
+                            <i class="fa-solid fa-circle-exclamation"></i>
+                            <div>
+                                <h3 class="banner-title">Order Payment Failed</h3>
+                                <p class="banner-subtext">The transaction for this order failed or was abandoned. Status updates are disabled.</p>
+                            </div>
+                        </div>
+                        <span class="badge badge-order-failed">Order Failed</span>
+                    </div>
+                <% } %>
+
                 <div class="info-cards-grid">
                     <div class="info-card">
                         <div class="info-card-header">
@@ -160,7 +173,7 @@
                     <div class="main-section">
                         <div class="card">
                             <div class="card-header">
-                                <h2>Order Item</h2>
+                                <h2><%= isOrderFailed ? 'Ordered Items (' + items.length + ')' : 'Order Item' %></h2>
                             </div>
                             <div class="card-body card-body-table">
                                 <table class="data-table">
@@ -175,110 +188,119 @@
                                     </thead>
                                     <tbody>
                                         <% 
-                                            const variant = item.productVariantId;
-                                            const product = variant?.productId;
-                                            const itemTotal = item.currentPrice * item.quantity;
+                                            // Render all items for failed orders, or single target item for success orders
+                                            const displayItems = isOrderFailed ? items : [item];
                                         %>
-                                        <tr>
-                                            <td>
-                                                <div class="product-cell">
-                                                    <img src="<%= (product?.images && product.images[0]) ? product.images[0] : 'https://placehold.co/150x150?text=Product' %>" alt="Product Image" class="product-thumb">
-                                                    <div class="product-details">
-                                                        <p class="product-name"><%= product?.name || 'Item Name Unavailable' %></p>
-                                                        <p class="product-variant text-muted">Variant: <%= variant?.variantName || 'Standard' %></p>
+                                        <% displayItems.forEach(currItem => { 
+                                            const variant = currItem.productVariantId;
+                                            const product = variant?.productId;
+                                            const itemTotal = currItem.currentPrice * currItem.quantity;
+                                        %>
+                                            <tr>
+                                                <td>
+                                                    <div class="product-cell">
+                                                        <img src="<%= (product?.images && product.images[0]) ? product.images[0] : 'https://placehold.co/150x150?text=Product' %>" alt="Product Image" class="product-thumb">
+                                                        <div class="product-details">
+                                                            <p class="product-name"><%= product?.name || 'Item Name Unavailable' %></p>
+                                                            <p class="product-variant text-muted">Variant: <%= variant?.variantName || 'Standard' %></p>
+                                                        </div>
                                                     </div>
-                                                </div>
-                                            </td>
-                                            <td>
-                                                <div class="item-status-wrapper">
-                                                    <% if (item.returnStatus !== 'none') { %>
-                                                        <span class="badge badge-orange"><i class="fa-solid fa-rotate-left"></i> <%= item.returnStatus.charAt(0).toUpperCase() + item.returnStatus.slice(1) %></span>
-                                                    <% } else if (item.itemStatus === 'delivered' && item.returnStatus === 'none') { %>
-                                                        <span class="badge badge-success">Delivered</span>
-                                                    <% } else if (item.itemStatus === 'cancelled' && item.returnStatus === 'none') { %>
-                                                        <span class="badge badge-danger">Cancelled</span>
-                                                    <% } else if (item.itemStatus === 'packed' && item.returnStatus === 'none') { %>
-                                                        <span class="badge badge-warning">Packed</span>
-                                                    <% } else if (item.itemStatus === 'shipped' && item.returnStatus === 'none') { %>
-                                                        <span class="badge badge-info">Shipped</span>
-                                                    <% } else if (item.itemStatus === 'on the way' && item.returnStatus === 'none') { %>
-                                                        <span class="badge badge-info">On the Way</span>
-                                                    <% } else if (item.itemStatus === 'out for delivery' && item.returnStatus === 'none') { %>
-                                                        <span class="badge badge-warning">Out for Delivery</span>
-                                                    <% } else if (item.itemStatus === 'processing' && item.returnStatus === 'none') { %>
-                                                        <span class="badge badge-info">Processing</span>
-                                                    <% } else { %>
-                                                        <span class="badge badge-info"><%= item.itemStatus.charAt(0).toUpperCase() + item.itemStatus.slice(1) %></span>
-                                                    <% } %>
-                                                </div>
-                                            </td>
-                                            <td class="fw-500">₹<%= item.currentPrice.toLocaleString('en-IN') %></td>
-                                            <td><%= item.quantity %></td>
-                                            <td class="fw-500">₹<%= itemTotal.toLocaleString('en-IN') %></td>
-                                        </tr>
+                                                </td>
+                                                <td>
+                                                    <div class="item-status-wrapper">
+                                                        <% if (isOrderFailed) { %>
+                                                            <span class="badge badge-order-failed"><i class="fa-solid fa-circle-exclamation"></i> Order Failed</span>
+                                                        <% } else if (currItem.returnStatus !== 'none') { %>
+                                                            <span class="badge badge-orange"><i class="fa-solid fa-rotate-left"></i> <%= currItem.returnStatus.charAt(0).toUpperCase() + currItem.returnStatus.slice(1) %></span>
+                                                        <% } else if (currItem.itemStatus === 'delivered') { %>
+                                                            <span class="badge badge-success">Delivered</span>
+                                                        <% } else if (currItem.itemStatus === 'cancelled') { %>
+                                                            <span class="badge badge-danger">Cancelled</span>
+                                                        <% } else if (currItem.itemStatus === 'packed') { %>
+                                                            <span class="badge badge-warning">Packed</span>
+                                                        <% } else if (currItem.itemStatus === 'shipped') { %>
+                                                            <span class="badge badge-info">Shipped</span>
+                                                        <% } else if (currItem.itemStatus === 'on the way') { %>
+                                                            <span class="badge badge-info">On the Way</span>
+                                                        <% } else if (currItem.itemStatus === 'out for delivery') { %>
+                                                            <span class="badge badge-warning">Out for Delivery</span>
+                                                        <% } else if (currItem.itemStatus === 'processing') { %>
+                                                            <span class="badge badge-info">Processing</span>
+                                                        <% } else { %>
+                                                            <span class="badge badge-info"><%= (currItem.itemStatus || 'Processing').charAt(0).toUpperCase() + (currItem.itemStatus || 'Processing').slice(1) %></span>
+                                                        <% } %>
+                                                    </div>
+                                                </td>
+                                                <td class="fw-500">₹<%= currItem.currentPrice.toLocaleString('en-IN') %></td>
+                                                <td><%= currItem.quantity %></td>
+                                                <td class="fw-500">₹<%= itemTotal.toLocaleString('en-IN') %></td>
+                                            </tr>
+                                        <% }) %>
                                     </tbody>
                                 </table>
                             </div>
                         </div>
 
-                        <% if (item.itemStatus === 'delivered' && item.returnRequestStatus === 'requested' && item.returnStatus === 'none') { %>
-                            <div class="card return-request-admin-card requested">
-                                <div class="card-header return-card-header">
-                                    <h2><i class="fa-solid fa-clock-rotate-left"></i> Return Requested by Customer</h2>
-                                    <span class="badge badge-warning">Pending Approval</span>
-                                </div>
-                                <div class="card-body">
-                                    <p><strong>Customer Return Reason:</strong> <%= item.returnReason || 'No reason specified' %></p>
-                                    <% if (item.returnedAt) { %>
-                                        <small class="text-muted">Requested on: <%= new Date(item.returnedAt).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' }) %></small>
-                                    <% } %>
-                                    <div class="return-actions-row">
-                                        <button type="button" class="btn btn-success btn-sm trigger-return-decision-btn" data-decision="accepted" data-order-id="<%= order.orderId %>" data-item-id="<%= item._id %>">
-                                            <i class="fa-solid fa-check"></i> Accept Return
-                                        </button>
-                                        <button type="button" class="btn btn-danger btn-sm trigger-return-decision-btn" data-decision="rejected" data-order-id="<%= order.orderId %>" data-item-id="<%= item._id %>">
-                                            <i class="fa-solid fa-xmark"></i> Reject Return
-                                        </button>
+                        <% if (!isOrderFailed && item) { %>
+                            <% if (item.itemStatus === 'delivered' && item.returnRequestStatus === 'requested' && item.returnStatus === 'none') { %>
+                                <div class="card return-request-admin-card requested">
+                                    <div class="card-header return-card-header">
+                                        <h2><i class="fa-solid fa-clock-rotate-left"></i> Return Requested by Customer</h2>
+                                        <span class="badge badge-warning">Pending Approval</span>
+                                    </div>
+                                    <div class="card-body">
+                                        <p><strong>Customer Return Reason:</strong> <%= item.returnReason || 'No reason specified' %></p>
+                                        <% if (item.returnedAt) { %>
+                                            <small class="text-muted">Requested on: <%= new Date(item.returnedAt).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' }) %></small>
+                                        <% } %>
+                                        <div class="return-actions-row">
+                                            <button type="button" class="btn btn-success btn-sm trigger-return-decision-btn" data-decision="accepted" data-order-id="<%= order.orderId %>" data-item-id="<%= item._id %>">
+                                                <i class="fa-solid fa-check"></i> Accept Return
+                                            </button>
+                                            <button type="button" class="btn btn-danger btn-sm trigger-return-decision-btn" data-decision="rejected" data-order-id="<%= order.orderId %>" data-item-id="<%= item._id %>">
+                                                <i class="fa-solid fa-xmark"></i> Reject Return
+                                            </button>
+                                        </div>
                                     </div>
                                 </div>
-                            </div>
-                        <% } else if (item.itemStatus === 'delivered' && item.returnRequestStatus === 'rejected' && item.returnStatus === 'none') { %>
-                            <div class="card return-request-admin-card rejected">
-                                <div class="card-header return-card-header">
-                                    <h2><i class="fa-solid fa-circle-xmark"></i> Return Request Rejected</h2>
-                                    <span class="badge badge-danger">Rejected</span>
+                            <% } else if (item.itemStatus === 'delivered' && item.returnRequestStatus === 'rejected' && item.returnStatus === 'none') { %>
+                                <div class="card return-request-admin-card rejected">
+                                    <div class="card-header return-card-header">
+                                        <h2><i class="fa-solid fa-circle-xmark"></i> Return Request Rejected</h2>
+                                        <span class="badge badge-danger">Rejected</span>
+                                    </div>
+                                    <div class="card-body">
+                                        <p><strong>Customer Return Reason:</strong> <%= item.returnReason || 'No reason specified' %></p>
+                                        <p class="text-muted">You have rejected this customer return request.</p>
+                                    </div>
                                 </div>
-                                <div class="card-body">
-                                    <p><strong>Customer Return Reason:</strong> <%= item.returnReason || 'No reason specified' %></p>
-                                    <p class="text-muted">You have rejected this customer return request.</p>
-                                </div>
-                            </div>
-                        <% } %>
+                            <% } %>
 
-                        <% if (item.itemStatus === 'cancelled' && item.cancellationReason) { %>
-                            <div class="card reason-card">
-                                <div class="card-header">
-                                    <h2>Cancellation Reason</h2>
+                            <% if (item.itemStatus === 'cancelled' && item.cancellationReason) { %>
+                                <div class="card reason-card">
+                                    <div class="card-header">
+                                        <h2>Cancellation Reason</h2>
+                                    </div>
+                                    <div class="card-body">
+                                        <p class="reason-content"><%= item.cancellationReason %></p>
+                                        <% if (item.cancelledAt) { %>
+                                            <small class="text-muted">Cancelled on: <%= new Date(item.cancelledAt).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' }) %></small>
+                                        <% } %>
+                                    </div>
                                 </div>
-                                <div class="card-body">
-                                    <p class="reason-content"><%= item.cancellationReason %></p>
-                                    <% if (item.cancelledAt) { %>
-                                        <small class="text-muted">Cancelled on: <%= new Date(item.cancelledAt).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' }) %></small>
-                                    <% } %>
+                            <% } else if (item.returnStatus !== 'none' && item.returnReason) { %>
+                                <div class="card reason-card">
+                                    <div class="card-header">
+                                        <h2>Return Reason</h2>
+                                    </div>
+                                    <div class="card-body">
+                                        <p class="reason-content"><%= item.returnReason %></p>
+                                        <% if (item.returnedAt) { %>
+                                            <small class="text-muted">Return Initiated on: <%= new Date(item.returnedAt).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' }) %></small>
+                                        <% } %>
+                                    </div>
                                 </div>
-                            </div>
-                        <% } else if (item.returnStatus !== 'none' && item.returnReason) { %>
-                            <div class="card reason-card">
-                                <div class="card-header">
-                                    <h2>Return Reason</h2>
-                                </div>
-                                <div class="card-body">
-                                    <p class="reason-content"><%= item.returnReason %></p>
-                                    <% if (item.returnedAt) { %>
-                                        <small class="text-muted">Return Initiated on: <%= new Date(item.returnedAt).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' }) %></small>
-                                    <% } %>
-                                </div>
-                            </div>
+                            <% } %>
                         <% } %>
                     </div>
 
@@ -301,12 +323,12 @@
                                     <% } %>
                                     <li>
                                         <span>Shipping Fee</span>
-                                        <span class="fw-500">₹0.00</span>
+                                        <span class="fw-500">₹<%= (typeof shippingFee !== 'undefined' ? shippingFee : 0).toLocaleString('en-IN') %>.00</span>
                                     </li>
                                     <hr class="divider">
                                     <li>
                                         <span class="grand-total">Grand Total</span>
-                                        <span class="grand-total grand-total-price">₹<%= Math.max(0, grandTotal - (order.couponDiscount || 0)).toLocaleString('en-IN') %>.00</span>
+                                        <span class="grand-total grand-total-price">₹<%= grandTotal.toLocaleString('en-IN') %>.00</span>
                                     </li>
                                 </ul>
                             </div>
@@ -332,7 +354,9 @@
                                     </li>
                                     <li>
                                         <span class="text-muted">Status</span>
-                                        <% if (paymentStatus === 'Paid') { %>
+                                        <% if (isOrderFailed) { %>
+                                            <span class="badge badge-danger">Failed</span>
+                                        <% } else if (paymentStatus === 'Paid') { %>
                                             <span class="badge badge-success">Paid</span>
                                         <% } else if (paymentStatus === 'Refunded') { %>
                                             <span class="badge badge-info">Refunded</span>
@@ -346,15 +370,16 @@
 
                         <div class="card">
                             <div class="card-header card-header-flex">
-                                <h2>Order Item Status</h2>
+                                <h2><%= isOrderFailed ? 'Order Status' : 'Order Item Status' %></h2>
                                 <% 
-                                    const isCancelled = item.itemStatus === 'cancelled';
-                                    const isReturnReached = item.returnStatus === 'item reached';
-                                    const isPendingReturnRequest = item.itemStatus === 'delivered' && item.returnRequestStatus === 'requested';
-                                    const isDeliveredNoReturn = item.itemStatus === 'delivered' && item.returnStatus === 'none';
-                                    const canUpdate = !isCancelled && !isReturnReached && !isPendingReturnRequest && !isDeliveredNoReturn;
+                                    const isCancelled = !isOrderFailed && item?.itemStatus === 'cancelled';
+                                    const isReturnReached = !isOrderFailed && item?.returnStatus === 'item reached';
+                                    const isPendingReturnRequest = !isOrderFailed && item?.itemStatus === 'delivered' && item?.returnRequestStatus === 'requested';
+                                    const isDeliveredNoReturn = !isOrderFailed && item?.itemStatus === 'delivered' && item?.returnStatus === 'none';
+                                    // Strictly disable update button if order failed or item reached terminal state
+                                    const canUpdate = !isOrderFailed && !isCancelled && !isReturnReached && !isPendingReturnRequest && !isDeliveredNoReturn;
                                 %>
-                                <% if (canUpdate) { %>
+                                <% if (canUpdate && item) { %>
                                     <button type="button" class="btn btn-secondary btn-sm" id="openStatusModalBtn"
                                         data-order-id="<%= order.orderId %>"
                                         data-item-id="<%= item._id %>"
@@ -369,24 +394,26 @@
                                     <li>
                                         <span class="text-muted">Current Status</span>
                                         <div class="order-status-badge-wrapper">
-                                            <% if (item.returnStatus !== 'none') { %>
+                                            <% if (isOrderFailed) { %>
+                                                <span class="badge badge-order-failed"><i class="fa-solid fa-circle-exclamation"></i> Order Failed</span>
+                                            <% } else if (item && item.returnStatus !== 'none') { %>
                                                 <span class="badge badge-orange"><i class="fa-solid fa-rotate-left"></i> <%= item.returnStatus.charAt(0).toUpperCase() + item.returnStatus.slice(1) %></span>
-                                            <% } else if (item.itemStatus === 'delivered' && item.returnStatus === 'none') { %>
+                                            <% } else if (item && item.itemStatus === 'delivered') { %>
                                                 <span class="badge badge-success">Delivered</span>
-                                            <% } else if (item.itemStatus === 'cancelled' && item.returnStatus === 'none') { %>
+                                            <% } else if (item && item.itemStatus === 'cancelled') { %>
                                                 <span class="badge badge-danger">Cancelled</span>
-                                            <% } else if (item.itemStatus === 'packed' && item.returnStatus === 'none') { %>
+                                            <% } else if (item && item.itemStatus === 'packed') { %>
                                                 <span class="badge badge-warning">Packed</span>
-                                            <% } else if (item.itemStatus === 'shipped' && item.returnStatus === 'none') { %>
+                                            <% } else if (item && item.itemStatus === 'shipped') { %>
                                                 <span class="badge badge-info">Shipped</span>
-                                            <% } else if (item.itemStatus === 'on the way' && item.returnStatus === 'none') { %>
+                                            <% } else if (item && item.itemStatus === 'on the way') { %>
                                                 <span class="badge badge-info">On the Way</span>
-                                            <% } else if (item.itemStatus === 'out for delivery' && item.returnStatus === 'none') { %>
+                                            <% } else if (item && item.itemStatus === 'out for delivery') { %>
                                                 <span class="badge badge-warning">Out for Delivery</span>
-                                            <% } else if (item.itemStatus === 'processing' && item.returnStatus === 'none') { %>
+                                            <% } else if (item && item.itemStatus === 'processing') { %>
                                                 <span class="badge badge-info">Processing</span>
-                                            <% } else { %>
-                                                <span class="badge badge-info"><%= item.itemStatus.charAt(0).toUpperCase() + item.itemStatus.slice(1) %></span>
+                                            <% } else if (item) { %>
+                                                <span class="badge badge-info"><%= (item.itemStatus || 'Processing').charAt(0).toUpperCase() + (item.itemStatus || 'Processing').slice(1) %></span>
                                             <% } %>
                                         </div>
                                     </li>
@@ -400,39 +427,41 @@
         </div>
     </div>
 
-    <div class="modal-overlay" id="updateStatusModal">
-        <div class="modal-content modal-content-sm">
-            <div class="modal-header">
-                <h2 id="modalTitleText">Update Item Status</h2>
-                <button type="button" class="close-modal-btn" id="closeModalBtn"><i class="fa-solid fa-xmark"></i></button>
-            </div>
+    <% if (!isOrderFailed && item) { %>
+        <div class="modal-overlay" id="updateStatusModal">
+            <div class="modal-content modal-content-sm">
+                <div class="modal-header">
+                    <h2 id="modalTitleText">Update Item Status</h2>
+                    <button type="button" class="close-modal-btn" id="closeModalBtn"><i class="fa-solid fa-xmark"></i></button>
+                </div>
 
-            <div class="modal-body">
-                <form id="updateStatusForm">
-                    <input type="hidden" id="modalOrderId" value="<%= order.orderId %>">
-                    <input type="hidden" id="modalOrderItemId" value="<%= item._id %>">
+                <div class="modal-body">
+                    <form id="updateStatusForm">
+                        <input type="hidden" id="modalOrderId" value="<%= order.orderId %>">
+                        <input type="hidden" id="modalOrderItemId" value="<%= item._id %>">
 
-                    <div class="form-group mb-20">
-                        <label class="form-label-styled" id="modalLabelText">Status</label>
-                        <div class="custom-select-wrapper" id="mainStatusWrapper">
-                            <div class="custom-select-trigger form-input-style">
-                                <span id="mainStatusText">Processing</span>
-                                <i class="fa-solid fa-chevron-down custom-icon"></i>
+                        <div class="form-group mb-20">
+                            <label class="form-label-styled" id="modalLabelText">Status</label>
+                            <div class="custom-select-wrapper" id="mainStatusWrapper">
+                                <div class="custom-select-trigger form-input-style">
+                                    <span id="mainStatusText">Processing</span>
+                                    <i class="fa-solid fa-chevron-down custom-icon"></i>
+                                </div>
+                                <ul class="custom-select-options" id="modalStatusOptionsList">
+                                </ul>
+                                <input type="hidden" name="deliveryStatus" id="mainStatusInput" value="">
                             </div>
-                            <ul class="custom-select-options" id="modalStatusOptionsList">
-                            </ul>
-                            <input type="hidden" name="deliveryStatus" id="mainStatusInput" value="">
                         </div>
-                    </div>
 
-                    <div class="modal-footer">
-                        <button type="button" class="btn btn-secondary" id="cancelModalBtn">Cancel</button>
-                        <button type="submit" class="btn btn-primary" id="saveStatusBtn">Save Status</button>
-                    </div>
-                </form>
+                        <div class="modal-footer">
+                            <button type="button" class="btn btn-secondary" id="cancelModalBtn">Cancel</button>
+                            <button type="submit" class="btn btn-primary" id="saveStatusBtn">Save Status</button>
+                        </div>
+                    </form>
+                </div>
             </div>
         </div>
-    </div>
+    <% } %>
 
     <script src="/js/admin/vieworder.js"></script>
 </body>

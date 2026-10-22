@@ -1,8 +1,10 @@
 import Address from '../../models/Address.js';
 import * as addressService from '../../services/user/addressService.js';
-import {getActivePromoBanner} from '../../services/user/bannerService.js';
+import { getActivePromoBanner } from '../../services/user/bannerService.js';
 import { getUserHeaderCounts } from '../../services/user/badgeService.js';
 import logger from '../../utils/logger.js';
+import { STATUS_CODES } from '../../src/constants/httpStatusCodes.js';
+import { COMMON_MESSAGES } from '../../src/constants/commonMessages.js';
 
 export const getAddresses = async (req, res) => {
     try {
@@ -36,10 +38,10 @@ export const getAddresses = async (req, res) => {
     } catch (error) {
         logger.error(`Error loading addresses page for ${req.user?.email || 'Unknown'} (IP: ${req.ip}): ${error.message}\nStack: ${error.stack}`);
         
-        return res.status(500).json({
+        return res.status(STATUS_CODES.INTERNAL_SERVER_ERROR).json({
             success: false,
             title: "Server Error",
-            message: "An internal server error occurred while loading your addresses."
+            message: error.message || COMMON_MESSAGES.SERVER_ERROR
         });
     }
 };
@@ -69,7 +71,7 @@ export const addAddress = async (req, res) => {
 
         logger.info(`User (${userEmail}) successfully added a new address. IP: ${clientIp}`);
 
-        return res.status(201).json({ 
+        return res.status(STATUS_CODES.CREATED).json({ 
             success: true, 
             message: "Address added successfully!",
             address: newAddress
@@ -77,17 +79,17 @@ export const addAddress = async (req, res) => {
 
     } catch (error) {
         if (error.isValidationError) {
-            return res.status(400).json({
+            return res.status(STATUS_CODES.BAD_REQUEST).json({
                 success: false,
-                message: error.message
+                message: error.message || COMMON_MESSAGES.BAD_REQUEST
             });
         }
 
         logger.error(`Add Address Error for ${req.user?.email || 'Unknown'} (IP: ${req.ip}): ${error.message}\nStack: ${error.stack}`);
         
-        return res.status(500).json({ 
+        return res.status(STATUS_CODES.INTERNAL_SERVER_ERROR).json({ 
             success: false, 
-            message: "Failed to add address." 
+            message: error.message || COMMON_MESSAGES.SERVER_ERROR 
         });
     }
 };
@@ -118,15 +120,15 @@ export const editAddress = async (req, res) => {
 
         if (!result.isFound) {
             logger.warn(`Edit Address blocked: Address not found or unauthorized for ${userEmail}. IP: ${clientIp}`);
-            return res.status(404).json({ 
+            return res.status(STATUS_CODES.NOT_FOUND).json({ 
                 success: false, 
-                message: "Address not found." 
+                message: "Address not found." || COMMON_MESSAGES.NOT_FOUND 
             });
         }
 
         logger.info(`User (${userEmail}) successfully updated address ID ${address_id}. IP: ${clientIp}`);
 
-        return res.status(200).json({ 
+        return res.status(STATUS_CODES.OK).json({ 
             success: true, 
             message: "Address updated successfully!",
             address: result.address
@@ -134,17 +136,17 @@ export const editAddress = async (req, res) => {
 
     } catch (error) {
         if (error.isValidationError) {
-            return res.status(400).json({
+            return res.status(STATUS_CODES.BAD_REQUEST).json({
                 success: false,
-                message: error.message
+                message: error.message || COMMON_MESSAGES.BAD_REQUEST
             });
         }
 
         logger.error(`Edit Address Error for ${req.user?.email || 'Unknown'} (IP: ${req.ip}): ${error.message}\nStack: ${error.stack}`);
         
-        return res.status(500).json({ 
+        return res.status(STATUS_CODES.INTERNAL_SERVER_ERROR).json({ 
             success: false, 
-            message: "Failed to update address." 
+            message: error.message || COMMON_MESSAGES.SERVER_ERROR 
         });
     }
 };
@@ -160,15 +162,15 @@ export const deleteAddress = async (req, res) => {
 
         if (!result.isDeleted) {
             logger.warn(`Delete Address blocked: Address not found or unauthorized for ${userEmail}. IP: ${clientIp}`);
-            return res.status(404).json({ 
+            return res.status(STATUS_CODES.NOT_FOUND).json({ 
                 success: false, 
-                message: "Address not found." 
+                message: 'Address not found' || COMMON_MESSAGES.NOT_FOUND 
             });
         }
 
         logger.info(`User (${userEmail}) successfully deleted address ID ${address_id}. IP: ${clientIp}`);
 
-        return res.status(200).json({ 
+        return res.status(STATUS_CODES.OK).json({ 
             success: true, 
             message: "Address deleted successfully!" 
         });
@@ -176,9 +178,9 @@ export const deleteAddress = async (req, res) => {
     } catch (error) {
         logger.error(`Delete Address Error for ${req.user?.email || 'Unknown'} (IP: ${req.ip}): ${error.message}\nStack: ${error.stack}`);
         
-        return res.status(500).json({ 
+        return res.status(STATUS_CODES.INTERNAL_SERVER_ERROR).json({ 
             success: false, 
-            message: "Failed to delete address." 
+            message: error.message || COMMON_MESSAGES.SERVER_ERROR 
         });
     }
 };

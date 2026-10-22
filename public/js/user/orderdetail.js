@@ -30,12 +30,155 @@ document.addEventListener('DOMContentLoaded', () => {
     const customCancelReason = document.getElementById('customCancelReason');
     const cancelReasonRadios = document.querySelectorAll('input[name="cancelReasonRadio"]');
 
-    function showModal(el) { if (el) el.style.display = 'flex'; }
-    function hideModal(el) { if (el) el.style.display = 'none'; }
+    const retryPaymentBtn = document.getElementById('retryPaymentBtn');
+
+    function showModal(el) { if (el) el.classList.add('active'); }
+    function hideModal(el) { if (el) el.classList.remove('active'); }
+
+    if (retryPaymentBtn) {
+    retryPaymentBtn.addEventListener('click', async () => {
+        retryPaymentBtn.disabled = true;
+        retryPaymentBtn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Initializing...';
+
+        try {
+            const response = await fetch('/user/orders/retry-payment/initiate', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'CSRF-Token': csrfToken,
+                    'x-csrf-token': csrfToken
+                },
+                body: JSON.stringify({ orderId: currentOrderId })
+            });
+
+            const data = await response.json();
+
+            if (!data.success) {
+                retryPaymentBtn.disabled = false;
+                retryPaymentBtn.innerHTML = '<i class="fa-solid fa-arrow-rotate-right"></i> Retry Payment';
+                return Swal.fire({
+                    icon: 'error',
+                    title: 'Unable to Retry Payment',
+                    text: data.message || 'Could not initialize payment retry.',
+                    confirmButtonColor: '#8b0000',
+                    heightAuto: false
+                });
+            }
+
+            const cleanOrderId = currentOrderId.replace(/^#/, '');
+
+            const options = {
+                key: data.razorpayKeyId,
+                amount: data.amount,
+                currency: data.currency || 'INR',
+                name: 'HomeStation',
+                description: 'Retry Payment for ' + currentOrderId,
+                order_id: data.razorpayOrderId,
+                prefill: {
+                    name: data.customerName,
+                    email: data.customerEmail,
+                    contact: data.customerPhone
+                },
+                theme: {
+                    color: '#8b0000'
+                },
+                modal: {
+                    ondismiss: function () {
+                        retryPaymentBtn.disabled = false;
+                        retryPaymentBtn.innerHTML = '<i class="fa-solid fa-arrow-rotate-right"></i> Retry Payment';
+                        Swal.fire({
+                            icon: 'warning',
+                            title: 'Payment Cancelled',
+                            text: 'The payment was not completed.',
+                            timer: 2000,
+                            showConfirmButton: false,
+                            heightAuto: false
+                        }).then(() => {
+                            window.location.href = `/user/checkout/failure?orderId=${encodeURIComponent(cleanOrderId)}`;
+                        });
+                    }
+                },
+                handler: async function (paymentResponse) {
+                    try {
+                        retryPaymentBtn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Confirming...';
+
+                        const verifyRes = await fetch('/user/orders/retry-payment/verify', {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/json',
+                                'CSRF-Token': csrfToken,
+                                'x-csrf-token': csrfToken
+                            },
+                            body: JSON.stringify({
+                                orderId: currentOrderId,
+                                razorpay_order_id: paymentResponse.razorpay_order_id,
+                                razorpay_payment_id: paymentResponse.razorpay_payment_id,
+                                razorpay_signature: paymentResponse.razorpay_signature
+                            })
+                        });
+
+                        const verifyData = await verifyRes.json();
+
+                        if (verifyData.success) {
+                            Swal.fire({
+                                icon: 'success',
+                                title: 'Payment Successful!',
+                                text: 'Your order has been confirmed.',
+                                timer: 2000,
+                                showConfirmButton: false,
+                                heightAuto: false
+                            }).then(() => {
+                                window.location.href = verifyData.redirectUrl || `/user/checkout/success?orderId=${encodeURIComponent(currentOrderId)}`;
+                            });
+                        } else {
+                            Swal.fire({
+                                icon: 'error',
+                                title: 'Payment Failed',
+                                text: verifyData.message || 'Payment confirmation failed.',
+                                confirmButtonColor: '#8b0000',
+                                heightAuto: false
+                            }).then(() => {
+                                window.location.href = `/user/checkout/failure?orderId=${encodeURIComponent(cleanOrderId)}`;
+                            });
+                        }
+                    } catch (err) {
+                        window.location.href = `/user/checkout/failure?orderId=${encodeURIComponent(cleanOrderId)}`;
+                    }
+                }
+            };
+
+            const rzp = new Razorpay(options);
+            rzp.on('payment.failed', function (failResponse) {
+                const msg = failResponse.error?.description || 'Payment gateway transaction failed.';
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Payment Failed',
+                    text: msg,
+                    confirmButtonColor: '#8b0000',
+                    heightAuto: false
+                }).then(() => {
+                    window.location.href = `/user/checkout/failure?orderId=${encodeURIComponent(cleanOrderId)}`;
+                });
+            });
+            rzp.open();
+
+        } catch (err) {
+            retryPaymentBtn.disabled = false;
+            retryPaymentBtn.innerHTML = '<i class="fa-solid fa-arrow-rotate-right"></i> Retry Payment';
+            Swal.fire({
+                icon: 'error',
+                title: 'Network Error',
+                text: 'Unable to reach the server. Please try again.',
+                confirmButtonColor: '#8b0000',
+                heightAuto: false
+            });
+        }
+    });
+}
 
     let selectedRating = 5;
     const ratingStars = document.querySelectorAll('.rating-star');
-    
+
     function highlightStars(count) {
         ratingStars.forEach(star => {
             const val = parseInt(star.dataset.rating, 10);
@@ -176,10 +319,10 @@ document.addEventListener('DOMContentLoaded', () => {
     returnReasonRadios.forEach(radio => {
         radio.addEventListener('change', () => {
             if (radio.value === 'other') {
-                customReturnReason.style.display = 'block';
+                customReturnReason.classList.add('visible');
                 customReturnReason.focus();
             } else {
-                customReturnReason.style.display = 'none';
+                customReturnReason.classList.remove('visible');
                 customReturnReason.value = '';
             }
         });
@@ -283,10 +426,10 @@ document.addEventListener('DOMContentLoaded', () => {
     cancelReasonRadios.forEach(radio => {
         radio.addEventListener('change', () => {
             if (radio.value === 'other') {
-                customCancelReason.style.display = 'block';
+                customCancelReason.classList.add('visible');
                 customCancelReason.focus();
             } else {
-                customCancelReason.style.display = 'none';
+                customCancelReason.classList.remove('visible');
                 customCancelReason.value = '';
             }
         });
@@ -381,20 +524,4 @@ document.addEventListener('DOMContentLoaded', () => {
         if (e.target === returnModal) hideModal(returnModal);
         if (e.target === cancelOrderModal) hideModal(cancelOrderModal);
     });
-
-    const searchInput = document.getElementById('searchInput');
-    const searchBtn = document.getElementById('searchBtn');
-
-    function executeSearch() {
-        if (!searchInput) return;
-        const q = searchInput.value.trim();
-        if (q) window.location.href = `/search?q=${encodeURIComponent(q)}`;
-    }
-
-    if (searchBtn) searchBtn.addEventListener('click', executeSearch);
-    if (searchInput) {
-        searchInput.addEventListener('keypress', (e) => {
-            if (e.key === 'Enter') executeSearch();
-        });
-    }
 });

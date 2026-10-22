@@ -1,6 +1,8 @@
 import { validateRegistrationData, createLocalUser } from '../../services/user/authService.js';
 import * as userService from '../../services/admin/adminUserService.js';
 import logger from '../../utils/logger.js';
+import { STATUS_CODES } from '../../src/constants/httpStatusCodes.js';
+import { COMMON_MESSAGES } from '../../src/constants/commonMessages.js';
 
 export const getUserManagement = async (req, res) => {
     try {
@@ -50,10 +52,10 @@ export const getUserManagement = async (req, res) => {
     } catch (error) {
         logger.error(`Error loading User Management page: ${error.message}\nStack: ${error.stack}`);
 
-        return res.status(500).json({
+        return res.status(STATUS_CODES.INTERNAL_SERVER_ERROR).json({
             success: false,
             title: "Server Error",
-            message: "An internal server error occurred while loading the user management page."
+            message: error.message || COMMON_MESSAGES.SERVER_ERROR
         });
     }
 };
@@ -69,27 +71,33 @@ export const toggleUserStatus = async (req, res) => {
 
         if (result.isNotFound) {
             logger.warn(`Toggle user status failed: User ID ${user_id} not found. Attempted by: ${adminEmail}`);
-            return res.status(404).json({ success: false, message: 'User not found.' });
+            return res.status(STATUS_CODES.NOT_FOUND).json({ 
+                success: false, 
+                message: 'User not found' || COMMON_MESSAGES.NOT_FOUND 
+            });
         }
 
         if (result.isAdmin) {
             logger.warn(`Toggle user status blocked: Attempted to modify Administrator account (ID: ${user_id}). Attempted by: ${adminEmail}`);
-            return res.status(403).json({ success: false, message: 'Administrator accounts cannot be blocked.' });
+            return res.status(STATUS_CODES.FORBIDDEN).json({ 
+                success: false, 
+                message: 'Administrator accounts cannot be blocked.' || COMMON_MESSAGES.FORBIDDEN 
+            });
         }
 
         logger.info(`Admin (${adminEmail}) changed status of user "${result.userEmail}" (ID: ${user_id}) to ${result.newStatus}.`);
 
-        return res.status(200).json({ 
+        return res.status(STATUS_CODES.OK).json({ 
             success: true, 
             message: `User has been successfully ${result.newStatus === 'Active' ? 'unblocked' : 'blocked'}.` 
         });
 
     } catch (error) {
-        logger.error(`Error toggling status for User ID ${req.params.user_id}: ${error.message}\nStack: ${error.stack}`);
+        logger.error(`Error toggling status for User ID ${req.params?.user_id}: ${error.message}\nStack: ${error.stack}`);
         
-        return res.status(500).json({ 
+        return res.status(STATUS_CODES.INTERNAL_SERVER_ERROR).json({ 
             success: false, 
-            message: 'Internal server error.' 
+            message: error.message || COMMON_MESSAGES.SERVER_ERROR 
         });
     }
 };
@@ -102,7 +110,10 @@ export const addUser = async (req, res) => {
 
         if (password !== confirmPassword) {
             logger.warn(`Add user blocked: Passwords do not match for email "${email}". Attempted by: ${actorEmail}`);
-            return res.status(400).json({ success: false, message: "Passwords do not match." });
+            return res.status(STATUS_CODES.BAD_REQUEST).json({ 
+                success: false, 
+                message: "Passwords do not match." || COMMON_MESSAGES.BAD_REQUEST 
+            });
         }
 
         await validateRegistrationData(email, phone, password);
@@ -110,21 +121,21 @@ export const addUser = async (req, res) => {
 
         logger.info(`New user "${fullName}" (${email}) was created successfully by ${actorEmail}.`);
 
-        res.status(201).json({ 
+        return res.status(STATUS_CODES.CREATED).json({ 
             success: true, 
             message: "User account created successfully." 
         });
 
     } catch (error) {
-        const statusCode = error.statusCode || 500;
-        const message = error.message || "An internal server error occurred.";
+        const statusCode = error.statusCode || STATUS_CODES.INTERNAL_SERVER_ERROR;
+        const message = error.message || COMMON_MESSAGES.SERVER_ERROR;
 
-        if (statusCode >= 500) {
-            logger.error(`Critical error adding user (${req.body.email}): ${error.message}\nStack: ${error.stack}`);
+        if (statusCode >= STATUS_CODES.INTERNAL_SERVER_ERROR) {
+            logger.error(`Critical error adding user (${req.body?.email}): ${error.message}\nStack: ${error.stack}`);
         } else {
-            logger.warn(`Add user validation failed for "${req.body.email}": ${message}`);
+            logger.warn(`Add user validation failed for "${req.body?.email}": ${message}`);
         }
 
-        res.status(statusCode).json({ success: false, message });
+        return res.status(statusCode).json({ success: false, message });
     }
 };
